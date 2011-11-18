@@ -1,0 +1,44 @@
+#!/usr/bin/ruby
+
+require 'sinatra'
+require 'pathname'
+require 's3'
+
+set :port, 3100
+set :bind, 'localhost'
+set :environment, 'production'
+set :server, ['mongrel']
+set :lock, true
+
+set :s3_key_id, 'AKIAJMUYVYOSACNXLPTQ'
+set :s3_key_secret, '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'
+set :s3_bucket, 'rhthumbnails'
+
+class S3Put
+	def initialize
+		@tstamp = Time.new.to_i.to_s
+		@bucket = S3::Service.new(:access_key_id => settings.s3_key_id, :secret_access_key => settings.s3_key_secret).buckets.find(settings.s3_bucket)
+		puts "Bucket: #{@bucket}"
+	end
+
+	def put_original(image_path, io)
+		image_path = Pathname.new(image_path)
+		file_path = (image_path.dirname + @tstamp + image_path.basename).to_s
+
+		file = @bucket.objects.build(file_path)
+		# TODO: mime type
+		file.content = io.read
+		file.save
+
+		file_path
+	end
+end
+
+s3 = S3Put.new
+
+put %r{/(.*)} do |image_path|
+	urls = []
+	urls << s3.put_original(image_path, request.body)
+	return urls.join("\n")
+end
+

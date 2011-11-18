@@ -1,7 +1,10 @@
 source "http://rubygems.org"
-# Add dependencies required to use your gem here.
-# Example:
-#   gem "activesupport", ">= 2.3.5"
+
+gem "sinatra", ">= 1.2.6"
+gem "httpclient", ">= 2.2.1"
+gem "mongrel", ">= 1.1.5"
+gem "daemon", "~> 1"
+gem "s3", "~> 0.3"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
