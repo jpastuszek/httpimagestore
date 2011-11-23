@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-require 'sinatra'
+require 'sinatra/base'
 require 'pathname'
 require 's3'
 require 'httpthumbnailer-client'
@@ -8,22 +8,24 @@ require 'httpthumbnailer-client'
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'httpimagestore/thumbnail_class'
 
-set :port, 3000
-set :bind, 'localhost'
-set :environment, 'production'
-set :server, ['mongrel']
-set :lock, true
+sinatra = Sinatra.new
 
-set :s3_key_id, 'AKIAJMUYVYOSACNXLPTQ'
-set :s3_key_secret, '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'
-set :s3_bucket, 'rhthumbnails'
+sinatra.set :port, 3000
+sinatra.set :bind, 'localhost'
+sinatra.set :environment, 'production'
+sinatra.set :server, ['mongrel']
+sinatra.set :lock, true
 
-set :thumbnailer_url, "http://localhost:3100"
+sinatra.set :s3_key_id, 'AKIAJMUYVYOSACNXLPTQ'
+sinatra.set :s3_key_secret, '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'
+sinatra.set :s3_bucket, 'rhthumbnails'
+
+sinatra.set :thumbnailer_url, "http://localhost:3100"
 
 class S3Put
-	def initialize
+	def initialize(key_id, key_secret, bucket)
 		@tstamp = Time.new.to_i.to_s
-		@bucket = S3::Service.new(:access_key_id => settings.s3_key_id, :secret_access_key => settings.s3_key_secret).buckets.find(settings.s3_bucket)
+		@bucket = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret).buckets.find(bucket)
 		puts "Bucket: #{@bucket}"
 	end
 
@@ -52,12 +54,12 @@ class S3Put
 	end
 end
 
-get '/' do
+sinatra.get '/' do
 	"hello"
 end
 
-put %r{/(.*)} do |image_path|
-	s3 = S3Put.new
+sinatra.put %r{/(.*)} do |image_path|
+	s3 = S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket)
 	thumbnailer = HTTPThumbnailerClient.new(settings.thumbnailer_url)
 
 	urls = []
@@ -81,4 +83,6 @@ put %r{/(.*)} do |image_path|
 
 	return urls.join("\n")
 end
+
+sinatra.run!
 
