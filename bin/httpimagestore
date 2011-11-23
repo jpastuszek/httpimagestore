@@ -15,6 +15,7 @@ sinatra.set :bind, 'localhost'
 sinatra.set :environment, 'production'
 sinatra.set :server, ['mongrel']
 sinatra.set :lock, true
+sinatra.set :logging, true
 
 sinatra.set :s3_key_id, 'AKIAJMUYVYOSACNXLPTQ'
 sinatra.set :s3_key_secret, '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'
@@ -23,15 +24,19 @@ sinatra.set :s3_bucket, 'rhthumbnails'
 sinatra.set :thumbnailer_url, "http://localhost:3100"
 
 class S3Put
-	def initialize(key_id, key_secret, bucket)
+	def initialize(key_id, key_secret, bucket, options = {})
+		@options = options
+		@logger = (options[:logger] or Logger.new('/dev/null'))
+
 		@tstamp = Time.new.to_i.to_s
 		@bucket = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret).buckets.find(bucket)
-		puts "Bucket: #{@bucket}"
 	end
 
 	def put_original(image_path, content_type, data)
 		image_path = Pathname.new(image_path)
 		file_path = (image_path.dirname + @tstamp + image_path.basename).to_s
+
+		@logger.info "Putting origianl image in bucket '#{@bucket.name}': #{file_path}"
 
 		file = @bucket.objects.build(file_path)
 		file.content_type = content_type
@@ -44,6 +49,8 @@ class S3Put
 	def put_thumbnail(image_path, thumbnail_class, content_type, data)
 		image_path = Pathname.new(image_path)
 		file_path = (image_path.dirname + @tstamp + "#{image_path.basename(image_path.extname)}-#{thumbnail_class}#{image_path.extname}").to_s
+
+		@logger.info "Putting thumbnail image class '#{thumbnail_class}' in bucket '#{@bucket.name}': #{file_path}"
 
 		file = @bucket.objects.build(file_path)
 		file.content_type = content_type
@@ -59,7 +66,7 @@ sinatra.get '/' do
 end
 
 sinatra.put %r{/(.*)} do |image_path|
-	s3 = S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket)
+	s3 = S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
 	thumbnailer = HTTPThumbnailerClient.new(settings.thumbnailer_url)
 
 	urls = []
