@@ -16,7 +16,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
-		When I do PUT request /thumbnail/small,tiny/test/image/test.jpg
+		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
 		Then I will get the following response body
 		"""
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg

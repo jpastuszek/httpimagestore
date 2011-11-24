@@ -29,7 +29,7 @@ Given /(.*) file content as request body/ do |file|
 end
 
 When /I do (.*) request (.*)/ do |method, uri|
-	@response = server_request(method, uri, nil, @request_body)
+	@response = HTTPClient.new.request(method, uri, nil, @request_body)
 end
 
 Then /I will get matching response body/ do |body|	

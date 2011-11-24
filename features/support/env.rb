@@ -37,8 +37,8 @@ def get(url)
 	HTTPClient.new.get_content(url)
 end
 
-def server_request(method, uri, query = nil, body = nil)
-	HTTPClient.new.request(method, "http://localhost:3000#{uri}", query, body)
+def http_request(method, uri, query = nil, body = nil)
+	HTTPClient.new.request(method, uri, query, body)
 end
 
 def start_server(cmd, pid_file, log_file, test_url)
