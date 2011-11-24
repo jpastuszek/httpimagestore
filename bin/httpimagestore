@@ -11,8 +11,6 @@ require 'httpimagestore/pathname'
 
 sinatra = Sinatra.new
 
-sinatra.set :port, 3000
-sinatra.set :bind, 'localhost'
 sinatra.set :environment, 'production'
 sinatra.set :server, ['mongrel']
 sinatra.set :lock, true
