@@ -32,24 +32,31 @@ def script(file)
 		gem_dir + 'bin' + file
 end
 
-def server_get(uri)
-	HTTPClient.new.get_content("http://localhost:3000#{uri}")
+def get(url)
+	HTTPClient.new.get_content(url)
 end
 
 def server_request(method, uri, query = nil, body = nil)
 	HTTPClient.new.request(method, "http://localhost:3000#{uri}", query, body)
 end
 
-def server_start
-	File.exist?("/tmp/httpimagestore.pid") and server_stop
+def start_server(cmd, pid_file, log_file, test_url)
+	stop_server(pid_file)
+
 	fork do
-		Daemon.daemonize("/tmp/httpimagestore.pid", support_dir + 'server.log')
-		exec("bundle exec #{script('httpimagestore')} #{support_dir + 'test.cfg'}")
+		Daemon.daemonize(pid_file, log_file)
+		exec(cmd)
+	end
+	Process.wait
+
+	ppid = Process.pid
+	at_exit do
+		stop_server(pid_file) if Process.pid == ppid
 	end
 
 	Timeout.timeout(10) do
 		begin
-			server_get '/'
+			get test_url
 		rescue Errno::ECONNREFUSED
 			sleep 0.1
 			retry
@@ -57,55 +64,20 @@ def server_start
 	end
 end
 
-def server_stop
-	File.open("/tmp/httpimagestore.pid") do |pidf|
-		pid = pidf.read
+def stop_server(pid_file)
+	pid_file = Pathname.new(pid_file)
+	return unless pid_file.exist?
 
-		Timeout.timeout(20) do
-			begin
-				loop do
-					ret = Process.kill("TERM", pid.strip.to_i)
-					sleep 0.1
-				end
-			rescue Errno::ESRCH
-			end
-		end
-	end
-end
-
-def thumbnailer_get(uri)
-	HTTPClient.new.get_content("http://localhost:3100#{uri}")
-end
-
-def thumbnailer_start
-	File.exist?("/tmp/httpthumbnailer.pid") and thumbnailer_stop
-	fork do 
-		Daemon.daemonize("/tmp/httpthumbnailer.pid", support_dir + 'thumbniler.log')
-		exec("httpthumbnailer")
-	end
+	pid = pid_file.read.strip.to_i
 
 	Timeout.timeout(20) do
-		begin   
-			thumbnailer_get '/'
-		rescue Errno::ECONNREFUSED
-			sleep 0.1
-			retry
-		end
-	end
-end
-
-def thumbnailer_stop
-	File.open("/tmp/httpthumbnailer.pid") do |pidf|
-		pid = pidf.read
-
-		Timeout.timeout(10) do
-			begin   
-				loop do 
-					ret = Process.kill("TERM", pid.strip.to_i)
-					sleep 0.1
-				end
-			rescue Errno::ESRCH
+		begin
+			loop do
+				Process.kill("TERM", pid)
+				sleep 0.1
 			end
+		rescue Errno::ESRCH
+			pid_file.unlink
 		end
 	end
 end

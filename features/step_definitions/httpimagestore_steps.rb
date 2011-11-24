@@ -1,14 +1,19 @@
-Before do
-	server_start
-	thumbnailer_start
-	@request_body = nil
-	@response = nil
-	@response_multipart = nil
+Given /httpimagestore server is running/ do
+	start_server(
+		"bundle exec #{script('httpimagestore')} #{support_dir + 'test.cfg'}",
+		'/tmp/httpimagestore.pid',
+		support_dir + 'server.log',
+		'http://localhost:3000/'
+	)
 end
 
-After do
-	server_stop
-	thumbnailer_stop
+Given /httpthumbnailer server is running/ do
+	start_server(
+		"httpthumbnailer",
+		'/tmp/httpthumbnailer.pid',
+		support_dir + 'thumbniler.log',
+		'http://localhost:3100/'
+	)
 end
 
 Given /(.*) file content as request body/ do |file|

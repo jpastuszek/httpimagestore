@@ -3,6 +3,10 @@ Feature: Original image and it's thumnails generation and storing on S2
 	A user must PUT image data to URI representing it's pathi with bucket
 	The respons will be paths to files storred in S3
 
+	Background:
+		Given httpimagestore server is running
+		Given httpthumbnailer server is running
+
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request /thumbnail/small,tiny/test/image/test.jpg
