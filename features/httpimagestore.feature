@@ -6,9 +6,9 @@ Feature: Original image and it's thumnails generation and storing on S2
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request /thumbnail/small,tiny/test/image/test.jpg
-		Then I will get matching response body
+		Then I will get the following response body
 		"""
-		test/image/[^/]*/test.jpg
-		test/image/[^/]*/test-small.jpg
-		test/image/[^/]*/test-tiny.jpg
+		test/image/4006450256177f4a/test.jpg
+		test/image/4006450256177f4a/test-small.jpg
+		test/image/4006450256177f4a/test-tiny.jpg
 		"""

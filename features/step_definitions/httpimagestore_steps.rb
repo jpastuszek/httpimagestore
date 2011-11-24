@@ -23,3 +23,7 @@ Then /I will get matching response body/ do |body|
 	@response.body.should =~ Regexp.new(/^#{body}$/m)
 end
 
+Then /I will get the following response body/ do |body|	
+	@response.body.should == body
+end
+

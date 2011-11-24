@@ -4,6 +4,7 @@ require 'sinatra/base'
 require 'pathname'
 require 's3'
 require 'httpthumbnailer-client'
+require 'digest/sha2'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'httpimagestore/configuration'
@@ -58,6 +59,10 @@ sinatra.helpers do
 		headers "Content-Type" => "text/plain"
 		body "Error: #{exception.class.name}: #{exception}\n"
 	end
+
+	def digest(data)
+		Digest::SHA2.new.update(data).to_s[0,16]
+	end
 end
 
 sinatra.get '/' do
@@ -66,11 +71,12 @@ end
 
 sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	urls = []
-	tid = Time.new.to_f.to_s
+
 	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc] or fail "Class '#{tc}' not configured"}
 	image = request.body.read
+	image_hash = digest(image)
 
-	urls << @s3.put_image(Pathname.new(image_path).original_image(tid).to_s, response.headers['Content-Type'], image)
+	urls << @s3.put_image(Pathname.new(image_path).original_image(image_hash).to_s, response.headers['Content-Type'], image)
 
 	thumbs = @thumbnailer.thumbnail(image) do
 		classes.each do |tc|
@@ -79,7 +85,7 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	end
 
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(tid, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
+		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 
 	return urls.join("\n")
