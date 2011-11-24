@@ -33,5 +33,35 @@ describe Configuration do
 		tc.format.should == 'JPEG'
 		tc.options.should == {}
 	end
+
+	it "should provide S3 key id and secret" do
+		c = Configuration.new do
+			s3_key 'abc', 'xyz'
+		end.get
+
+		c.s3_key_id.should == 'abc'
+		c.s3_key_secret.should == 'xyz'
+	end
+
+	it "should provide S3 bucket" do
+		c = Configuration.new do
+			s3_bucket 'test'
+		end.get
+
+		c.s3_bucket.should == 'test'
+	end
+
+	it "should provide thumbnailer_url defaulting to http://localhost:3100" do
+		c = Configuration.new do
+		end.get
+
+		c.thumbnailer_url.should == 'http://localhost:3100'
+
+		c = Configuration.new do
+			thumbnailer_url 'http://test'
+		end.get
+
+		c.thumbnailer_url.should == 'http://test'
+	end
 end
 

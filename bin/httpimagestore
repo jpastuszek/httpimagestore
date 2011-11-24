@@ -18,12 +18,6 @@ sinatra.set :server, ['mongrel']
 sinatra.set :lock, true
 sinatra.set :logging, true
 
-sinatra.set :s3_key_id, 'AKIAJMUYVYOSACNXLPTQ'
-sinatra.set :s3_key_secret, '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'
-sinatra.set :s3_bucket, 'rhthumbnails'
-
-sinatra.set :thumbnailer_url, "http://localhost:3100"
-
 class S3Put
 	def initialize(key_id, key_secret, bucket, options = {})
 		@options = options
@@ -48,15 +42,19 @@ class S3Put
 end
 
 sinatra.before do
-	@s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
-	@thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
-
+	# singletons
 	unless @configuration
 		@configuration = Configuration.new do
+			s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
+			s3_bucket 'rhthumbnails'
+
 			thumbnail_class 'small', 'crop', 128, 128
 			thumbnail_class 'tiny', 'crop', 32, 32
 		end.get
 	end
+
+	@s3 ||= S3Put.new(@configuration.s3_key_id, @configuration.s3_key_secret, @configuration.s3_bucket, :logger => logger)
+	@thumbnailer ||= HTTPThumbnailerClient.new(@configuration.thumbnailer_url)
 end
 
 sinatra.helpers do
