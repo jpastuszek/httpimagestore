@@ -15,6 +15,7 @@ require 'timeout'
 require 'httpclient'
 require "open3"
 require "thread"
+require 'tempfile'
 
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'

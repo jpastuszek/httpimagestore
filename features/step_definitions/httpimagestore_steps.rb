@@ -1,18 +1,26 @@
-Given /httpimagestore server is running/ do
-	start_server(
-		"bundle exec #{script('httpimagestore')} #{support_dir + 'test.cfg'}",
-		'/tmp/httpimagestore.pid',
-		support_dir + 'server.log',
-		'http://localhost:3000/'
-	)
+Given /httpimagestore server is running at (.*) with the following configuration/ do |url, config|
+	cfile = Tempfile.new('httpimagestore.conf')
+	cfile.write(config)
+	cfile.close
+
+	begin
+		start_server(
+			"bundle exec #{script('httpimagestore')} #{cfile.path}",
+			'/tmp/httpimagestore.pid',
+			support_dir + 'server.log',
+			url
+		)
+	ensure
+		cfile.unlink
+	end
 end
 
-Given /httpthumbnailer server is running/ do
+Given /httpthumbnailer server is running at (.*)/ do |url|
 	start_server(
 		"httpthumbnailer",
 		'/tmp/httpthumbnailer.pid',
 		support_dir + 'thumbniler.log',
-		'http://localhost:3100/'
+		url
 	)
 end
 

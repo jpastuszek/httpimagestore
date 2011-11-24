@@ -4,8 +4,15 @@ Feature: Original image and it's thumnails generation and storing on S2
 	The respons will be paths to files storred in S3
 
 	Background:
-		Given httpimagestore server is running
-		Given httpthumbnailer server is running
+		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
+		"""
+		s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
+		s3_bucket 'rhthumbnails'
+
+		thumbnail_class 'small', 'crop', 128, 128
+		thumbnail_class 'tiny', 'crop', 32, 32
+		"""
+		Given httpthumbnailer server is running at http://localhost:3100/
 
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
