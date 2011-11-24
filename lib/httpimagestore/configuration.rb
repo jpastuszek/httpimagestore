@@ -1,4 +1,5 @@
 require 'httpimagestore/thumbnail_class'
+require 'pathname'
 
 class Configuration
 	def initialize(&block)
@@ -9,6 +10,13 @@ class Configuration
 		@bind = 'localhost'
 
 		instance_eval &block
+	end
+
+	def self.from_file(file)
+		file = Pathname.pwd + file
+		Configuration.new do
+			 eval(file.read, nil, file)
+		end
 	end
 
 	def thumbnail_class(name, method, width, height, format = 'JPEG', options = {})

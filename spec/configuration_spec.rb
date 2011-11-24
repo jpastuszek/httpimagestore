@@ -94,5 +94,39 @@ describe Configuration do
 		sinatra.settings.s3_bucket.should == 'test'
 		sinatra.settings.thumbnailer_url.should == 'http://test'
 	end
+
+	it "should load configuration from file" do
+		Dir.chdir(File.dirname(__FILE__))
+		c = Configuration.from_file('test.cfg').get
+
+		c.s3_key_id.should == 'abc'
+		c.s3_key_secret.should == 'xyz'
+		c.s3_bucket.should == 'test'
+		c.thumbnailer_url.should == 'http://test'
+
+		tc = c.thumbnail_classes['small']
+		tc.name.should == 'small'
+		tc.method.should == 'crop'
+		tc.width.should == 128
+		tc.height.should == 128
+		tc.format.should == 'JPEG'
+		tc.options.should == { :magick => 'option', :number => 42}
+
+		tc = c.thumbnail_classes['tiny']
+		tc.name.should == 'tiny'
+		tc.method.should == 'pad'
+		tc.width.should == 32
+		tc.height.should == 48
+		tc.format.should == 'PNG'
+		tc.options.should == {}
+
+		tc = c.thumbnail_classes['test']
+		tc.name.should == 'test'
+		tc.method.should == 'pad'
+		tc.width.should == 32
+		tc.height.should == 48
+		tc.format.should == 'JPEG'
+		tc.options.should == {}
+	end
 end
 
