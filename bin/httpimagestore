@@ -18,6 +18,14 @@ sinatra.set :server, ['mongrel']
 sinatra.set :lock, true
 sinatra.set :logging, true
 
+Configuration.new do
+	s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
+	s3_bucket 'rhthumbnails'
+
+	thumbnail_class 'small', 'crop', 128, 128
+	thumbnail_class 'tiny', 'crop', 32, 32
+end.put(sinatra)
+
 class S3Put
 	def initialize(key_id, key_secret, bucket, options = {})
 		@options = options
@@ -43,18 +51,8 @@ end
 
 sinatra.before do
 	# singletons
-	unless @configuration
-		@configuration = Configuration.new do
-			s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
-			s3_bucket 'rhthumbnails'
-
-			thumbnail_class 'small', 'crop', 128, 128
-			thumbnail_class 'tiny', 'crop', 32, 32
-		end.get
-	end
-
-	@s3 ||= S3Put.new(@configuration.s3_key_id, @configuration.s3_key_secret, @configuration.s3_bucket, :logger => logger)
-	@thumbnailer ||= HTTPThumbnailerClient.new(@configuration.thumbnailer_url)
+	@s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
+	@thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 end
 
 sinatra.helpers do
@@ -71,7 +69,7 @@ end
 sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	urls = []
 	tid = Time.new.to_f.to_s
-	classes = classes.split(',').map{|tc| @configuration.thumbnail_classes[tc] or fail "Class '#{tc}' not configured"}
+	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc] or fail "Class '#{tc}' not configured"}
 	image = request.body.read
 
 	urls << @s3.put_image(Pathname.new(image_path).original_image(tid).to_s, response.headers['Content-Type'], image)
