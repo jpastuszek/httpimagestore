@@ -6,7 +6,7 @@ require 's3'
 require 'httpthumbnailer-client'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-require 'httpimagestore/thumbnail_class'
+require 'httpimagestore/configuration'
 require 'httpimagestore/pathname'
 
 sinatra = Sinatra.new
@@ -51,13 +51,12 @@ sinatra.before do
 	@s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
 	@thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 
-	logger.info @thumbnail_classes
-	unless @thumbnail_classes
-		@thumbnail_classes = []
-		@thumbnail_classes << ThumbnailClass.new(:small, 'crop', 128, 128)
-		@thumbnail_classes << ThumbnailClass.new(:tiny, 'crop', 32, 32)
+	unless @configuration
+		@configuration = Configuration.new do
+			thumbnail_class 'small', 'crop', 128, 128
+			thumbnail_class 'tiny', 'crop', 32, 32
+		end.get
 	end
-	logger.info @thumbnail_classes
 end
 
 sinatra.helpers do
@@ -71,21 +70,21 @@ sinatra.get '/' do
 	"hello"
 end
 
-sinatra.put %r{/(.*)} do |image_path|
-	tid = Time.new.to_f.to_s
+sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	urls = []
-
+	tid = Time.new.to_f.to_s
+	classes = classes.split(',').map{|tc| @configuration.thumbnail_classes[tc] or fail "Class '#{tc}' not configured"}
 	image = request.body.read
+
 	urls << @s3.put_image(Pathname.new(image_path).original_image(tid).to_s, response.headers['Content-Type'], image)
 
-	tcs = @thumbnail_classes # need local variable for block
 	thumbs = @thumbnailer.thumbnail(image) do
-		tcs.each do |tc|
+		classes.each do |tc|
 			thumbnail tc.method, tc.width, tc.height, tc.format, tc.options
 		end
 	end
 
-	thumbs.zip(@thumbnail_classes).each do |thumb, thumbnail_class|
+	thumbs.zip(classes).each do |thumb, thumbnail_class|
 		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(tid, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 

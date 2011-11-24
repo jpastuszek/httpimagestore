@@ -5,7 +5,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
-		When I do PUT request /test/image/test.jpg
+		When I do PUT request /thumbnail/small,tiny/test/image/test.jpg
 		Then I will get matching response body
 		"""
 		test/image/[^/]*/test.jpg
