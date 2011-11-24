@@ -7,6 +7,7 @@ require 'httpthumbnailer-client'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'httpimagestore/thumbnail_class'
+require 'httpimagestore/pathname'
 
 sinatra = Sinatra.new
 
@@ -28,36 +29,41 @@ class S3Put
 		@options = options
 		@logger = (options[:logger] or Logger.new('/dev/null'))
 
-		@tstamp = Time.new.to_i.to_s
-		@bucket = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret).buckets.find(bucket)
+		@s3 = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret)
+
+		@logger.info "Getting bucket: #{bucket}"
+		@bucket = @s3.buckets.find(bucket) or fail "no buckte '#{bucket}' found"
 	end
 
-	def put_original(image_path, content_type, data)
-		image_path = Pathname.new(image_path)
-		file_path = (image_path.dirname + @tstamp + image_path.basename).to_s
+	def put_image(image_path, content_type, data)
+		@logger.info "Putting image in bucket '#{@bucket.name}': #{image_path}"
 
-		@logger.info "Putting origianl image in bucket '#{@bucket.name}': #{file_path}"
-
-		file = @bucket.objects.build(file_path)
+		file = @bucket.objects.build(image_path)
 		file.content_type = content_type
 		file.content = data
 		file.save
 
-		file_path
+		image_path
 	end
+end
 
-	def put_thumbnail(image_path, thumbnail_class, content_type, data)
-		image_path = Pathname.new(image_path)
-		file_path = (image_path.dirname + @tstamp + "#{image_path.basename(image_path.extname)}-#{thumbnail_class}#{image_path.extname}").to_s
+sinatra.before do
+	@s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
+	@thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 
-		@logger.info "Putting thumbnail image class '#{thumbnail_class}' in bucket '#{@bucket.name}': #{file_path}"
+	logger.info @thumbnail_classes
+	unless @thumbnail_classes
+		@thumbnail_classes = []
+		@thumbnail_classes << ThumbnailClass.new(:small, 'crop', 128, 128)
+		@thumbnail_classes << ThumbnailClass.new(:tiny, 'crop', 32, 32)
+	end
+	logger.info @thumbnail_classes
+end
 
-		file = @bucket.objects.build(file_path)
-		file.content_type = content_type
-		file.content = data
-		file.save
-
-		file_path
+sinatra.helpers do
+	def plain_exception(exception)
+		headers "Content-Type" => "text/plain"
+		body "Error: #{exception.class.name}: #{exception}\n"
 	end
 end
 
@@ -66,29 +72,28 @@ sinatra.get '/' do
 end
 
 sinatra.put %r{/(.*)} do |image_path|
-	s3 = S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
-	thumbnailer = HTTPThumbnailerClient.new(settings.thumbnailer_url)
-
+	tid = Time.new.to_f.to_s
 	urls = []
 
 	image = request.body.read
-	urls << s3.put_original(image_path, response.headers['Content-Type'], image)
+	urls << @s3.put_image(Pathname.new(image_path).original_image(tid).to_s, response.headers['Content-Type'], image)
 
-	thumbnail_classes = []
-	thumbnail_classes << ThumbnailClass.new(:small, 'crop', 128, 128)
-	thumbnail_classes << ThumbnailClass.new(:tiny, 'crop', 32, 32)
-
-	thumbs = thumbnailer.thumbnail(image) do
-		thumbnail_classes.each do |tc|
+	tcs = @thumbnail_classes # need local variable for block
+	thumbs = @thumbnailer.thumbnail(image) do
+		tcs.each do |tc|
 			thumbnail tc.method, tc.width, tc.height, tc.format, tc.options
 		end
 	end
 
-	thumbs.zip(thumbnail_classes).each do |thumb, tc|
-		urls << s3.put_thumbnail(image_path, tc.name, thumb.mime_type, thumb.data)
+	thumbs.zip(@thumbnail_classes).each do |thumb, thumbnail_class|
+		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(tid, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 
 	return urls.join("\n")
+end
+
+sinatra.error do
+	plain_exception(env['sinatra.error'])
 end
 
 sinatra.run!
