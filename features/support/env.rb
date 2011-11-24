@@ -44,7 +44,7 @@ def server_start
 	File.exist?("/tmp/httpimagestore.pid") and server_stop
 	fork do
 		Daemon.daemonize("/tmp/httpimagestore.pid", support_dir + 'server.log')
-		exec("bundle exec #{script('httpimagestore')} -p 3000")
+		exec("bundle exec #{script('httpimagestore')} #{support_dir + 'test.cfg'}")
 	end
 
 	Timeout.timeout(10) do
