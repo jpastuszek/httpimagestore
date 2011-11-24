@@ -44,7 +44,7 @@ class S3Put
 		file.content = data
 		file.save
 
-		image_path
+		"http://#{@bucket.name}.s3.amazonaws.com/#{image_path}"
 	end
 end
 

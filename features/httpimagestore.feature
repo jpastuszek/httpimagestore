@@ -8,7 +8,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		When I do PUT request /thumbnail/small,tiny/test/image/test.jpg
 		Then I will get the following response body
 		"""
-		test/image/4006450256177f4a/test.jpg
-		test/image/4006450256177f4a/test-small.jpg
-		test/image/4006450256177f4a/test-tiny.jpg
+		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
+		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
+		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg
 		"""
