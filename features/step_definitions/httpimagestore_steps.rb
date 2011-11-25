@@ -37,11 +37,11 @@ Then /response status will be (.*)/ do |status|
 end
 
 Then /response content type will be (.*)/ do |content_type|
-	@response.header['Content-Type'].first.should == 'text/plain'
+	@response.header['Content-Type'].first.should == content_type
 end
 
-Then /response body will be/ do |body|	
-	@response.body.should == body
+Then /response body will be CRLF endend lines/ do |body|	
+	@response.body.should == body.gsub!("\n", "\r\n")
 end
 
 Then /(.*) will contain (.*) image of size (.*)/ do |url, image_type, image_size|

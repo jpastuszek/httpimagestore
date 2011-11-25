@@ -18,8 +18,8 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
 		Then response status will be 200
-		And response content type will be text/plain
-		And response body will be
+		And response content type will be text/uri-list
+		And response body will be CRLF endend lines
 		"""
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
