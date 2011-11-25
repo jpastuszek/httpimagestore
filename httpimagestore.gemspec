@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
     "features/support/env.rb",
     "features/support/test.cfg",
     "features/support/test.jpg",
+    "httpimagestore.gemspec",
     "lib/httpimagestore/configuration.rb",
     "lib/httpimagestore/pathname.rb",
     "lib/httpimagestore/thumbnail_class.rb",
