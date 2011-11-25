@@ -23,3 +23,6 @@ Feature: Original image and it's thumnails generation and storing on S2
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg
 		"""
+		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
+		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
+		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32

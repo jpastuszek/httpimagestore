@@ -40,3 +40,14 @@ Then /I will get the following response body/ do |body|
 	@response.body.should == body
 end
 
+Then /(.*) will contain (.*) image of size (.*)/ do |url, image_type, image_size|
+	data = get(url)
+	Open3.popen3('identify -') do |stdin, stdout, stderr| 
+		stdin.write data
+		stdin.close
+		path, type, size, *rest = *stdout.read.split(' ')
+		type.should == image_type
+		size.should == image_size
+	end
+end
+
