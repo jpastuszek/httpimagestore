@@ -37,10 +37,6 @@ def get(url)
 	HTTPClient.new.get_content(url)
 end
 
-def http_request(method, uri, query = nil, body = nil)
-	HTTPClient.new.request(method, uri, query, body)
-end
-
 def start_server(cmd, pid_file, log_file, test_url)
 	stop_server(pid_file)
 
