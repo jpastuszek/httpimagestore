@@ -32,11 +32,15 @@ When /I do (.*) request (.*)/ do |method, uri|
 	@response = HTTPClient.new.request(method, uri, nil, @request_body)
 end
 
-Then /I will get matching response body/ do |body|	
-	@response.body.should =~ Regexp.new(/^#{body}$/m)
+Then /response status will be (.*)/ do |status|
+	@response.status.should == status.to_i
 end
 
-Then /I will get the following response body/ do |body|	
+Then /response content type will be (.*)/ do |content_type|
+	@response.header['Content-Type'].first.should == 'text/plain'
+end
+
+Then /response body will be/ do |body|	
 	@response.body.should == body
 end
 

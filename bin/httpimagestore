@@ -83,7 +83,9 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 
-	return urls.join("\n")
+	status 200
+	headers "Content-Type" => "text/plain"
+	body urls.join("\n")
 end
 
 sinatra.error do

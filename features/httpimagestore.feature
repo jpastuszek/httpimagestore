@@ -17,7 +17,9 @@ Feature: Original image and it's thumnails generation and storing on S2
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
-		Then I will get the following response body
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be
 		"""
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
 		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
@@ -26,3 +28,4 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
 		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
 		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
+
