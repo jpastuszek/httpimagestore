@@ -15,7 +15,7 @@ class Configuration
 	def self.from_file(file)
 		file = Pathname.pwd + file
 		Configuration.new do
-			 eval(file.read, nil, file)
+			 eval(file.read, nil, file.to_s)
 		end
 	end
 
