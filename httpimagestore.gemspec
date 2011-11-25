@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "0.0.2"
+  s.version = "0.0.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
@@ -30,7 +30,6 @@ Gem::Specification.new do |s|
     "features/httpimagestore.feature",
     "features/step_definitions/httpimagestore_steps.rb",
     "features/support/env.rb",
-    "features/support/test.cfg",
     "features/support/test.jpg",
     "httpimagestore.gemspec",
     "lib/httpimagestore/configuration.rb",
