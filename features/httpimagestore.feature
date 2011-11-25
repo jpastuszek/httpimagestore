@@ -7,7 +7,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
 		s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
-		s3_bucket 'rhthumbnails'
+		s3_bucket 'issthumbtest'
 
 		thumbnail_class 'small', 'crop', 128, 128
 		thumbnail_class 'tiny', 'crop', 32, 32
@@ -21,11 +21,11 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And response content type will be text/uri-list
 		And response body will be CRLF endend lines
 		"""
-		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
-		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
-		http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg
+		http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
+		http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
+		http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg
 		"""
-		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
-		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
-		And http://rhthumbnails.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
+		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
+		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
+		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
 
