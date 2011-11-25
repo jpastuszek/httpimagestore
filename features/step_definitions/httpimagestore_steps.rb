@@ -41,7 +41,7 @@ Then /response content type will be (.*)/ do |content_type|
 end
 
 Then /response body will be CRLF endend lines/ do |body|	
-	@response.body.should == body.gsub!("\n", "\r\n")
+	@response.body.should == body.gsub!("\n", "\r\n") + "\r\n"
 end
 
 Then /(.*) will contain (.*) image of size (.*)/ do |url, image_type, image_size|
