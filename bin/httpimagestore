@@ -85,7 +85,7 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 
 	status 200
 	headers "Content-Type" => "text/uri-list"
-	body urls.join("\r\n")
+	body urls.map{|u| u + "\r\n"}.join
 end
 
 sinatra.error do
