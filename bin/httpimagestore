@@ -50,9 +50,13 @@ sinatra.before do
 end
 
 sinatra.helpers do
-	def plain_exception(exception)
+	def plain_response(msg)
 		headers "Content-Type" => "text/plain"
-		body "Error: #{exception.class.name}: #{exception}\n"
+		body msg.gsub("\n", "\r\n") + "\r\n"
+	end
+
+	def plain_exception(exception)
+		plain_response("Error: #{exception.class.name}: #{exception}")
 	end
 
 	def digest(data)
@@ -88,9 +92,19 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	body urls.map{|u| u + "\r\n"}.join
 end
 
+sinatra.error 404 do
+	plain_response("Resource '#{request.path_info}' not found")
+end
+
 sinatra.error do
 	plain_exception(env['sinatra.error'])
 end
 
-sinatra.run!
+begin
+	sinatra.run!
+rescue Errno::EACCES, Errno::EADDRNOTAVAIL, SocketError => e
+	puts "Error: failed to bind HTTP server socket (#{options[:bind]}): #{e}"
+	exit 5
+end
+
 

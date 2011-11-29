@@ -31,3 +31,13 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
 
+	@test
+	Scenario: Reporitng of missing resource
+		When I do GET request http://localhost:3000/blah
+		Then response status will be 404
+		And response content type will be text/plain
+		And response body will be CRLF endend lines
+		"""
+		Resource '/blah' not found
+		"""
+
