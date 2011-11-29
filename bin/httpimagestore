@@ -45,11 +45,15 @@ end
 
 sinatra.before do
 	# singletons
-	@s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
-	@thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
+	$s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
+	$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 end
 
 sinatra.helpers do
+	def plain_exception(exception)
+		headers "Content-Type" => "text/plain"
+		body "Error: #{exception.class.name}: #{exception}\n"
+	end
 	def plain_response(msg)
 		headers "Content-Type" => "text/plain"
 		body msg.gsub("\n", "\r\n") + "\r\n"
@@ -75,16 +79,16 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	image = request.body.read
 	image_hash = digest(image)
 
-	urls << @s3.put_image(Pathname.new(image_path).original_image(image_hash).to_s, response.headers['Content-Type'], image)
+	urls << $s3.put_image(Pathname.new(image_path).original_image(image_hash).to_s, response.headers['Content-Type'], image)
 
-	thumbs = @thumbnailer.thumbnail(image) do
+	thumbs = $thumbnailer.thumbnail(image) do
 		classes.each do |tc|
 			thumbnail tc.method, tc.width, tc.height, tc.format, tc.options
 		end
 	end
 
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		urls << @s3.put_image(Pathname.new(image_path).thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
+		urls << $s3.put_image(Pathname.new(image_path).thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 
 	status 200
@@ -106,5 +110,4 @@ rescue Errno::EACCES, Errno::EADDRNOTAVAIL, SocketError => e
 	puts "Error: failed to bind HTTP server socket (#{options[:bind]}): #{e}"
 	exit 5
 end
-
 

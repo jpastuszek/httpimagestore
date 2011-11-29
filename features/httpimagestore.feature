@@ -16,6 +16,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
 
+	@test
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
@@ -31,7 +32,6 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
 
-	@test
 	Scenario: Reporitng of missing resource
 		When I do GET request http://localhost:3000/blah
 		Then response status will be 404
