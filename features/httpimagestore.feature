@@ -16,7 +16,6 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
 
-	@test
 	Scenario: Putting thumbnails and original to S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
@@ -39,5 +38,16 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And response body will be CRLF endend lines
 		"""
 		Resource '/blah' not found
+		"""
+
+	@test
+	Scenario: Reporitng of unsupported media type
+		Given test.txt file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
+		Then response status will be 415
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: HTTPThumbnailerClient::UnsupportedMediaTypeError:
 		"""
 

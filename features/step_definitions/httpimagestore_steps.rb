@@ -48,7 +48,14 @@ Then /response content type will be (.*)/ do |content_type|
 	@response.header['Content-Type'].first.should == content_type
 end
 
-Then /response body will be CRLF endend lines/ do |body|	
+Then /response body will be CRLF endend lines like/ do |body|	
+	@response.body.should match(body)
+	@response.body.each do |line|
+		line[-2,2].should == "\r\n"
+	end
+end
+
+Then /response body will be CRLF endend lines$/ do |body|	
 	@response.body.should == body.gsub("\n", "\r\n") + "\r\n"
 end
 

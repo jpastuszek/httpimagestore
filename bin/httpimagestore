@@ -96,6 +96,11 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	body urls.map{|u| u + "\r\n"}.join
 end
 
+sinatra.error HTTPThumbnailerClient::UnsupportedMediaTypeError do
+	plain_exception(env['sinatra.error'])
+	halt 415
+end
+
 sinatra.error 404 do
 	plain_response("Resource '#{request.path_info}' not found")
 end
