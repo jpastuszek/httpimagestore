@@ -16,6 +16,7 @@ require 'httpclient'
 require "open3"
 require "thread"
 require 'tempfile'
+require 'RMagick'
 
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'

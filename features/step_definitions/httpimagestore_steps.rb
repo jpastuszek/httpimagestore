@@ -24,6 +24,14 @@ Given /httpthumbnailer server is running at (.*)/ do |url|
 	)
 end
 
+Given /httpimagestore log is empty/ do
+		(support_dir + 'server.log').truncate(0)
+end
+
+Given /httpthumbnailer log is empty/ do
+		(support_dir + 'thumbniler.log').truncate(0)
+end
+
 Given /(.*) file content as request body/ do |file|
 	@request_body = File.open(support_dir + file){|f| f.read }
 end
@@ -41,17 +49,17 @@ Then /response content type will be (.*)/ do |content_type|
 end
 
 Then /response body will be CRLF endend lines/ do |body|	
-	@response.body.should == body.gsub!("\n", "\r\n") + "\r\n"
+	@response.body.should == body.gsub("\n", "\r\n") + "\r\n"
 end
 
-Then /(.*) will contain (.*) image of size (.*)/ do |url, image_type, image_size|
+Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
 	data = get(url)
-	Open3.popen3('identify -') do |stdin, stdout, stderr| 
-		stdin.write data
-		stdin.close
-		path, type, size, *rest = *stdout.read.split(' ')
-		type.should == image_type
-		size.should == image_size
-	end
+	
+	@image.destroy! if @image
+	@image = Magick::Image.from_blob(data).first
+
+	@image.format.should == format
+	@image.columns.should == width.to_i
+	@image.rows.should == height.to_i
 end
 
