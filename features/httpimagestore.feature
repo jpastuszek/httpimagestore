@@ -12,6 +12,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 
 		thumbnail_class 'small', 'crop', 128, 128
 		thumbnail_class 'tiny', 'crop', 32, 32
+		thumbnail_class 'bad', 'crop', 0, 0
 		"""
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
@@ -40,7 +41,6 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Resource '/blah' not found
 		"""
 
-	@test
 	Scenario: Reporitng of unsupported media type
 		Given test.txt file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
@@ -49,5 +49,15 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And response body will be CRLF endend lines like
 		"""
 		Error: HTTPThumbnailerClient::UnsupportedMediaTypeError:
+		"""
+
+	Scenario: Reporitng of thumbnailing errors
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small,tiny,bad/test/image/test.jpg
+		Then response status will be 500
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: RuntimeError: Thumbnailing for class 'bad' failed:
 		"""
 

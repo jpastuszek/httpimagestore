@@ -79,13 +79,19 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	image = request.body.read
 	image_hash = digest(image)
 
-	urls << $s3.put_image(Pathname.new(image_path).original_image(image_hash).to_s, response.headers['Content-Type'], image)
-
 	thumbs = $thumbnailer.thumbnail(image) do
 		classes.each do |tc|
 			thumbnail tc.method, tc.width, tc.height, tc.format, tc.options
 		end
 	end
+
+	# check for errors
+	thumbs.zip(classes).each do |thumb, thumbnail_class|
+		raise "Thumbnailing for class '#{thumbnail_class.name}' failed: #{thumb.message.strip}" if thumb.kind_of? HTTPThumbnailerClient::ThumbnailingError
+	end
+
+	# store all images
+	urls << $s3.put_image(Pathname.new(image_path).original_image(image_hash).to_s, response.headers['Content-Type'], image)
 
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
 		urls << $s3.put_image(Pathname.new(image_path).thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
