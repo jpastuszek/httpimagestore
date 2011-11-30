@@ -87,3 +87,13 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Error: Configuration::ThumbnailClassDoesNotExistError: Class 'bogous' does not exist
 		"""
 
+	Scenario: Handling of bad path
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small/
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: BadRequestError: Path is empty
+		"""
+
