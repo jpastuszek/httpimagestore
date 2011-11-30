@@ -17,6 +17,7 @@ require "open3"
 require "thread"
 require 'tempfile'
 require 'RMagick'
+require 's3'
 
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'

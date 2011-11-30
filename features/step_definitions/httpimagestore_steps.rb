@@ -36,6 +36,14 @@ Given /(.*) file content as request body/ do |file|
 	@request_body = File.open(support_dir + file){|f| f.read }
 end
 
+Given /(.*) S3 bucket with key (.*) and secret (.*)/ do |bucket, key_id, key_secret|
+		@bucket = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret).buckets.find(bucket)
+end
+
+Given /there is no (.*) file in S3 bucket/ do |path|
+	@bucket.objects.find(path).destroy rescue S3::Error::NoSuchKey
+end
+
 When /I do (.*) request (.*)/ do |method, uri|
 	@response = HTTPClient.new.request(method, uri, nil, @request_body)
 end
@@ -68,5 +76,14 @@ Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, he
 	@image.format.should == format
 	@image.columns.should == width.to_i
 	@image.rows.should == height.to_i
+end
+
+Then /S3 bucket will not contain (.*)/ do |path|
+	begin
+		@bucket.objects.find(path)
+		true.should eq(false, "object #{path} found in bucket")
+	rescue S3::Error::NoSuchKey
+		true.should == true
+	end
 end
 

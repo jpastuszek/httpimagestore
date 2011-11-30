@@ -16,8 +16,12 @@ Feature: Original image and it's thumnails generation and storing on S2
 		"""
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
+		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
 
 	Scenario: Putting thumbnails and original to S3 bucket
+		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
 		Then response status will be 200
@@ -42,6 +46,9 @@ Feature: Original image and it's thumnails generation and storing on S2
 		"""
 
 	Scenario: Reporitng of unsupported media type
+		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
 		Given test.txt file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
 		Then response status will be 415
@@ -50,8 +57,14 @@ Feature: Original image and it's thumnails generation and storing on S2
 		"""
 		Error: HTTPThumbnailerClient::UnsupportedMediaTypeError:
 		"""
+		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
+		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
+		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
 
-	Scenario: Reporitng of thumbnailing errors
+	Scenario: Reporitng and handling of thumbnailing errors
+		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
+		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny,bad/test/image/test.jpg
 		Then response status will be 500
@@ -60,4 +73,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		"""
 		Error: RuntimeError: Thumbnailing for class 'bad' failed:
 		"""
+		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
+		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
+		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
 
