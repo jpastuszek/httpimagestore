@@ -66,6 +66,15 @@ sinatra.helpers do
 
 	class BadRequestError < RuntimeError
 	end
+
+	class ThumbnailingError < RuntimeError
+		def initialize(thumbnail_class, remote_error)
+			@remote_error = remote_error
+			super "Thumbnailing for class '#{thumbnail_class.name}' failed: #{remote_error.message}"
+		end
+
+		attr_reader :remote_error
+	end
 end
 
 sinatra.get '/' do
@@ -88,7 +97,7 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 
 	# check for errors
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		raise "Thumbnailing for class '#{thumbnail_class.name}' failed: #{thumb.message.strip}" if thumb.kind_of? HTTPThumbnailerClient::ThumbnailingError
+		raise ThumbnailingError.new(thumbnail_class, thumb) if thumb.kind_of? HTTPThumbnailerClient::ThumbnailingError
 	end
 
 	urls = []
@@ -111,6 +120,17 @@ end
 
 sinatra.error HTTPThumbnailerClient::ImageTooLargeError do
 	halt_exception(413, env['sinatra.error'])
+end
+
+# problem with singe thumbnail
+sinatra.error ThumbnailingError do
+	e = env['sinatra.error']
+	case e.remote_error.type
+	when "Thumbnailer::ImageTooLargeError"
+		halt_exception(413, e)
+	else
+		halt_exception(500, e)
+	end
 end
 
 sinatra.error BadRequestError do

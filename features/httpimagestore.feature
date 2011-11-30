@@ -13,6 +13,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		thumbnail_class 'small', 'crop', 128, 128
 		thumbnail_class 'tiny', 'crop', 32, 32
 		thumbnail_class 'bad', 'crop', 0, 0
+		thumbnail_class 'superlarge', 'crop', 16000, 16000
 		"""
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
@@ -71,7 +72,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And response content type will be text/plain
 		And response body will be CRLF endend lines like
 		"""
-		Error: RuntimeError: Thumbnailing for class 'bad' failed:
+		Error: ThumbnailingError: Thumbnailing for class 'bad' failed: Error: ArgumentError:
 		"""
 		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
@@ -97,8 +98,7 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Error: BadRequestError: Path is empty
 		"""
 
-	@test
-	Scenario: Too large image
+	Scenario: Too large image - uploaded image too big to load
 		Given test-large.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small/test/image/test.jpg
 		Then response status will be 413
@@ -106,5 +106,15 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And response body will be CRLF endend lines like
 		"""
 		Error: HTTPThumbnailerClient::ImageTooLargeError:
+		"""
+
+	Scenario: Too large image - memory exhausted when thmbnailing
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/superlarge/test/image/test.jpg
+		Then response status will be 413
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: ThumbnailingError: Thumbnailing for class 'superlarge' failed: Error: Thumbnailer::ImageTooLargeError:
 		"""
 
