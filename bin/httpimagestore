@@ -50,17 +50,14 @@ sinatra.before do
 end
 
 sinatra.helpers do
-	def plain_exception(exception)
-		headers "Content-Type" => "text/plain"
-		body "Error: #{exception.class.name}: #{exception}\n"
-	end
-	def plain_response(msg)
+	def hatl_response(status, msg)
 		headers "Content-Type" => "text/plain"
 		body msg.gsub("\n", "\r\n") + "\r\n"
+		halt status
 	end
 
-	def plain_exception(exception)
-		plain_response("Error: #{exception.class.name}: #{exception}")
+	def halt_exception(status, exception)
+		hatl_response(status, "Error: #{exception.class.name}: #{exception}")
 	end
 
 	def digest(data)
@@ -75,7 +72,7 @@ end
 sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	urls = []
 
-	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc] or fail "Class '#{tc}' not configured"}
+	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc]}
 	image = request.body.read
 	image_hash = digest(image)
 
@@ -103,16 +100,19 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 end
 
 sinatra.error HTTPThumbnailerClient::UnsupportedMediaTypeError do
-	plain_exception(env['sinatra.error'])
-	halt 415
+	halt_exception(415, env['sinatra.error'])
 end
 
-sinatra.error 404 do
-	plain_response("Resource '#{request.path_info}' not found")
+sinatra.error Configuration::ThumbnailClassDoesNotExistError do
+	halt_exception(404, env['sinatra.error'])
+end
+
+sinatra.error Sinatra::NotFound do
+	hatl_response(404, "Resource '#{request.path_info}' not found")
 end
 
 sinatra.error do
-	plain_exception(env['sinatra.error'])
+	halt_exception(500, env['sinatra.error'])
 end
 
 begin

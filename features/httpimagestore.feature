@@ -77,3 +77,13 @@ Feature: Original image and it's thumnails generation and storing on S2
 		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
 
+	Scenario: Reporting of missing class error
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small,bogous,bad/test/image/test.jpg
+		Then response status will be 404
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: Configuration::ThumbnailClassDoesNotExistError: Class 'bogous' does not exist
+		"""
+

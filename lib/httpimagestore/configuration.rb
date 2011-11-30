@@ -2,8 +2,17 @@ require 'httpimagestore/thumbnail_class'
 require 'pathname'
 
 class Configuration
+	class ThumbnailClassDoesNotExistError < RuntimeError
+		def initialize(name)
+			super "Class '#{name}' does not exist"
+		end
+	end
+
 	def initialize(&block)
-		@thumbnail_classes = {}
+		@thumbnail_classes = Hash.new do |h, k|
+			raise ThumbnailClassDoesNotExistError, k
+		end
+
 		@thumbnailer_url = "http://localhost:3100"
 
 		@port = 3000
