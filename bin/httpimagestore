@@ -109,6 +109,10 @@ sinatra.error HTTPThumbnailerClient::UnsupportedMediaTypeError do
 	halt_exception(415, env['sinatra.error'])
 end
 
+sinatra.error HTTPThumbnailerClient::ImageTooLargeError do
+	halt_exception(413, env['sinatra.error'])
+end
+
 sinatra.error BadRequestError do
 	halt_exception(400, env['sinatra.error'])
 end

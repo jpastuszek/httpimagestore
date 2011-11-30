@@ -97,3 +97,14 @@ Feature: Original image and it's thumnails generation and storing on S2
 		Error: BadRequestError: Path is empty
 		"""
 
+	@test
+	Scenario: Too large image
+		Given test-large.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small/test/image/test.jpg
+		Then response status will be 413
+		And response content type will be text/plain
+		And response body will be CRLF endend lines like
+		"""
+		Error: HTTPThumbnailerClient::ImageTooLargeError:
+		"""
+
