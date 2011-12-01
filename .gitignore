@@ -51,3 +51,4 @@ pkg
 *.pid
 *.log
 
+features.*
