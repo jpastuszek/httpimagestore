@@ -15,9 +15,6 @@ class Configuration
 
 		@thumbnailer_url = "http://localhost:3100"
 
-		@port = 3000
-		@bind = 'localhost'
-
 		instance_eval &block
 	end
 
@@ -45,16 +42,8 @@ class Configuration
 		@thumbnailer_url = url
 	end
 
-	def port(no)
-		@port = no
-	end
-
-	def bind(address)
-		@bind = address
-	end
-
 	def get
-		Struct.new(:thumbnail_classes, :s3_key_id, :s3_key_secret, :s3_bucket, :thumbnailer_url, :port, :bind).new(@thumbnail_classes, @s3_key_id, @s3_key_secret, @s3_bucket, @thumbnailer_url, @port, @bind)
+		Struct.new(:thumbnail_classes, :s3_key_id, :s3_key_secret, :s3_bucket, :thumbnailer_url).new(@thumbnail_classes, @s3_key_id, @s3_key_secret, @s3_bucket, @thumbnailer_url)
 	end
 
 	def put(sinatra)

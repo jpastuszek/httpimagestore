@@ -65,22 +65,6 @@ describe Configuration do
 		c.thumbnailer_url.should == 'http://test'
 	end
 
-	it "should provide port and bind address and defaults" do
-		c = Configuration.new do
-		end.get
-
-		c.port.should == 3000
-		c.bind.should == 'localhost'
-
-		c = Configuration.new do
-			port 123
-			bind 'blah'
-		end.get
-
-		c.port.should == 123
-		c.bind.should == 'blah'
-	end
-
 	it "can set sinatra settings with configured keys" do
 		sinatra = Sinatra.new
 		c = Configuration.new do

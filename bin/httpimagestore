@@ -1,5 +1,14 @@
 #!/usr/bin/ruby
 
+require 'cli'
+options = CLI.new do
+	description 'HTTP based image storage and thumbnailer'
+	option :bind, :short => :b, :default => 'localhost', :description => "HTTP server bind address"
+	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
+	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
+	argument :config, :cast => Pathname, :description => "Configuration file path"
+end.parse!
+
 require 'sinatra/base'
 require 'pathname'
 require 's3'
@@ -12,13 +21,14 @@ require 'httpimagestore/pathname'
 
 sinatra = Sinatra.new
 
+sinatra.set :port, options.port
+sinatra.set :bind, options.bind
 sinatra.set :environment, 'production'
-sinatra.set :server, ['mongrel']
+sinatra.set :server, options.server
 sinatra.set :lock, true
 sinatra.set :logging, true
 
-conf_file = ARGV[0] or fail "no configuration file given (ARGV[0])"
-Configuration.from_file(conf_file).put(sinatra)
+Configuration.from_file(options.config).put(sinatra)
 
 class S3Put
 	def initialize(key_id, key_secret, bucket, options = {})
@@ -149,10 +159,5 @@ sinatra.error do
 	halt_exception(500, env['sinatra.error'])
 end
 
-begin
-	sinatra.run!
-rescue Errno::EACCES, Errno::EADDRNOTAVAIL, SocketError => e
-	puts "Error: failed to bind HTTP server socket (#{options[:bind]}): #{e}"
-	exit 5
-end
+sinatra.run!
 
