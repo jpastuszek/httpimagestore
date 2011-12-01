@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 
+require 'pathname'
 require 'cli'
 options = CLI.new do
 	description 'HTTP based image storage and thumbnailer'
@@ -10,7 +11,6 @@ options = CLI.new do
 end.parse!
 
 require 'sinatra/base'
-require 'pathname'
 require 's3'
 require 'httpthumbnailer-client'
 require 'digest/sha2'
