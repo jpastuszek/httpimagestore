@@ -1,10 +1,12 @@
 #!/usr/bin/ruby
 
+require 'ip'
 require 'pathname'
 require 'cli'
+
 options = CLI.new do
 	description 'HTTP based image storage and thumbnailer'
-	option :bind, :short => :b, :default => 'localhost', :description => "HTTP server bind address"
+	option :bind, :short => :b, :default => IP.new('127.0.0.1'), :cast => IP, :description => "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
 	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
 	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
 	argument :config, :cast => Pathname, :description => "Configuration file path"
@@ -22,7 +24,7 @@ require 'httpimagestore/pathname'
 sinatra = Sinatra.new
 
 sinatra.set :port, options.port
-sinatra.set :bind, options.bind
+sinatra.set :bind, options.bind.to_s
 sinatra.set :environment, 'production'
 sinatra.set :server, options.server
 sinatra.set :lock, true

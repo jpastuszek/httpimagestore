@@ -4,6 +4,7 @@ gem "sinatra", ">= 1.2.6"
 gem "mongrel", ">= 1.1.5"
 gem "s3", "~> 0.3"
 gem "httpthumbnailer-client", "~> 0.0.3"
+gem "ruby-ip", "~> 0.9"
 gem "cli", "~> 0.0"
 
 # Add dependencies to develop your gem here.
