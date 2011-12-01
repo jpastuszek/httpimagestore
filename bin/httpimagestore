@@ -6,6 +6,7 @@ require 'cli'
 
 options = CLI.new do
 	description 'HTTP based image storage and thumbnailer'
+	switch :no_bind, :description => "Do not bind to TCP socket - useful with -s fastcgi option"
 	option :bind, :short => :b, :default => IP.new('127.0.0.1'), :cast => IP, :description => "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
 	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
 	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
@@ -23,8 +24,13 @@ require 'httpimagestore/pathname'
 
 sinatra = Sinatra.new
 
-sinatra.set :port, options.port
-sinatra.set :bind, options.bind.to_s
+unless options.no_bind
+	sinatra.set :port, options.port
+	sinatra.set :bind, options.bind.to_s
+else
+	sinatra.set :port, nil
+	sinatra.set :bind, nil
+end
 sinatra.set :environment, 'production'
 sinatra.set :server, options.server
 sinatra.set :lock, true

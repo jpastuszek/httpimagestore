@@ -5,7 +5,7 @@ gem "mongrel", ">= 1.1.5"
 gem "s3", "~> 0.3"
 gem "httpthumbnailer-client", "~> 0.0.3"
 gem "ruby-ip", "~> 0.9"
-gem "cli", "~> 0.0"
+gem "cli", "~> 0.0.3"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
