@@ -44,8 +44,13 @@ Given /there is no (.*) file in S3 bucket/ do |path|
 	@bucket.objects.find(path).destroy rescue S3::Error::NoSuchKey
 end
 
+Given /(.*) header set to (.*)/ do |header, value|
+	@request_headers ||= {}
+	@request_headers[header] = value
+end
+
 When /I do (.*) request (.*)/ do |method, uri|
-	@response = HTTPClient.new.request(method, uri, nil, @request_body)
+	@response = HTTPClient.new.request(method, uri, nil, @request_body, (@request_headers or {}))
 end
 
 Then /response status will be (.*)/ do |status|
@@ -65,6 +70,10 @@ end
 
 Then /response body will be CRLF ended lines$/ do |body|	
 	@response.body.should == body.gsub("\n", "\r\n") + "\r\n"
+end
+
+Then /(http.*) content type will be (.*)/ do |url, content_type|
+	get_headers(url)['Content-Type'].should == content_type
 end
 
 Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|

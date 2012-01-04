@@ -125,7 +125,7 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 	urls = []
 
 	# store all images
-	urls << $s3.put_image(image_path.original_image(image_hash).to_s, response.headers['Content-Type'], image)
+	urls << $s3.put_image(image_path.original_image(image_hash).to_s, thumbs.input_mime_type, image)
 
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
 		urls << $s3.put_image(image_path.thumbnail_image(image_hash, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)

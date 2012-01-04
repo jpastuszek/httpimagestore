@@ -39,6 +39,10 @@ def get(url)
 	HTTPClient.new.get_content(url)
 end
 
+def get_headers(url)
+	HTTPClient.new.get(url).headers
+end
+
 def start_server(cmd, pid_file, log_file, test_url)
 	stop_server(pid_file)
 
