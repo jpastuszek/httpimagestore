@@ -14,6 +14,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		thumbnail_class 'tiny', 'crop', 32, 32
 		thumbnail_class 'bad', 'crop', 0, 0
 		thumbnail_class 'superlarge', 'crop', 16000, 16000
+		thumbnail_class 'large_png', 'crop', 7000, 7000, 'PNG'
 		"""
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
@@ -100,7 +101,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 
 	Scenario: Too large image - uploaded image too big to fit in memory limit
 		Given test-large.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small/test/image/test.jpg
+		When I do PUT request http://localhost:3000/thumbnail/large_png/test/image/test.jpg
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
