@@ -34,6 +34,7 @@ GEM
       git (>= 1.2.5)
       rake
     json (1.6.2)
+    mime-types (1.17.2)
     mongrel (1.1.5)
       cgi_multipart_eof_fix (>= 2.4)
       daemons (>= 1.0.3)
@@ -84,6 +85,7 @@ DEPENDENCIES
   httpthumbnailer (~> 0.1.0)
   httpthumbnailer-client (~> 0.1.0)
   jeweler (~> 1.6.4)
+  mime-types (~> 1.17.2)
   mongrel (>= 1.1.5)
   prawn (= 0.8.4)
   rcov
