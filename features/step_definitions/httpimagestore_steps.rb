@@ -50,7 +50,7 @@ Given /(.*) header set to (.*)/ do |header, value|
 end
 
 When /I do (.*) request (.*)/ do |method, uri|
-	@response = HTTPClient.new.request(method, uri, nil, @request_body, (@request_headers or {}))
+	@response = HTTPClient.new.request(method, URI.encode(uri), nil, @request_body, (@request_headers or {}))
 end
 
 Then /response status will be (.*)/ do |status|

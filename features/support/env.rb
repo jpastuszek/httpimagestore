@@ -36,11 +36,11 @@ def script(file)
 end
 
 def get(url)
-	HTTPClient.new.get_content(url)
+	HTTPClient.new.get_content(URI.encode(url))
 end
 
 def get_headers(url)
-	HTTPClient.new.get(url).headers
+	HTTPClient.new.get(URI.encode(url)).headers
 end
 
 def start_server(cmd, pid_file, log_file, test_url)
