@@ -48,8 +48,8 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		http://issthumbtest.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg
-		http://issthumbtest.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg
+		http://issthumbtest.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95.jpg
+		http://issthumbtest.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95-small.jpg
 		"""
 		And http://issthumbtest.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
 		And http://issthumbtest.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128

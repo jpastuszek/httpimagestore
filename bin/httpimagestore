@@ -9,6 +9,7 @@ options = CLI.new do
 	switch :no_bind, :description => "Do not bind to TCP socket - useful with -s fastcgi option"
 	switch :no_logging, :description => "Disable logging"
 	switch :debug, :description => "Enable debugging"
+	switch :no_uri_encode, :description => "Disable output URI encoding"
 	option :bind, :short => :b, :default => IP.new('127.0.0.1'), :cast => IP, :description => "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
 	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
 	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
@@ -38,6 +39,7 @@ sinatra.set :server, options.server
 sinatra.set :lock, true
 sinatra.set :logging, (not options.no_logging)
 sinatra.set :debug, options.debug
+sinatra.set :uri_encode, (not options.no_uri_encode)
 
 Configuration.from_file(options.config).put(sinatra)
 
@@ -133,7 +135,8 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 
 	status 200
 	headers "Content-Type" => "text/uri-list"
-	body urls.map{|u| u + "\r\n"}.join
+
+	body urls.map{|u| settings.uri_encode ? URI.encode(u) : u}.map{|u| u + "\r\n"}.join
 end
 
 sinatra.error HTTPThumbnailerClient::UnsupportedMediaTypeError do
