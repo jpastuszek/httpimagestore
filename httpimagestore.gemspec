@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "0.2.0"
+  s.version = "0.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
@@ -35,10 +35,11 @@ Gem::Specification.new do |s|
     "features/support/test.txt",
     "httpimagestore.gemspec",
     "lib/httpimagestore/configuration.rb",
-    "lib/httpimagestore/pathname.rb",
+    "lib/httpimagestore/image_path.rb",
+    "lib/httpimagestore/s3_service.rb",
     "lib/httpimagestore/thumbnail_class.rb",
     "spec/configuration_spec.rb",
-    "spec/pathname_spec.rb",
+    "spec/image_path_spec.rb",
     "spec/spec_helper.rb",
     "spec/test.cfg"
   ]
@@ -59,7 +60,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<ruby-ip>, ["~> 0.9"])
       s.add_runtime_dependency(%q<cli>, ["~> 1.1.0"])
       s.add_runtime_dependency(%q<mime-types>, ["~> 1.17.2"])
-      s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
+      s.add_development_dependency(%q<rspec>, ["~> 2.8.0"])
       s.add_development_dependency(%q<cucumber>, [">= 0"])
       s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.4"])
@@ -76,7 +77,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<ruby-ip>, ["~> 0.9"])
       s.add_dependency(%q<cli>, ["~> 1.1.0"])
       s.add_dependency(%q<mime-types>, ["~> 1.17.2"])
-      s.add_dependency(%q<rspec>, ["~> 2.3.0"])
+      s.add_dependency(%q<rspec>, ["~> 2.8.0"])
       s.add_dependency(%q<cucumber>, [">= 0"])
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
@@ -94,7 +95,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<ruby-ip>, ["~> 0.9"])
     s.add_dependency(%q<cli>, ["~> 1.1.0"])
     s.add_dependency(%q<mime-types>, ["~> 1.17.2"])
-    s.add_dependency(%q<rspec>, ["~> 2.3.0"])
+    s.add_dependency(%q<rspec>, ["~> 2.8.0"])
     s.add_dependency(%q<cucumber>, [">= 0"])
     s.add_dependency(%q<bundler>, ["~> 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
