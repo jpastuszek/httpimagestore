@@ -17,13 +17,13 @@ options = CLI.new do
 end.parse!
 
 require 'sinatra/base'
-require 's3'
 require 'httpthumbnailer-client'
 require 'digest/sha2'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'httpimagestore/configuration'
 require 'httpimagestore/image_path'
+require 'httpimagestore/s3_service'
 
 sinatra = Sinatra.new
 
@@ -43,32 +43,6 @@ sinatra.set :uri_encode, (not options.no_uri_encode)
 
 Configuration.from_file(options.config).put(sinatra)
 
-class S3Put
-	def initialize(key_id, key_secret, bucket, options = {})
-		@options = options
-		@logger = (options[:logger] or Logger.new('/dev/null'))
-
-		@s3 = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret)
-
-		@logger.info "Getting bucket: #{bucket}"
-		@bucket = @s3.buckets.find(bucket) or fail "no buckte '#{bucket}' found"
-	end
-
-	def put_image(image_path, content_type, data)
-		@logger.info "Putting image in bucket '#{@bucket.name}': #{image_path}"
-
-		file = @bucket.objects.build(image_path)
-		file.content_type = content_type
-		file.content = data
-		file.save
-
-		"http://#{@bucket.name}.s3.amazonaws.com/#{image_path}"
-	end
-end
-
-class BadRequestError < RuntimeError
-end
-
 class ThumbnailingError < RuntimeError
 	def initialize(thumbnail_class, remote_error)
 		@remote_error = remote_error
@@ -81,7 +55,7 @@ end
 sinatra.before do
 	logger.level = Logger::DEBUG if settings.logging and settings.debug
 	# singletons
-	$s3 ||= S3Put.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
+	$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
 	$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 end
 
@@ -105,8 +79,8 @@ sinatra.get '/' do
 	"hello"
 end
 
-sinatra.put %r{/thumbnail/([^/]*)/?(.*)} do |classes, image_path|
-	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc]}
+sinatra.put %r{/thumbnail/([^/]*)/?(.*)} do |thumbnail_classes, image_path|
+	thumbnail_classes = thumbnail_classes.split(',').map{|thumbnail_class| settings.thumbnail_classes[thumbnail_class]}
 
 	image = request.body.read
 	image_hash = digest(image)
@@ -117,24 +91,24 @@ sinatra.put %r{/thumbnail/([^/]*)/?(.*)} do |classes, image_path|
 		image_path = ImagePath::Auto.new(image_hash)
 	end
 
-	thumbs = $thumbnailer.thumbnail(image) do
-		classes.each do |tc|
-			thumbnail tc.method, tc.width, tc.height, tc.format, tc.options
+	thumbnails = $thumbnailer.thumbnail(image) do
+		thumbnail_classes.each do |thumbnail_class|
+			thumbnail thumbnail_class.method, thumbnail_class.width, thumbnail_class.height, thumbnail_class.format, thumbnail_class.options
 		end
 	end
 
 	# check for errors
-	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		raise ThumbnailingError.new(thumbnail_class, thumb) if thumb.kind_of? HTTPThumbnailerClient::ThumbnailingError
+	thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
+		raise ThumbnailingError.new(thumbnail_class, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
 	end
 
 	urls = []
 
 	# store all images
-	urls << $s3.put_image(image_path.original_image(thumbs.input_mime_type).to_s, thumbs.input_mime_type, image)
+	urls << $s3.put_image(image_path.original_image(thumbnails.input_mime_type), thumbnails.input_mime_type, image)
 
-	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		urls << $s3.put_image(image_path.thumbnail_image(thumb.mime_type, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
+	thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
+		urls << $s3.put_image(image_path.thumbnail_image(thumbnail.mime_type, thumbnail_class.name), thumbnail.mime_type, thumbnail.data)
 	end
 
 	status 200
@@ -160,10 +134,6 @@ sinatra.error ThumbnailingError do
 	else
 		halt_exception(500, e)
 	end
-end
-
-sinatra.error BadRequestError do
-	halt_exception(400, env['sinatra.error'])
 end
 
 sinatra.error Configuration::ThumbnailClassDoesNotExistError do
