@@ -105,13 +105,15 @@ sinatra.get '/' do
 	"hello"
 end
 
-sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
-	raise BadRequestError, "Path is empty" if image_path.empty?
-	image_path = Pathname.new(image_path)
+sinatra.put %r{/thumbnail/([^/]*)/?(.*)} do |classes, image_path|
+	if image_path.empty?
+		image_path = Pathname.new(image_path).extend(Pathname::AutoPath)
+	else
+		image_path = Pathname.new(image_path).extend(Pathname::CustomPath)
+	end
 
 	classes = classes.split(',').map{|tc| settings.thumbnail_classes[tc]}
 	image = request.body.read
-	image_hash = digest(image)
 
 	thumbs = $thumbnailer.thumbnail(image) do
 		classes.each do |tc|
@@ -126,11 +128,13 @@ sinatra.put %r{/thumbnail/([^/]*)/(.*)} do |classes, image_path|
 
 	urls = []
 
+	image_hash = digest(image)
+
 	# store all images
-	urls << $s3.put_image(image_path.original_image(image_hash).to_s, thumbs.input_mime_type, image)
+	urls << $s3.put_image(image_path.original_image(image_hash, thumbs.input_mime_type).to_s, thumbs.input_mime_type, image)
 
 	thumbs.zip(classes).each do |thumb, thumbnail_class|
-		urls << $s3.put_image(image_path.thumbnail_image(image_hash, thumbnail_class.name, thumb.mime_type).to_s, thumb.mime_type, thumb.data)
+		urls << $s3.put_image(image_path.thumbnail_image(image_hash, thumb.mime_type, thumbnail_class.name).to_s, thumb.mime_type, thumb.data)
 	end
 
 	status 200

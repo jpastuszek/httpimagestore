@@ -22,6 +22,24 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
 
 	Scenario: Putting original and its thumbnails to S3 bucket
+		Given there is no 4006450256177f4a.jpg file in S3 bucket
+		And there is no 4006450256177f4a/small.jpg file in S3 bucket
+		And there is no 4006450256177f4a/tiny.jpg file in S3 bucket
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small,tiny
+		Then response status will be 200
+		And response content type will be text/uri-list
+		And response body will be CRLF ended lines
+		"""
+		http://issthumbtest.s3.amazonaws.com/4006450256177f4a.jpg
+		http://issthumbtest.s3.amazonaws.com/4006450256177f4a/small.jpg
+		http://issthumbtest.s3.amazonaws.com/4006450256177f4a/tiny.jpg
+		"""
+		And http://issthumbtest.s3.amazonaws.com/4006450256177f4a.jpg will contain JPEG image of size 509x719
+		And http://issthumbtest.s3.amazonaws.com/4006450256177f4a/small.jpg will contain JPEG image of size 128x128
+		And http://issthumbtest.s3.amazonaws.com/4006450256177f4a/tiny.jpg will contain JPEG image of size 32x32
+
+	Scenario: Putting original and its thumbnails to S3 bucket under custom path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
@@ -39,7 +57,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
 		And http://issthumbtest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny.jpg will contain JPEG image of size 32x32
 
-	Scenario: Putting original and its thumbnails to S3 bucket with UTF characters (encoded) in the path and name
+	Scenario: Putting original and its thumbnails to S3 bucket under custom path with UTF characters (encoded) in the path and name
 		Given there is no test/图像/4006450256177f4a/测试.jpg file in S3 bucket
 		And there is no test/图像/4006450256177f4a/测试-small.jpg file in S3 bucket
 		Given test.jpg file content as request body
@@ -134,16 +152,6 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response body will be CRLF ended lines like
 		"""
 		Error: Configuration::ThumbnailClassDoesNotExistError: Class 'bogous' does not exist
-		"""
-
-	Scenario: Handling of bad path
-		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small/
-		Then response status will be 400
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		Error: BadRequestError: Path is empty
 		"""
 
 	Scenario: Too large image - uploaded image too big to fit in memory limit
