@@ -13,7 +13,7 @@ options = CLI.new do
 	option :bind, :short => :b, :default => IP.new('127.0.0.1'), :cast => IP, :description => "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
 	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
 	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
-	option :upload_retry_times, :default => 1, :cast => Integer, :description => "Number of times file upload will be retried in case of an error"
+	option :upload_retry_times, :default => 3, :cast => Integer, :description => "Number of times file upload will be retried in case of an error"
 	option :upload_retry_delay, :default => 0.0, :cast => Float, :description => "Time to sleep between retries"
 	argument :config, :cast => Pathname, :description => "Configuration file path"
 end.parse!
