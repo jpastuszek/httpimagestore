@@ -19,7 +19,11 @@ class S3Service
 		file.content_type = content_type
 		file.content = data
 
-		RetryThis.retry_this(:times => 3, :sleep => 0.1, :error_types => [Errno::ECONNRESET, S3::Error::RequestTimeout]) do |attempt|
+		RetryThis.retry_this(
+			:times => (@options[:upload_retry_times] or 1),
+			:sleep => (@options[:upload_retry_delay] or 0.0),
+			:error_types => [Errno::ECONNRESET, S3::Error::RequestTimeout]
+		) do |attempt|
 			@logger.warn "Retrying S3 save operation" if attempt > 1
 			file.save
 		end

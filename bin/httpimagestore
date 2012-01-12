@@ -13,6 +13,8 @@ options = CLI.new do
 	option :bind, :short => :b, :default => IP.new('127.0.0.1'), :cast => IP, :description => "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
 	option :port, :short => :p, :default => 3000, :cast => Integer, :description => "HTTP server TCP port"
 	option :server, :short => :s, :default => 'mongrel', :description => "Rack server handler like thin, mongrel, webrick, fastcgi etc."
+	option :upload_retry_times, :default => 1, :cast => Integer, :description => "Number of times file upload will be retried in case of an error"
+	option :upload_retry_delay, :default => 0.0, :cast => Float, :description => "Time to sleep between retries"
 	argument :config, :cast => Pathname, :description => "Configuration file path"
 end.parse!
 
@@ -40,6 +42,8 @@ sinatra.set :lock, true
 sinatra.set :logging, (not options.no_logging)
 sinatra.set :debug, options.debug
 sinatra.set :uri_encode, (not options.no_uri_encode)
+sinatra.set :upload_retry_times, options.upload_retry_times
+sinatra.set :upload_retry_delay, options.upload_retry_delay
 
 Configuration.from_file(options.config).put(sinatra)
 
@@ -55,7 +59,7 @@ end
 sinatra.before do
 	logger.level = Logger::DEBUG if settings.logging and settings.debug
 	# singletons
-	$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger)
+	$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger, :upload_retry_times => settings.upload_retry_times, :upload_retry_delay => settings.upload_retry_delay)
 	$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 end
 
