@@ -55,6 +55,7 @@ GEM
     rcov (0.9.11)
     rdoc (3.11)
       json (~> 1.4)
+    retry-this (1.1)
     rmagick (2.13.1)
     rspec (2.8.0)
       rspec-core (~> 2.8.0)
@@ -90,6 +91,7 @@ DEPENDENCIES
   prawn (= 0.8.4)
   rcov
   rdoc (~> 3.9)
+  retry-this (~> 1.1)
   rspec (~> 2.8.0)
   ruby-ip (~> 0.9)
   s3 (~> 0.3)

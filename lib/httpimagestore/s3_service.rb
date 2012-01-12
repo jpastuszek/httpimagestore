@@ -1,4 +1,5 @@
 require 's3'
+require 'retry-this'
 
 class S3Service
 	def initialize(key_id, key_secret, bucket, options = {})
@@ -17,7 +18,11 @@ class S3Service
 		file = @bucket.objects.build(image_path)
 		file.content_type = content_type
 		file.content = data
-		file.save
+
+		RetryThis.retry_this(:times => 3, :sleep => 0.1, :error_types => [Errno::ECONNRESET, S3::Error::RequestTimeout]) do |attempt|
+			@logger.warn "Retrying S3 save operation" if attempt > 1
+			file.save
+		end
 
 		"http://#{@bucket.name}.s3.amazonaws.com/#{image_path}"
 	end

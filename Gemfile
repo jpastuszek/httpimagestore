@@ -7,6 +7,7 @@ gem "httpthumbnailer-client", "~> 0.1.0"
 gem "ruby-ip", "~> 0.9"
 gem "cli", "~> 1.1.0"
 gem "mime-types", "~> 1.17.2"
+gem "retry-this", "~> 1.1"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
