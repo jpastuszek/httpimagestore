@@ -63,7 +63,7 @@ end
 
 Then /response body will be CRLF ended lines like/ do |body|	
 	@response.body.should match(body)
-	@response.body.each do |line|
+	@response.body.each_line do |line|
 		line[-2,2].should == "\r\n"
 	end
 end

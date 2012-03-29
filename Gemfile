@@ -1,7 +1,7 @@
 source "http://rubygems.org"
 
 gem "sinatra", ">= 1.2.6"
-gem "mongrel", ">= 1.1.5"
+gem "mongrel", ">= 1.2.0.pre2"
 gem "s3", "~> 0.3"
 gem "httpthumbnailer-client", "~> 0.1.0"
 gem "ruby-ip", "~> 0.9"
