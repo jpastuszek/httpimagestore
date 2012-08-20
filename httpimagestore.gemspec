@@ -46,7 +46,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/jpastuszek/httpimagestore"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.15"
+  s.rubygems_version = "1.8.23"
   s.summary = "HTTP based image storage and thumbnailer"
 
   if s.respond_to? :specification_version then
