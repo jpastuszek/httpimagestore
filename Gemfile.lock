@@ -1,5 +1,5 @@
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     builder (3.0.0)
     cli (1.1.0)
@@ -75,7 +75,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler (~> 1.0.0)
   cli (~> 1.1.0)
   cucumber
   daemon (~> 1)
