@@ -1,4 +1,4 @@
-source "https://rubygems.org"
+source "http://rubygems.org"
 
 gem "sinatra", ">= 1.2.6"
 gem "mongrel", ">= 1.2.0.pre2"
