@@ -55,13 +55,6 @@ class ThumbnailingError < RuntimeError
 	attr_reader :remote_error
 end
 
-sinatra.before do
-	logger.level = Logger::DEBUG if settings.logging and settings.debug
-	# singletons
-	$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger, :upload_retry_times => settings.upload_retry_times, :upload_retry_delay => settings.upload_retry_delay)
-	$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
-end
-
 sinatra.helpers do
 	def hatl_response(status, msg)
 		headers "Content-Type" => "text/plain"
@@ -70,11 +63,30 @@ sinatra.helpers do
 	end
 
 	def halt_exception(status, exception)
-		hatl_response(status, "Error: #{exception.class.name}: #{exception}")
+		msg = ''
+		if status >= 500
+			msg = "Internal server error: #{exception.class.name}: #{exception}"
+			logger.error msg
+		else
+			msg = "Error: #{exception.class.name}: #{exception}"
+			logger.warning msg
+		end
+		hatl_response(status, msg)
 	end
 
 	def digest(data)
 		Digest::SHA2.new.update(data).to_s[0,16]
+	end
+end
+
+sinatra.before do
+	begin
+		logger.level = Logger::DEBUG if settings.logging and settings.debug
+		# singletons
+		$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger, :upload_retry_times => settings.upload_retry_times, :upload_retry_delay => settings.upload_retry_delay)
+		$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
+	rescue => exception
+		halt_exception(500, exception)
 	end
 end
 
@@ -130,12 +142,12 @@ end
 
 # problem with singe thumbnail
 sinatra.error ThumbnailingError do
-	e = env['sinatra.error']
-	case e.remote_error.type
+	exception = env['sinatra.error']
+	case exception.remote_error.type
 	when "Thumbnailer::ImageTooLargeError"
-		halt_exception(413, e)
+		halt_exception(413, exception)
 	else
-		halt_exception(500, e)
+		halt_exception(500, exception)
 	end
 end
 

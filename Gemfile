@@ -15,9 +15,10 @@ group :development do
   gem "rspec", "~> 2.8.0"
   gem "cucumber", ">= 0"
   gem "jeweler", "~> 1.6.4"
-  gem "rcov", ">= 0"
+  gem "simplecov", ">= 0"
   gem "rdoc", "~> 3.9"
   gem "daemon", "~> 1"
-  gem "httpthumbnailer", "~> 0.1.0"
+  gem "httpthumbnailer", "~> 0.2"
   gem "prawn", "= 0.8.4"
 end
+

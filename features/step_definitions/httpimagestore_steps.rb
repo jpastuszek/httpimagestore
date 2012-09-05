@@ -25,11 +25,13 @@ Given /httpthumbnailer server is running at (.*)/ do |url|
 end
 
 Given /httpimagestore log is empty/ do
-		(support_dir + 'server.log').truncate(0)
+		log = support_dir + 'server.log'
+		log.truncate(0) if log.exist?
 end
 
 Given /httpthumbnailer log is empty/ do
-		(support_dir + 'thumbniler.log').truncate(0)
+		log = support_dir + 'thumbniler.log'
+		log.truncate(0) if log.exist?
 end
 
 Given /(.*) file content as request body/ do |file|
