@@ -63,13 +63,11 @@ sinatra.helpers do
 	end
 
 	def halt_exception(status, exception)
-		msg = ''
+		msg = "Error: #{exception.class.name}: #{exception}"
 		if status >= 500
-			msg = "Internal server error: #{exception.class.name}: #{exception}"
 			logger.error msg
 		else
-			msg = "Error: #{exception.class.name}: #{exception}"
-			logger.warning msg
+			logger.warn msg
 		end
 		hatl_response(status, msg)
 	end

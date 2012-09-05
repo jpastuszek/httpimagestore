@@ -20,6 +20,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
 		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
+		Given Content-Type header set to image/autodetect
 
 	Scenario: Putting original and its thumbnails to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
