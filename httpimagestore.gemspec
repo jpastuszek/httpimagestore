@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "0.3.2"
+  s.version = "0.4.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2012-09-05"
+  s.date = "2012-11-14"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "bin/httpimagestore",
+    "features/cache-control.feature",
     "features/httpimagestore.feature",
     "features/step_definitions/httpimagestore_steps.rb",
     "features/support/env.rb",
@@ -46,7 +47,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://github.com/jpastuszek/httpimagestore"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.23"
+  s.rubygems_version = "1.8.15"
   s.summary = "HTTP based image storage and thumbnailer"
 
   if s.respond_to? :specification_version then
