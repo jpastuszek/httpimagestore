@@ -1,3 +1,7 @@
+Given /httpimagestore argument (.*)/ do |arg|
+	(@httpimagestore_args ||= []) << arg
+end
+
 Given /httpimagestore server is running at (.*) with the following configuration/ do |url, config|
 	cfile = Tempfile.new('httpimagestore.conf')
 	cfile.write(config)
@@ -5,7 +9,7 @@ Given /httpimagestore server is running at (.*) with the following configuration
 
 	begin
 		start_server(
-			"bundle exec #{script('httpimagestore')} #{cfile.path}",
+			"bundle exec #{script('httpimagestore')} #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
 			'/tmp/httpimagestore.pid',
 			support_dir + 'server.log',
 			url
@@ -76,6 +80,14 @@ end
 
 Then /(http.*) content type will be (.*)/ do |url, content_type|
 	get_headers(url)['Content-Type'].should == content_type
+end
+
+Then /(http.*) ([^ ]+) header will be (.*)/ do |url, header, value|
+	get_headers(url)[header].should == value
+end
+
+Then /(http.*) ([^ ]+) header will not be set/ do |url, header|
+	get_headers(url)[header].should be_nil
 end
 
 Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|

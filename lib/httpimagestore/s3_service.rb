@@ -16,6 +16,9 @@ class S3Service
 		@logger.info "Putting image in bucket '#{@bucket.name}': #{image_path}"
 
 		file = @bucket.objects.build(image_path)
+
+		file.cache_control = @options[:cache_control] if @options.include?(:cache_control) and not @options[:cache_control].empty?
+
 		file.content_type = content_type
 		file.content = data
 

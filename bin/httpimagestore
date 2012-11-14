@@ -3,7 +3,7 @@ require 'ip'
 require 'pathname'
 require 'cli'
 
-options = CLI.new do
+cli_settings = CLI.new do
 	description 'HTTP based image storage and thumbnailer'
 
 	switch :no_bind,
@@ -37,6 +37,9 @@ options = CLI.new do
 		default: 0.0,
 		cast: Float,
 		description: "Time to sleep between retries"
+	option :cache_control,
+		default: "public, max-age=#{(86400 * 365.25).to_i}",
+		description: "Stored object Cache-Control header value"
 	argument :config,
 		cast: Pathname,
 		description: "Configuration file path"
@@ -53,23 +56,24 @@ require 'httpimagestore/s3_service'
 
 sinatra = Sinatra.new
 
-unless options.no_bind
-	sinatra.set :port, options.port
-	sinatra.set :bind, options.bind.to_s
+unless cli_settings.no_bind
+	sinatra.set :port, cli_settings.port
+	sinatra.set :bind, cli_settings.bind.to_s
 else
 	sinatra.set :port, nil
 	sinatra.set :bind, nil
 end
 sinatra.set :environment, 'production'
-sinatra.set :server, options.server
+sinatra.set :server, cli_settings.server
 sinatra.set :lock, true
-sinatra.set :logging, (not options.no_logging)
-sinatra.set :debug, options.debug
-sinatra.set :uri_encode, (not options.no_uri_encode)
-sinatra.set :upload_retry_times, options.upload_retry_times
-sinatra.set :upload_retry_delay, options.upload_retry_delay
+sinatra.set :logging, (not cli_settings.no_logging)
+sinatra.set :debug, cli_settings.debug
+sinatra.set :uri_encode, (not cli_settings.no_uri_encode)
+sinatra.set :upload_retry_times, cli_settings.upload_retry_times
+sinatra.set :upload_retry_delay, cli_settings.upload_retry_delay
+sinatra.set :cache_control, cli_settings.cache_control
 
-Configuration.from_file(options.config).put(sinatra)
+Configuration.from_file(cli_settings.config).put(sinatra)
 
 class ThumbnailingError < RuntimeError
 	def initialize(thumbnail_class, remote_error)
@@ -106,7 +110,12 @@ sinatra.before do
 	begin
 		logger.level = Logger::DEBUG if settings.logging and settings.debug
 		# singletons
-		$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, :logger => logger, :upload_retry_times => settings.upload_retry_times, :upload_retry_delay => settings.upload_retry_delay)
+		$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, 
+			cache_control: settings.cache_control,
+			logger: logger,
+			upload_retry_times: settings.upload_retry_times,
+			upload_retry_delay: settings.upload_retry_delay
+		)
 		$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
 	rescue => exception
 		halt_exception(500, exception)
