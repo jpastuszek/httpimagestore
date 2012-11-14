@@ -2,6 +2,10 @@
 
 Description goes here.
 
+== Putting image with cURL
+
+`curl -X PUT --data-binary @<image_file> -H "Content-Type: image/auto" <server>:<port>/thumbnail/<class_name>/<store_uri>`
+
 == Contributing to httpimagestore
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
