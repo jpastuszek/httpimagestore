@@ -37,9 +37,10 @@ cli_settings = CLI.new do
 		default: 0.0,
 		cast: Float,
 		description: "Time to sleep between retries"
-	option :cache_control,
+	options :cache_control,
 		default: "public, max-age=#{(86400 * 365.25).to_i}",
-		description: "Stored object Cache-Control header value"
+		description: "Stored object Cache-Control header value - can be used multiple times to specify flag by flag"
+
 	argument :config,
 		cast: Pathname,
 		description: "Configuration file path"
