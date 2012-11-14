@@ -65,7 +65,7 @@ sinatra.helpers do
 	def halt_exception(status, exception)
 		msg = "Error: #{exception.class.name}: #{exception}"
 		if status >= 500
-			logger.error msg
+			logger.error msg + (exception.respond_to?(:response) ? ': ' + exception.response.inspect : '')
 		else
 			logger.warn msg
 		end
