@@ -1,200 +1,128 @@
 #!/usr/bin/env ruby
-require 'ip'
-require 'pathname'
-require 'cli'
-
-cli_settings = CLI.new do
-	description 'HTTP based image storage and thumbnailer'
-
-	switch :no_bind,
-		description: "Do not bind to TCP socket - useful with -s fastcgi option"
-	switch :no_logging,
-		description: "Disable logging"
-	switch :debug,
-		description: "Enable debugging"
-	switch :no_uri_encode,
-		description: "Disable output URI encoding"
-
-	option :bind,
-		short: :b,
-		default: IP.new('127.0.0.1'),
-		cast: IP,
-		description: "HTTP server bind address - use 0.0.0.0 to bind to all interfaces"
-	option :port,
-		short: :p,
-		default: 3000,
-		cast: Integer,
-		description: "HTTP server TCP port"
-	option :server,
-		short: :s,
-		default: 'mongrel',
-		description: "Rack server handler like thin, mongrel, webrick, fastcgi etc."
-	option :upload_retry_times,
-		default: 3,
-		cast: Integer,
-		description: "Number of times file upload will be retried in case of an error"
-	option :upload_retry_delay,
-		default: 0.0,
-		cast: Float,
-		description: "Time to sleep between retries"
-	options :cache_control,
-		default: "public, max-age=#{(86400 * 365.25).to_i}",
-		description: "Stored object Cache-Control header value - can be used multiple times to specify flag by flag"
-
-	argument :config,
-		cast: Pathname,
-		description: "Configuration file path"
-end.parse!
-
-require 'sinatra/base'
-require 'httpthumbnailer-client'
-require 'digest/sha2'
+require 'unicorn-cuba-base'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
-require 'httpimagestore/configuration'
-require 'httpimagestore/image_path'
-require 'httpimagestore/s3_service'
 
-sinatra = Sinatra.new
-
-unless cli_settings.no_bind
-	sinatra.set :port, cli_settings.port
-	sinatra.set :bind, cli_settings.bind.to_s
-else
-	sinatra.set :port, nil
-	sinatra.set :bind, nil
-end
-sinatra.set :environment, 'production'
-sinatra.set :server, cli_settings.server
-sinatra.set :lock, true
-sinatra.set :logging, (not cli_settings.no_logging)
-sinatra.set :debug, cli_settings.debug
-sinatra.set :uri_encode, (not cli_settings.no_uri_encode)
-sinatra.set :upload_retry_times, cli_settings.upload_retry_times
-sinatra.set :upload_retry_delay, cli_settings.upload_retry_delay
-sinatra.set :cache_control, cli_settings.cache_control
-
-Configuration.from_file(cli_settings.config).put(sinatra)
-
-class ThumbnailingError < RuntimeError
-	def initialize(thumbnail_class, remote_error)
-		@remote_error = remote_error
-		super "Thumbnailing for class '#{thumbnail_class.name}' failed: #{remote_error.message}"
+Application.new('httpimagestore', port: 3000) do
+	cli do
+		description 'HTTP based image storage and thumbnailer'
+		switch :no_uri_encode,
+			description: 'disable output URI encoding'
+		option :upload_retry_time,
+			default: 2,
+			cast: Integer,
+			description: 'keep retrying uploads until that time in seconds has passed'
+		option :upload_retry_initial_delay,
+			default: 0.1,
+			cast: Float,
+			description: 'initial retry delay that will be multiplied by 2 each retry cycle'
+		options :cache_control,
+			default: "public, max-age=#{(86400 * 365.25).to_i}",
+			description: 'stored object Cache-Control header value - can be used multiple times to specify flag by flag'
+		argument :config,
+			cast: Pathname,
+			description: 'configuration file path'
+		version (Pathname.new(__FILE__).dirname + '..' + 'VERSION').read
 	end
 
-	attr_reader :remote_error
-end
+	settings do |settings|
+		require 'httpimagestore/configuration'
 
-sinatra.helpers do
-	def hatl_response(status, msg)
-		headers "Content-Type" => "text/plain"
-		body msg.gsub("\n", "\r\n") + "\r\n"
-		halt status
-	end
+		Controler.settings[:uri_encode] = (not settings.no_uri_encode)
+		Controler.settings[:upload_retry_times] = settings.upload_retry_times
+		Controler.settings[:upload_retry_delay] = settings.upload_retry_delay
+		Controler.settings[:cache_control] = settings.cache_control.reject(&:empty?)
 
-	def halt_exception(status, exception)
-		msg = "Error: #{exception.class.name}: #{exception}"
-		if status >= 500
-			logger.error msg + (exception.respond_to?(:response) ? ': ' + exception.response.inspect : '')
-		else
-			logger.warn msg
-		end
-		hatl_response(status, msg)
-	end
-
-	def digest(data)
-		Digest::SHA2.new.update(data).to_s[0,16]
-	end
-end
-
-sinatra.before do
-	begin
-		logger.level = Logger::DEBUG if settings.logging and settings.debug
-		# singletons
-		$s3 ||= S3Service.new(settings.s3_key_id, settings.s3_key_secret, settings.s3_bucket, 
-			cache_control: settings.cache_control,
-			logger: logger,
-			upload_retry_times: settings.upload_retry_times,
-			upload_retry_delay: settings.upload_retry_delay
-		)
-		$thumbnailer ||= HTTPThumbnailerClient.new(settings.thumbnailer_url)
-	rescue => exception
-		halt_exception(500, exception)
-	end
-end
-
-sinatra.get '/' do
-	"hello"
-end
-
-sinatra.put %r{/thumbnail/([^/]*)/?(.*)} do |thumbnail_classes, image_path|
-	thumbnail_classes = thumbnail_classes.split(',').map{|thumbnail_class| settings.thumbnail_classes[thumbnail_class]}
-
-	image = request.body.read
-	image_hash = digest(image)
-
-	unless image_path.empty?
-		image_path = ImagePath::Custom.new(image_hash, image_path)
-	else
-		image_path = ImagePath::Auto.new(image_hash)
-	end
-
-	thumbnails = $thumbnailer.thumbnail(image) do
-		thumbnail_classes.each do |thumbnail_class|
-			thumbnail thumbnail_class.method, thumbnail_class.width, thumbnail_class.height, thumbnail_class.format, thumbnail_class.options
+		Configuration.from_file(settings.config).get.each_pair do |key, value|
+			Controler.settings[key] = value
 		end
 	end
 
-	# check for errors
-	thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
-		raise ThumbnailingError.new(thumbnail_class, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+	main do |settings|
+		class ThumbnailingError < RuntimeError
+			def initialize(thumbnail_class, remote_error)
+				@remote_error = remote_error
+				super "thumbnailing for class '#{thumbnail_class.name}' failed: #{remote_error.message}"
+			end
+
+			attr_reader :remote_error
+		end
+
+		ThumbnailClassDoesNotExistError = Class.new ArgumentError
+		ZeroBodyLengthError = Class.new ArgumentError
+
+		class HTTPImageStore < Controler
+			require 'httpimagestore/error_reporter'
+			require 'httpimagestore/plugin/image_path'
+			require 'httpimagestore/plugin/thumbnailer'
+			require 'httpimagestore/plugin/s3'
+
+			plugin Plugin::ImagePath
+			plugin Plugin::Thumbnailer
+			plugin Plugin::S3
+
+			self.define do
+				on error? do
+					run ErrorReporter
+				end
+
+				on 'health_check' do
+					log.info "health_check"
+					write_plain 200, 'OK'
+				end
+
+				on put, 'thumbnail', :thumbnail_classes do |thumbnail_classes|
+					image_path = env["PATH_INFO"].empty? ? '' : URI.decode(env["PATH_INFO"][1..-1])
+
+					thumbnail_classes = thumbnail_classes.split(',').map do |thumbnail_class|
+						settings[:thumbnail_classes][thumbnail_class] or fail ThumbnailClassDoesNotExistError, "thumbnail class '#{thumbnail_class}' not defined"
+					end
+
+					log.info "processing image into classes: #{thumbnail_classes.map(&:name).join(', ')} image path: #{image_path}"
+
+					image = req.body.read
+					image.empty? and fail ZeroBodyLengthError, 'empty body - expected image data'
+
+					image_hash = digest(image)
+
+					unless image_path.empty?
+						image_path = custom_path(image_hash, image_path)
+					else
+						image_path = auto_path(image_hash)
+					end
+
+					log.debug "thumbnailing to classes"
+					thumbnails = thumbnailer.thumbnail(image) do
+						thumbnail_classes.each do |thumbnail_class|
+							thumbnail thumbnail_class.method, thumbnail_class.width, thumbnail_class.height, thumbnail_class.format, thumbnail_class.options
+						end
+					end
+					# check for errors
+					thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
+						raise ThumbnailingError.new(thumbnail_class, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+					end
+
+					log.debug "got #{thumbnails.length} thumbnails"
+
+					urls = []
+
+					# store all images
+					urls << s3.put_image(image_path.original_image(thumbnails.input_mime_type), thumbnails.input_mime_type, image)
+
+					thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
+						urls << s3.put_image(image_path.thumbnail_image(thumbnail.mime_type, thumbnail_class.name), thumbnail.mime_type, thumbnail.data)
+					end
+
+					write_url_list 200, urls.map{|u| settings[:uri_encode] ? URI.encode(u) : u}
+				end
+
+				on root do
+					write_plain 200, 'HTTP Image Store'
+				end
+			end
+		end
+
+		HTTPImageStore
 	end
-
-	urls = []
-
-	# store all images
-	urls << $s3.put_image(image_path.original_image(thumbnails.input_mime_type), thumbnails.input_mime_type, image)
-
-	thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
-		urls << $s3.put_image(image_path.thumbnail_image(thumbnail.mime_type, thumbnail_class.name), thumbnail.mime_type, thumbnail.data)
-	end
-
-	status 200
-	headers "Content-Type" => "text/uri-list"
-
-	body urls.map{|u| settings.uri_encode ? URI.encode(u) : u}.map{|u| u + "\r\n"}.join
 end
-
-sinatra.error HTTPThumbnailerClient::UnsupportedMediaTypeError do
-	halt_exception(415, env['sinatra.error'])
-end
-
-sinatra.error HTTPThumbnailerClient::ImageTooLargeError do
-	halt_exception(413, env['sinatra.error'])
-end
-
-# problem with singe thumbnail
-sinatra.error ThumbnailingError do
-	exception = env['sinatra.error']
-	case exception.remote_error.type
-	when "Thumbnailer::ImageTooLargeError"
-		halt_exception(413, exception)
-	else
-		halt_exception(500, exception)
-	end
-end
-
-sinatra.error Configuration::ThumbnailClassDoesNotExistError do
-	halt_exception(404, env['sinatra.error'])
-end
-
-sinatra.error Sinatra::NotFound do
-	hatl_response(404, "Resource '#{request.path_info}' not found")
-end
-
-sinatra.error do
-	halt_exception(500, env['sinatra.error'])
-end
-
-sinatra.run!
 

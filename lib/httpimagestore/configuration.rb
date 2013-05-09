@@ -2,17 +2,8 @@ require 'httpimagestore/thumbnail_class'
 require 'pathname'
 
 class Configuration
-	class ThumbnailClassDoesNotExistError < RuntimeError
-		def initialize(name)
-			super "Class '#{name}' does not exist"
-		end
-	end
-
 	def initialize(&block)
-		@thumbnail_classes = Hash.new do |h, k|
-			raise ThumbnailClassDoesNotExistError, k
-		end
-
+		@thumbnail_classes = {}
 		@thumbnailer_url = "http://localhost:3100"
 
 		instance_eval &block
@@ -44,12 +35,6 @@ class Configuration
 
 	def get
 		Struct.new(:thumbnail_classes, :s3_key_id, :s3_key_secret, :s3_bucket, :thumbnailer_url).new(@thumbnail_classes, @s3_key_id, @s3_key_secret, @s3_bucket, @thumbnailer_url)
-	end
-
-	def put(sinatra)
-		get.each_pair do |key, value|
-			sinatra.set key, value
-		end
 	end
 end
 

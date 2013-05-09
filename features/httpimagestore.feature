@@ -5,7 +5,6 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 
 	Background:
 		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
-		Given httpimagestore log is empty
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
 		s3_key 'AKIAJMUYVYOSACNXLPTQ', 'MAeGhvW+clN7kzK3NboASf3/kZ6a81PRtvwMZj4Y'
@@ -18,7 +17,6 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		thumbnail_class 'superlarge', 'crop', 16000, 16000
 		thumbnail_class 'large_png', 'crop', 7000, 7000, 'PNG'
 		"""
-		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
 		Given Content-Type header set to image/autodetect
 
@@ -100,7 +98,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		Resource '/blah' not found
+		request for URI '/blah' was not handled by the server
 		"""
 
 	Scenario: Reporting of unsupported media type
@@ -113,7 +111,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		Error: HTTPThumbnailerClient::UnsupportedMediaTypeError:
+		unsupported media type: no decode delegate for this image format
 		"""
 		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
@@ -125,11 +123,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny,bad/test/image/test.jpg
-		Then response status will be 500
+		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		Error: ThumbnailingError: Thumbnailing for class 'bad' failed: Error: ArgumentError:
+		thumbnailing for class 'bad' failed: at least one image dimension is zero: 0x0
 		"""
 		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
@@ -138,11 +136,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 	Scenario: Reporting of missing class error
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,bogous,bad/test/image/test.jpg
-		Then response status will be 404
+		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		Error: Configuration::ThumbnailClassDoesNotExistError: Class 'bogous' does not exist
+		thumbnail class 'bogous' not defined
 		"""
 
 	Scenario: Too large image - uploaded image too big to fit in memory limit
@@ -152,7 +150,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		Error: HTTPThumbnailerClient::ImageTooLargeError:
+		image too large: cache resources exhausted
 		"""
 
 	Scenario: Too large image - memory exhausted when thmbnailing
@@ -162,6 +160,16 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		Error: ThumbnailingError: Thumbnailing for class 'superlarge' failed: Error: Thumbnailer::ImageTooLargeError:
+		thumbnailing for class 'superlarge' failed: image too large: cache resources exhausted
+		"""
+
+	Scenario: Zero body length
+		Given test.empty file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small/test/image/test.jpg
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		empty body - expected image data
 		"""
 

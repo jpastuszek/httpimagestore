@@ -1,6 +1,5 @@
 require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 require 'httpimagestore/configuration'
-require 'sinatra/base'
 
 describe Configuration do
 	it "should provide thumbnail classes" do
@@ -65,28 +64,14 @@ describe Configuration do
 		c.thumbnailer_url.should == 'http://test'
 	end
 
-	it "can set sinatra settings with configured keys" do
-		sinatra = Sinatra.new
-		c = Configuration.new do
-			s3_key 'abc', 'xyz'
-			s3_bucket 'test'
-			thumbnailer_url 'http://test'
-		end.put(sinatra)
-
-		sinatra.settings.s3_key_id.should == 'abc'
-		sinatra.settings.s3_key_secret.should == 'xyz'
-		sinatra.settings.s3_bucket.should == 'test'
-		sinatra.settings.thumbnailer_url.should == 'http://test'
-	end
-
 	it "should load configuration from file" do
 		Dir.chdir(File.dirname(__FILE__))
 		c = Configuration.from_file('test.cfg').get
 
-		c.s3_key_id.should == 'abc'
-		c.s3_key_secret.should == 'xyz'
-		c.s3_bucket.should == 'test'
-		c.thumbnailer_url.should == 'http://test'
+		c.s3_key_id.should == 'AKIAJMUYVYOSACNXLPTQ'
+		c.s3_key_secret.should == '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'
+		c.s3_bucket.should == 'issthumbtest'
+		c.thumbnailer_url.should == 'http://localhost:3100'
 
 		tc = c.thumbnail_classes['small']
 		tc.name.should == 'small'

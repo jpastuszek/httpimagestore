@@ -8,10 +8,11 @@ Given /httpimagestore server is running at (.*) with the following configuration
 	cfile.close
 
 	begin
+		log = support_dir + 'server.log'
 		start_server(
-			"bundle exec #{script('httpimagestore')} #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
+			"bundle exec #{script('httpimagestore')} -f -d -l #{log} #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
 			'/tmp/httpimagestore.pid',
-			support_dir + 'server.log',
+			log,
 			url
 		)
 	ensure
@@ -20,10 +21,11 @@ Given /httpimagestore server is running at (.*) with the following configuration
 end
 
 Given /httpthumbnailer server is running at (.*)/ do |url|
+	log = support_dir + 'thumbniler.log'
 	start_server(
-		"httpthumbnailer",
+		"httpthumbnailer -f -d -l #{log}",
 		'/tmp/httpthumbnailer.pid',
-		support_dir + 'thumbniler.log',
+		log,
 		url
 	)
 end
@@ -43,11 +45,11 @@ Given /(.*) file content as request body/ do |file|
 end
 
 Given /(.*) S3 bucket with key (.*) and secret (.*)/ do |bucket, key_id, key_secret|
-		@bucket = S3::Service.new(:access_key_id => key_id, :secret_access_key => key_secret).buckets.find(bucket)
+	@bucket = RightAws::S3.new(key_id, key_secret, logger: Logger.new('/dev/null')).bucket(bucket)
 end
 
 Given /there is no (.*) file in S3 bucket/ do |path|
-	@bucket.objects.find(path).destroy rescue S3::Error::NoSuchKey
+	@bucket.key(path).delete rescue S3::Error::NoSuchKey
 end
 
 Given /(.*) header set to (.*)/ do |header, value|
@@ -102,11 +104,6 @@ Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, he
 end
 
 Then /S3 bucket will not contain (.*)/ do |path|
-	begin
-		@bucket.objects.find(path)
-		true.should eq(false, "object #{path} found in bucket")
-	rescue S3::Error::NoSuchKey
-		true.should == true
-	end
+	@bucket.key(path).exists?.should_not be_true
 end
 

@@ -2,8 +2,6 @@ Feature: Stored objects should have proper Cache-Control header set
 
 	Background:
 		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
-		Given httpimagestore log is empty
-		Given httpthumbnailer log is empty
 		Given httpthumbnailer server is running at http://localhost:3100/
 		Given Content-Type header set to image/autodetect
 

@@ -17,7 +17,7 @@ require "open3"
 require "thread"
 require 'tempfile'
 require 'RMagick'
-require 's3'
+require 'right_aws'
 
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'
@@ -43,21 +43,28 @@ def get_headers(url)
 	HTTPClient.new.get(URI.encode(url)).headers
 end
 
+@@running_cmd = {}
 def start_server(cmd, pid_file, log_file, test_url)
-	stop_server(pid_file)
+	if @@running_cmd[pid_file]
+		return if @@running_cmd[pid_file] == cmd
+		stop_server(pid_file) 
+	end
 
 	fork do
 		Daemon.daemonize(pid_file, log_file)
+		log_file = Pathname.new(log_file)
+		log_file.truncate(0) if log_file.exist?
 		exec(cmd)
 	end
-	Process.wait
+
+	@@running_cmd[pid_file] = cmd
 
 	ppid = Process.pid
 	at_exit do
 		stop_server(pid_file) if Process.pid == ppid
 	end
 
-	Timeout.timeout(10) do
+	Timeout.timeout(6) do
 		begin
 			get test_url
 		rescue Errno::ECONNREFUSED
