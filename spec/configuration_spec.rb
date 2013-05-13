@@ -1,101 +1,65 @@
-require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
+require_relative 'spec_helper'
 require 'httpimagestore/configuration'
+require 'httpimagestore/configuration/path'
+require 'httpimagestore/configuration/handler'
+
+require 'httpimagestore/configuration/thumbnailer'
+require 'httpimagestore/configuration/s3'
 
 describe Configuration do
-	it "should provide thumbnail classes" do
-		c = Configuration.new do
-			thumbnail_class 'small', 'crop', 128, 128, 'JPEG', :magick => 'option', :number => 42
-			thumbnail_class 'tiny', 'pad', 32, 48, 'PNG'
-			thumbnail_class 'test', 'pad', 32, 48
-		end.get
-
-		tc = c.thumbnail_classes['small']
-		tc.name.should == 'small'
-		tc.method.should == 'crop'
-		tc.width.should == 128
-		tc.height.should == 128
-		tc.format.should == 'JPEG'
-		tc.options.should == { :magick => 'option', :number => 42}
-
-		tc = c.thumbnail_classes['tiny']
-		tc.name.should == 'tiny'
-		tc.method.should == 'pad'
-		tc.width.should == 32
-		tc.height.should == 48
-		tc.format.should == 'PNG'
-		tc.options.should == {}
-
-		tc = c.thumbnail_classes['test']
-		tc.name.should == 'test'
-		tc.method.should == 'pad'
-		tc.width.should == 32
-		tc.height.should == 48
-		tc.format.should == 'JPEG'
-		tc.options.should == {}
+	subject do
+		Configuration.from_file('spec/full.cfg')
 	end
 
-	it "should provide S3 key id and secret" do
-		c = Configuration.new do
-			s3_key 'abc', 'xyz'
-		end.get
-
-		c.s3_key_id.should == 'abc'
-		c.s3_key_secret.should == 'xyz'
+	it 'should parse configuration file' do
+		subject
 	end
 
-	it "should provide S3 bucket" do
-		c = Configuration.new do
-			s3_bucket 'test'
-		end.get
-
-		c.s3_bucket.should == 'test'
+	describe 's3' do
+		it 'should provide S3 key and secret' do
+			subject.s3.key.should == 'AKIAJMUYVYOSACNXLPTQ'
+			subject.s3.secret.should == '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'
+		end
 	end
 
-	it "should provide thumbnailer_url defaulting to http://localhost:3100" do
-		c = Configuration.new do
-		end.get
+	describe 'thumbnailer' do
+		it 'should provide default URL' do
+			subject.thumbnailer.url.should == 'http://localhost:3100'
+		end
 
-		c.thumbnailer_url.should == 'http://localhost:3100'
+		it 'should allow to override default URL' do
+			subject = Configuration.from_file('spec/full.cfg', thumbnailer_url: 'http://1.1.1.1:8080')
+			subject.thumbnailer.url.should == 'http://1.1.1.1:8080'
+		end
 
-		c = Configuration.new do
-			thumbnailer_url 'http://test'
-		end.get
-
-		c.thumbnailer_url.should == 'http://test'
+		it 'should get thumbnailer URL from configuration' do
+			subject = Configuration.read('thumbnailer url="http://2.2.2.2:1000"')
+			subject.thumbnailer.url.should == 'http://2.2.2.2:1000'
+		end
 	end
 
-	it "should load configuration from file" do
-		Dir.chdir(File.dirname(__FILE__))
-		c = Configuration.from_file('test.cfg').get
+	describe 'path specs' do
+		it 'should load path and render spec templates' do
+			subject.path['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
+			subject.path['hash'].render(path: 'test/abc.jpg', image_data: 'hello').should == '2cf24dba5fb0a30e.jpg'
+			subject.path['hash-name'].render(path: 'test/abc.jpg', image_data: 'hello', imagename: 'xbrna').should == '2cf24dba5fb0a30e/xbrna.jpg'
+			subject.path['structured'].render(path: 'test/abc.jpg', image_data: 'hello').should == 'test/2cf24dba5fb0a30e/abc.jpg'
+			subject.path['structured-name'].render(path: 'test/abc.jpg', image_data: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
+		end
+	end
 
-		c.s3_key_id.should == 'AKIAJMUYVYOSACNXLPTQ'
-		c.s3_key_secret.should == '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'
-		c.s3_bucket.should == 'issthumbtest'
-		c.thumbnailer_url.should == 'http://localhost:3100'
+	describe 'handler' do
+		it 'should provide request matchers' do
+			subject.handler[0].matchers.should == ['put', 'thumbnail', :name_list]
+			subject.handler[1].matchers.should == ['post', 'original']
+			subject.handler[2].matchers.should == ['get', 'thumbnail', 'v1', :operation, :width, :height, :options]
+		end
 
-		tc = c.thumbnail_classes['small']
-		tc.name.should == 'small'
-		tc.method.should == 'crop'
-		tc.width.should == 128
-		tc.height.should == 128
-		tc.format.should == 'JPEG'
-		tc.options.should == { :magick => 'option', :number => 42}
-
-		tc = c.thumbnail_classes['tiny']
-		tc.name.should == 'tiny'
-		tc.method.should == 'pad'
-		tc.width.should == 32
-		tc.height.should == 48
-		tc.format.should == 'PNG'
-		tc.options.should == {}
-
-		tc = c.thumbnail_classes['test']
-		tc.name.should == 'test'
-		tc.method.should == 'pad'
-		tc.width.should == 32
-		tc.height.should == 48
-		tc.format.should == 'JPEG'
-		tc.options.should == {}
+		it 'should provide sources' do
+			p subject.handler[0].image_source[0].render
+			#p subject.handler[1].image_source
+			#p subject.handler[2].image_source
+		end
 	end
 end
 

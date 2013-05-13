@@ -1,40 +1,66 @@
-require 'httpimagestore/thumbnail_class'
+require 'sdl4r'
 require 'pathname'
+require 'ostruct'
+require 'unicorn-cuba-base'
 
-class Configuration
-	def initialize(&block)
-		@thumbnail_classes = {}
-		@thumbnailer_url = "http://localhost:3100"
+module Configuration
+	class Scope
+		include ClassLogging
 
-		instance_eval &block
-	end
+		ConfigurationError = Class.new ArgumentError
+		MissingStatementError = Class.new ConfigurationError
+		MissingArgumentError = Class.new ConfigurationError
 
-	def self.from_file(file)
-		file = Pathname.pwd + file
-		Configuration.new do
-			 eval(file.read, nil, file.to_s)
+		def self.node_parsers
+			@node_parsers ||= []
+		end
+
+		def self.register_node_parser(parser)
+			node_parsers << parser
+		end
+
+		def initialize(configuration)
+			@configuration = configuration
+		end
+
+		def parse(node)
+			self.class.node_parsers.each do |parser|
+				parser.pre_default(@configuration) if parser.respond_to? :pre_default
+			end
+
+			node.children.each do |node|
+				parser = self.class.node_parsers.find do |parser|
+					parser.match node
+				end
+				if parser
+					parser.parse(@configuration, node)
+				else
+					log.warn "unexpected statement: #{node.name}"
+				end
+			end
+
+			self.class.node_parsers.each do |parser|
+				parser.post_default(@configuration) if parser.respond_to? :post_default
+			end
+			@configuration
 		end
 	end
 
-	def thumbnail_class(name, method, width, height, format = 'JPEG', options = {})
-		@thumbnail_classes[name] = ThumbnailClass.new(name, method, width, height, format, options)
+	class Global < Scope
 	end
 
-	def s3_key(id, secret)
-		@s3_key_id = id
-		@s3_key_secret = secret
+	def self.from_file(config_file, defaults = {})
+		read Pathname.new(config_file), defaults
 	end
 
-	def s3_bucket(bucket)
-		@s3_bucket = bucket
+	def self.read(config, defaults = {})
+		parse SDL4R::read(config), defaults
 	end
 
-	def thumbnailer_url(url)
-		@thumbnailer_url = url
-	end
-
-	def get
-		Struct.new(:thumbnail_classes, :s3_key_id, :s3_key_secret, :s3_bucket, :thumbnailer_url).new(@thumbnail_classes, @s3_key_id, @s3_key_secret, @s3_bucket, @thumbnailer_url)
+	def self.parse(root, defaults = {})
+		configuration = OpenStruct.new
+		configuration.defaults = defaults
+		Global.new(configuration).parse(root)
 	end
 end
 

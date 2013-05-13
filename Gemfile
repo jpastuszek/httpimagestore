@@ -4,6 +4,7 @@ gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
 gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
 gem "right_aws", "~> 3.0"
 gem "mime-types", "~> 1.17"
+gem "sdl4r", "~> 0.9"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
