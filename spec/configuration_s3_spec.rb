@@ -4,7 +4,7 @@ require 'httpimagestore/configuration/s3'
 
 describe Configuration do
 	subject do
-		Configuration.from_file('spec/s3.cfg')
+		Configuration.from_file(support_dir + 's3.cfg')
 	end
 
 	describe 's3' do

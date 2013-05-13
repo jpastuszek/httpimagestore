@@ -1,8 +1,10 @@
 module Configuration
+	Image = Class.new Struct.new(:data, :mime_type)
+
 	class InputSource
 		def realize(locals)
 			@data = locals[:request_body] unless @data
-			(locals[:images] ||= {})['input'] = @data
+			(locals[:images] ||= {})['input'] = Image.new(@data)
 		end
 	end
 

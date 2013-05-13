@@ -3,7 +3,7 @@ require 'httpimagestore/configuration'
 
 describe Configuration do
 	subject do
-		Configuration.from_file('spec/minimum.cfg')
+		Configuration.from_file(support_dir + 'minimum.cfg')
 	end
 
 	it 'should parse configuration file' do
@@ -26,7 +26,7 @@ describe Configuration do
 		end
 
 		it 'should allow to override default URL' do
-			subject = Configuration.from_file('spec/minimum.cfg', thumbnailer_url: 'http://1.1.1.1:8080')
+			subject = Configuration.from_file(support_dir + 'minimum.cfg', thumbnailer_url: 'http://1.1.1.1:8080')
 			subject.thumbnailer.url.should == 'http://1.1.1.1:8080'
 		end
 
@@ -37,6 +37,7 @@ describe Configuration do
 
 		it 'should provide HTTPThumbnailerClient' do
 			subject.thumbnailer.client.should be_a HTTPThumbnailerClient
+			subject.thumbnailer.client.server_url.should == 'http://localhost:3100'
 		end
 
 		describe Configuration::Thumbnail::ThumbnailSpec do
@@ -90,6 +91,16 @@ describe Configuration do
 		end
 
 		describe 'sources' do
+			before :all do
+				log = support_dir + 'server.log'
+				start_server(
+					"httpthumbnailer -f -d -l #{log}",
+					'/tmp/httpthumbnailer.pid',
+					log,
+					'http://localhost:3100/'
+				)
+			end
+
 			it 'should have implicit InputSource on non get handlers' do
 				subject.handler[0].image_source.first.should_not be_a Configuration::InputSource
 				subject.handler[1].image_source.first.should be_a Configuration::InputSource
@@ -101,21 +112,48 @@ describe Configuration do
 					request_body: 'abc'
 				}
 				input_source.realize(locals)
-				locals[:images]['input'].should == 'abc'
+				locals[:images]['input'].data.should == 'abc'
 			end
 
-			it 'should realize thumbnailer source' do
+			it 'should realize thumbnailer source and set input image mime type' do
 				locals = {
 					operation: 'pad',
 					width: '10',
 					height: '10',
 					options: 'background-color:green',
 					path: nil,
-					request_body: 'abc'
+					request_body: (support_dir + 'compute.jpg').read
 				}
+
+				# need input image
 				subject.handler[1].image_source[0].realize(locals)
-				thumbnailer = subject.handler[1].image_source[1]
-				p thumbnailer.realize(locals)
+				locals[:images]['input'].data.should_not be_nil
+				locals[:images]['input'].mime_type.should be_nil
+
+				# thumbanil
+				subject.handler[1].image_source[1].realize(locals)
+				locals[:images]['original'].data.should_not be_nil
+				locals[:images]['original'].mime_type.should == 'image/jpeg'
+
+				locals[:images]['input'].mime_type.should == 'image/jpeg'
+			end
+
+			it 'should fail on realizin bad thumbnail sepc thumbnailing' do
+				locals = {
+					operation: 'pad',
+					width: '0',
+					height: '10',
+					options: 'background-color:green',
+					path: nil,
+					request_body: (support_dir + 'compute.jpg').read
+				}
+
+				# need input image
+				subject.handler[1].image_source[0].realize(locals)
+
+				expect {
+					subject.handler[1].image_source[1].realize(locals)
+				}.to raise_error Configuration::Thumbnail::ThumbnailingError, "thumbnailing of 'input' into 'original' failed: at least one image dimension is zero: 0x10"
 			end
 		end
 	end
