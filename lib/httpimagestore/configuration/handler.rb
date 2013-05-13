@@ -1,4 +1,11 @@
 module Configuration
+	class InputSource
+		def realize(locals)
+			@data = locals[:request_body] unless @data
+			(locals[:images] ||= {})['input'] = @data
+		end
+	end
+
 	class Handler < Scope
 		def self.match(node)
 			node.name == 'put' or
@@ -19,13 +26,21 @@ module Configuration
 			self.new(configuration, handler_configuration, matchers, node)
 		end
 
-		def initialize(root_configuration, handler_configuration, matchers, node)
-			@root_configuration = root_configuration
+		def initialize(global_configuration, handler_configuration, matchers, node)
 			super handler_configuration
+
+			# let parsers access global configuration
+			handler_configuration.global = global_configuration
+
 			handler_configuration.matchers = matchers
 			handler_configuration.image_source = []
-			handler_configuration.stor = []
+			handler_configuration.store = []
 			handler_configuration.output = []
+
+			if matchers.first != 'get'
+				handler_configuration.image_source << InputSource.new
+			end
+
 			parse node
 		end
 	end

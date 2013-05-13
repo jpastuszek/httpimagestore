@@ -4,12 +4,12 @@ require 'ostruct'
 require 'unicorn-cuba-base'
 
 module Configuration
+	ConfigurationError = Class.new ArgumentError
+	MissingStatementError = Class.new ConfigurationError
+	MissingArgumentError = Class.new ConfigurationError
+
 	class Scope
 		include ClassLogging
-
-		ConfigurationError = Class.new ArgumentError
-		MissingStatementError = Class.new ConfigurationError
-		MissingArgumentError = Class.new ConfigurationError
 
 		def self.node_parsers
 			@node_parsers ||= []
@@ -25,7 +25,7 @@ module Configuration
 
 		def parse(node)
 			self.class.node_parsers.each do |parser|
-				parser.pre_default(@configuration) if parser.respond_to? :pre_default
+				parser.pre(@configuration) if parser.respond_to? :pre
 			end
 
 			node.children.each do |node|
@@ -40,7 +40,7 @@ module Configuration
 			end
 
 			self.class.node_parsers.each do |parser|
-				parser.post_default(@configuration) if parser.respond_to? :post_default
+				parser.post(@configuration) if parser.respond_to? :post
 			end
 			@configuration
 		end
@@ -63,4 +63,9 @@ module Configuration
 		Global.new(configuration).parse(root)
 	end
 end
+
+# load minimal supported set
+require 'httpimagestore/configuration/path'
+require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/thumbnailer'
 
