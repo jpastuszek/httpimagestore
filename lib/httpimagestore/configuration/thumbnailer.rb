@@ -1,6 +1,5 @@
 require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
-require 'httpimagestore/thumbnail_class'
 
 module Configuration
 	class Thumnailer < Struct.new(:url, :client)
