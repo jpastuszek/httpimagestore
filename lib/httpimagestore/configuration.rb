@@ -7,6 +7,7 @@ module Configuration
 	ConfigurationError = Class.new ArgumentError
 	MissingStatementError = Class.new ConfigurationError
 	MissingArgumentError = Class.new ConfigurationError
+	DuplicateArgumentError = Class.new ConfigurationError
 
 	class Scope
 		include ClassLogging
@@ -68,4 +69,5 @@ end
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/thumbnailer'
+require 'httpimagestore/configuration/output'
 

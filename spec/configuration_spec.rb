@@ -85,9 +85,11 @@ describe Configuration do
 	end
 
 	describe 'handlers' do
-		it 'should provide request matchers' do
-			subject.handlers[0].matchers.should == ['get', 'thumbnail', 'v1', :operation, :width, :height, :options]
-			subject.handlers[1].matchers.should == ['put', 'thumbnail', 'v1', :operation, :width, :height, :options]
+		it 'should provide request http_method and uri_matchers' do
+			subject.handlers[0].http_method.should == 'get'
+			subject.handlers[0].uri_matchers.should == ['thumbnail', 'v1', :operation, :width, :height, :options]
+			subject.handlers[1].http_method.should == 'put'
+			subject.handlers[1].uri_matchers.should == ['thumbnail', 'v1', :operation, :width, :height, :options]
 		end
 
 		describe 'sources' do

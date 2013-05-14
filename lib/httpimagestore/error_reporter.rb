@@ -12,16 +12,16 @@ class ErrorReporter < Controler
 			write_error 413, env['app.error']
 		end
 
-		on error ThumbnailingError do
-			write_error env['app.error'].remote_error.status, env['app.error']
-		end
+		#on error ThumbnailingError do
+		#	write_error env['app.error'].remote_error.status, env['app.error']
+		#end
 
-		on error(
-			ThumbnailClassDoesNotExistError,
-			ZeroBodyLengthError
-		) do
-			write_error 400, env['app.error']
-		end
+		#on error(
+		#	ThumbnailClassDoesNotExistError,
+		#	ZeroBodyLengthError
+		#) do
+		#	write_error 400, env['app.error']
+		#end
 
 		log.error "unhandled error while processing request: #{env['REQUEST_METHOD']} #{env['SCRIPT_NAME']}[#{env["PATH_INFO"]}]", env['app.error']
 		log.debug {

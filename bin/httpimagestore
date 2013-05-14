@@ -6,8 +6,6 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 Application.new('httpimagestore', port: 3000) do
 	cli do
 		description 'HTTP based image storage and thumbnailer'
-		switch :no_uri_encode,
-			description: 'disable output URI encoding'
 		option :upload_retry_time,
 			default: 2,
 			cast: Integer,
@@ -16,9 +14,6 @@ Application.new('httpimagestore', port: 3000) do
 			default: 0.1,
 			cast: Float,
 			description: 'initial retry delay that will be multiplied by 2 each retry cycle'
-		options :cache_control,
-			default: "public, max-age=#{(86400 * 365.25).to_i}",
-			description: 'stored object Cache-Control header value - can be used multiple times to specify flag by flag'
 		argument :config,
 			cast: Pathname,
 			description: 'configuration file path'
@@ -28,38 +23,15 @@ Application.new('httpimagestore', port: 3000) do
 	settings do |settings|
 		require 'httpimagestore/configuration'
 
-		Controler.settings[:uri_encode] = (not settings.no_uri_encode)
 		Controler.settings[:upload_retry_times] = settings.upload_retry_times
 		Controler.settings[:upload_retry_delay] = settings.upload_retry_delay
-		Controler.settings[:cache_control] = settings.cache_control.reject(&:empty?)
 
-		Configuration.from_file(settings.config).get.each_pair do |key, value|
-			Controler.settings[key] = value
-		end
+		Controler.settings[:config_file] = settings.config
 	end
 
 	main do |settings|
-		class ThumbnailingError < RuntimeError
-			def initialize(thumbnail_class, remote_error)
-				@remote_error = remote_error
-				super "thumbnailing for class '#{thumbnail_class.name}' failed: #{remote_error.message}"
-			end
-
-			attr_reader :remote_error
-		end
-
-		ThumbnailClassDoesNotExistError = Class.new ArgumentError
-		ZeroBodyLengthError = Class.new ArgumentError
-
 		class HTTPImageStore < Controler
 			require 'httpimagestore/error_reporter'
-			require 'httpimagestore/plugin/image_path'
-			require 'httpimagestore/plugin/thumbnailer'
-			require 'httpimagestore/plugin/s3'
-
-			plugin Plugin::ImagePath
-			plugin Plugin::Thumbnailer
-			plugin Plugin::S3
 
 			self.define do
 				on error? do
@@ -71,49 +43,21 @@ Application.new('httpimagestore', port: 3000) do
 					write_plain 200, 'OK'
 				end
 
-				on put, 'thumbnail', :thumbnail_classes do |thumbnail_classes|
-					image_path = env["PATH_INFO"].empty? ? '' : URI.decode(env["PATH_INFO"][1..-1])
+				env['app.configuration'].handlers.each do |handler|
+					on eval(handler.http_method), *handler.uri_matchers do |*args|
+						locals = Hash[*handler.uri_matchers.select{|m| m.is_a? Symbol}.zip(args).flatten]
+						state = Configuration::RequestState.new(req.body.read, locals)
 
-					thumbnail_classes = thumbnail_classes.split(',').map do |thumbnail_class|
-						settings[:thumbnail_classes][thumbnail_class] or fail ThumbnailClassDoesNotExistError, "thumbnail class '#{thumbnail_class}' not defined"
-					end
-
-					log.info "processing image into classes: #{thumbnail_classes.map(&:name).join(', ')} image path: #{image_path}"
-
-					image = req.body.read
-					image.empty? and fail ZeroBodyLengthError, 'empty body - expected image data'
-
-					image_hash = digest(image)
-
-					unless image_path.empty?
-						image_path = custom_path(image_hash, image_path)
-					else
-						image_path = auto_path(image_hash)
-					end
-
-					log.debug "thumbnailing to classes"
-					thumbnails = thumbnailer.thumbnail(image) do
-						thumbnail_classes.each do |thumbnail_class|
-							thumbnail thumbnail_class.method, thumbnail_class.width, thumbnail_class.height, thumbnail_class.format, thumbnail_class.options
+						handler.image_sources.each do |image_sources|
+							image_sources.realize(state)
 						end
+						handler.stores.each do |store|
+							store.realize(state)
+						end
+						handler.output.realize(state)
+
+						instance_eval &state.output_callback
 					end
-					# check for errors
-					thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
-						raise ThumbnailingError.new(thumbnail_class, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
-					end
-
-					log.debug "got #{thumbnails.length} thumbnails"
-
-					urls = []
-
-					# store all images
-					urls << s3.put_image(image_path.original_image(thumbnails.input_mime_type), thumbnails.input_mime_type, image)
-
-					thumbnails.zip(thumbnail_classes).each do |thumbnail, thumbnail_class|
-						urls << s3.put_image(image_path.thumbnail_image(thumbnail.mime_type, thumbnail_class.name), thumbnail.mime_type, thumbnail.data)
-					end
-
-					write_url_list 200, urls.map{|u| settings[:uri_encode] ? URI.encode(u) : u}
 				end
 
 				on root do
@@ -122,6 +66,19 @@ Application.new('httpimagestore', port: 3000) do
 			end
 		end
 
+		class Configurator
+			def initialize(app, configuration)
+				@app = app
+				@configuration = configuration
+			end
+
+			def call(env)
+				env['app.configuration'] = @configuration
+				@app.call(env)
+			end
+		end
+
+		HTTPImageStore.use Configurator, Configuration.from_file(settings.config)
 		HTTPImageStore
 	end
 end
