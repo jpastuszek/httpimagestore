@@ -20,6 +20,14 @@ describe Configuration do
 			subject.handlers[2].uri_matchers.should be_empty
 		end
 
+		describe Configuration::RequestState do
+			it 'should raise CouldNotFindImageError if image lookup fails' do
+				expect {
+					Configuration::RequestState.new.images['test']
+				}.to raise_error Configuration::CouldNotFindImageError, "could not find 'test' image"
+			end
+		end
+
 		describe 'sources' do
 			it 'should have implicit InputSource on non get handlers' do
 				subject.handlers[0].image_sources.first.should_not be_a Configuration::InputSource

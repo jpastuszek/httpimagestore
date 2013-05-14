@@ -2,13 +2,15 @@ require 'httpimagestore/ruby_string_template'
 require 'digest/sha2'
 
 module Configuration
+	CouldNotFindPathError = Class.new MissingStatementError
+
 	class Path < RubyStringTemplate
 		def self.match(node)
 			node.name == 'path'
 		end
 
 		def self.pre(configuration)
-			configuration.paths ||= {}
+			configuration.paths ||= Hash.new{|hash, path_name| raise CouldNotFindPathError, "could not find '#{path_name}' path"}
 		end
 
 		def self.parse(configuration, node)

@@ -22,7 +22,7 @@ module Configuration
 		private
 
 		def final_path(request_state)
-			path = @configuration.global.paths[@path_spec] or raise MissingStatementError, "no '#{@path_spec}' path specification found"
+			path = @configuration.global.paths[@path_spec]
 			rendered_path = path.render(request_state.locals)
 
 			final_path = (@root_dir + rendered_path).cleanpath
@@ -65,7 +65,7 @@ module Configuration
 		end
 
 		def realize(request_state)
-			image = request_state.images[@image_name] or raise MissingStatementError, "could not find '#{@image_name}' image"
+			image = request_state.images[@image_name]
 			path = final_path(request_state)
 
 			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length}B)"

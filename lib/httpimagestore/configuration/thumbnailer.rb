@@ -102,7 +102,7 @@ module Configuration
 			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs}"
 			return if rendered_specs.empty?
 
-			image = request_state.images[@source_image_name] or raise MissingStatementError, "could not find '#{@source_image_name}' image"
+			image = request_state.images[@source_image_name]
 
 			thumbnails = client.thumbnail(image.data) do
 				rendered_specs.values.each do |spec|

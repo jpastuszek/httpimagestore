@@ -1,7 +1,9 @@
 module Configuration
+	CouldNotFindImageError = Class.new MissingStatementError
+
 	class RequestState
 		def initialize(body = '', locals = {})
-			@images = {}
+			@images = Hash.new{|hash, image_name| raise CouldNotFindImageError, "could not find '#{image_name}' image"}
 			@body = body
 			@locals = locals
 			@output_callback = nil

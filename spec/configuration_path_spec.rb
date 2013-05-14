@@ -14,6 +14,12 @@ describe Configuration do
 			subject.paths['structured'].render(path: 'test/abc.jpg', image_data: 'hello').should == 'test/2cf24dba5fb0a30e/abc.jpg'
 			subject.paths['structured-name'].render(path: 'test/abc.jpg', image_data: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
 		end
+
+		it 'should raise CouldNotFindPathError if path lookup fails' do
+			expect {
+				subject.paths['blah']
+			}.to raise_error Configuration::CouldNotFindPathError, "could not find 'blah' path"
+		end
 	end
 end
 
