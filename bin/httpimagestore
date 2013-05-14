@@ -38,11 +38,6 @@ Application.new('httpimagestore', port: 3000) do
 					run ErrorReporter
 				end
 
-				on 'health_check' do
-					log.info "health_check"
-					write_plain 200, 'OK'
-				end
-
 				env['app.configuration'].handlers.each do |handler|
 					on eval(handler.http_method), *handler.uri_matchers do |*args|
 						locals = Hash[*handler.uri_matchers.select{|m| m.is_a? Symbol}.zip(args).flatten]
@@ -58,6 +53,11 @@ Application.new('httpimagestore', port: 3000) do
 
 						instance_eval &state.output_callback
 					end
+				end
+
+				on 'health_check' do
+					log.info "health_check"
+					write_plain 200, 'OK'
 				end
 
 				on root do

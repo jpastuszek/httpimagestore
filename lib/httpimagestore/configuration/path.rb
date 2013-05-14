@@ -7,13 +7,15 @@ module Configuration
 			node.name == 'path'
 		end
 
+		def self.pre(configuration)
+			configuration.paths ||= {}
+		end
+
 		def self.parse(configuration, node)
-			(configuration.path ||= {}).tap do |path|
-				node.children.each do |child|
-					name, template = *child.values
-					template or fail MissingTemplateValueError, "no template for path expression '#{name}' given"
-					path[name] = Path.new(template)
-				end
+			node.children.each do |child|
+				name, template = *child.values
+				template or fail MissingTemplateValueError, "no template for path expression '#{name}' given"
+				configuration.paths[name] = Path.new(template)
 			end
 		end
 
