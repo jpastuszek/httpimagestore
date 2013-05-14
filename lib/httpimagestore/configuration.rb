@@ -69,5 +69,6 @@ end
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/thumbnailer'
+require 'httpimagestore/configuration/file'
 require 'httpimagestore/configuration/output'
 

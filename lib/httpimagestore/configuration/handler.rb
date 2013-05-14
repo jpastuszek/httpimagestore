@@ -1,6 +1,6 @@
 module Configuration
 	class RequestState
-		def initialize(body, locals = {})
+		def initialize(body = '', locals = {})
 			@images = {}
 			@body = body
 			@locals = locals

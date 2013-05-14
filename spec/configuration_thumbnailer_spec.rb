@@ -70,6 +70,16 @@ describe Configuration do
 		end
 
 		describe 'thumbnail image source' do
+			before :all do
+				log = support_dir + 'server.log'
+				start_server(
+					"httpthumbnailer -f -d -l #{log}",
+					'/tmp/httpthumbnailer.pid',
+					log,
+					'http://localhost:3100/'
+				)
+			end
+
 			it 'should realize thumbnailer source and set input image mime type' do
 				state = Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
