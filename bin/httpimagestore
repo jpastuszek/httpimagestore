@@ -21,8 +21,6 @@ Application.new('httpimagestore', port: 3000) do
 	end
 
 	settings do |settings|
-		require 'httpimagestore/configuration'
-
 		Controler.settings[:upload_retry_times] = settings.upload_retry_times
 		Controler.settings[:upload_retry_delay] = settings.upload_retry_delay
 
@@ -77,6 +75,8 @@ Application.new('httpimagestore', port: 3000) do
 				@app.call(env)
 			end
 		end
+
+		require 'httpimagestore/configuration'
 
 		HTTPImageStore.use Configurator, Configuration.from_file(settings.config)
 		HTTPImageStore

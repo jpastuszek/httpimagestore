@@ -17,6 +17,7 @@ module Configuration
 		end
 
 		def self.register_node_parser(parser)
+			parser.logger = logger_for(parser) if parser.respond_to? :logger=
 			node_parsers << parser
 		end
 
@@ -64,6 +65,9 @@ module Configuration
 		Global.new(configuration).parse(root)
 	end
 end
+
+# connect Scope tree with Configuration logger
+Configuration::Scope.logger = Controler.logger_for(Configuration::Scope)
 
 # load minimal supported set
 require 'httpimagestore/configuration/path'
