@@ -82,7 +82,7 @@ module Configuration
 				)
 			end
 
-			configuration.image_source << Thumbnail.new(source_image_name, configuration, specs)
+			configuration.image_sources << Thumbnail.new(source_image_name, configuration, specs)
 		end
 
 		def initialize(source_image_name, configuration, specs)
@@ -91,18 +91,18 @@ module Configuration
 			@specs = specs
 		end
 
-		def realize(locals = {})
+		def realize(state)
 			@configuration.global.thumbnailer or raise MissingStatementError, 'thumbnailer configuration'
 			client = @configuration.global.thumbnailer.client or raise MissingStatementError, 'thumbnailer client'
 
 			rendered_specs = {}
 			@specs.each do |spec|
-				rendered_specs.merge! spec.render(locals)
+				rendered_specs.merge! spec.render(state.locals)
 			end
 			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs}"
 			return if rendered_specs.empty?
 
-			image = locals[:images] && locals[:images][@source_image_name] or raise RuntimeError, "could not find '#{@source_image_name}' image data"
+			image = state.images[@source_image_name] or raise MissingStatementError, "could not find '#{@source_image_name}' image data"
 
 			thumbnails = client.thumbnail(image.data) do
 				rendered_specs.values.each do |spec|
@@ -118,7 +118,7 @@ module Configuration
 			# update input image mime type from httpthumbnailer provided information
 			image.mime_type = thumbnails.input_mime_type unless image.mime_type
 
-			locals[:images].merge! images
+			state.images.merge! images
 		end
 	end
 	Handler::register_node_parser Thumbnail

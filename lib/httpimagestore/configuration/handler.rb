@@ -1,10 +1,21 @@
 module Configuration
+	class RequestState
+		def initialize(body, locals = {})
+			@images = {}
+			@body = body
+			@locals = locals
+		end
+
+		attr_reader :images
+		attr_reader :body
+		attr_reader :locals
+	end
+
 	Image = Class.new Struct.new(:data, :mime_type)
 
 	class InputSource
-		def realize(locals)
-			@data = locals[:request_body] unless @data
-			(locals[:images] ||= {})['input'] = Image.new(@data)
+		def realize(request_state)
+			request_state.images['input'] = Image.new(request_state.body)
 		end
 	end
 
@@ -21,10 +32,10 @@ module Configuration
 				*node.values.map{|matcher| matcher =~ /^:/ ? matcher.sub(/^:/, '').to_sym : matcher}
 			]
 
-			configuration.handler ||= []
+			configuration.handlers ||= []
 			handler_configuration = OpenStruct.new
 
-			configuration.handler << handler_configuration
+			configuration.handlers << handler_configuration
 			self.new(configuration, handler_configuration, matchers, node)
 		end
 
@@ -35,12 +46,12 @@ module Configuration
 			handler_configuration.global = global_configuration
 
 			handler_configuration.matchers = matchers
-			handler_configuration.image_source = []
-			handler_configuration.store = []
-			handler_configuration.output = []
+			handler_configuration.image_sources = []
+			handler_configuration.stores = []
+			handler_configuration.outputs = []
 
 			if matchers.first != 'get'
-				handler_configuration.image_source << InputSource.new
+				handler_configuration.image_sources << InputSource.new
 			end
 
 			parse node

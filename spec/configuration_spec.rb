@@ -84,10 +84,10 @@ describe Configuration do
 		end
 	end
 
-	describe 'handler' do
+	describe 'handlers' do
 		it 'should provide request matchers' do
-			subject.handler[0].matchers.should == ['get', 'thumbnail', 'v1', :operation, :width, :height, :options]
-			subject.handler[1].matchers.should == ['put', 'thumbnail', 'v1', :operation, :width, :height, :options]
+			subject.handlers[0].matchers.should == ['get', 'thumbnail', 'v1', :operation, :width, :height, :options]
+			subject.handlers[1].matchers.should == ['put', 'thumbnail', 'v1', :operation, :width, :height, :options]
 		end
 
 		describe 'sources' do
@@ -102,57 +102,55 @@ describe Configuration do
 			end
 
 			it 'should have implicit InputSource on non get handlers' do
-				subject.handler[0].image_source.first.should_not be_a Configuration::InputSource
-				subject.handler[1].image_source.first.should be_a Configuration::InputSource
+				subject.handlers[0].image_sources.first.should_not be_a Configuration::InputSource
+				subject.handlers[1].image_sources.first.should be_a Configuration::InputSource
 			end
 
 			it 'should realize input source' do
-				input_source = subject.handler[1].image_source.first
-				locals = {
-					request_body: 'abc'
-				}
-				input_source.realize(locals)
-				locals[:images]['input'].data.should == 'abc'
+				input_source = subject.handlers[1].image_sources.first
+				state = Configuration::RequestState.new('abc')
+				input_source.realize(state)
+				state.images['input'].data.should == 'abc'
 			end
 
 			it 'should realize thumbnailer source and set input image mime type' do
-				locals = {
+				state = Configuration::RequestState.new(
+					(support_dir + 'compute.jpg').read,
 					operation: 'pad',
 					width: '10',
 					height: '10',
 					options: 'background-color:green',
-					path: nil,
-					request_body: (support_dir + 'compute.jpg').read
-				}
+					path: nil
+				)
 
 				# need input image
-				subject.handler[1].image_source[0].realize(locals)
-				locals[:images]['input'].data.should_not be_nil
-				locals[:images]['input'].mime_type.should be_nil
+				subject.handlers[1].image_sources[0].realize(state)
+				state.images['input'].data.should_not be_nil
+				state.images['input'].mime_type.should be_nil
 
 				# thumbanil
-				subject.handler[1].image_source[1].realize(locals)
-				locals[:images]['original'].data.should_not be_nil
-				locals[:images]['original'].mime_type.should == 'image/jpeg'
+				subject.handlers[1].image_sources[1].realize(state)
+				state.images['original'].data.should_not be_nil
+				state.images['original'].mime_type.should == 'image/jpeg'
 
-				locals[:images]['input'].mime_type.should == 'image/jpeg'
+				state.images['input'].mime_type.should == 'image/jpeg'
 			end
 
 			it 'should fail on realizin bad thumbnail sepc thumbnailing' do
-				locals = {
+				state = Configuration::RequestState.new(
+					(support_dir + 'compute.jpg').read,
 					operation: 'pad',
 					width: '0',
 					height: '10',
 					options: 'background-color:green',
-					path: nil,
-					request_body: (support_dir + 'compute.jpg').read
-				}
+					path: nil
+				)
 
 				# need input image
-				subject.handler[1].image_source[0].realize(locals)
+				subject.handlers[1].image_sources[0].realize(state)
 
 				expect {
-					subject.handler[1].image_source[1].realize(locals)
+					subject.handlers[1].image_sources[1].realize(state)
 				}.to raise_error Configuration::Thumbnail::ThumbnailingError, "thumbnailing of 'input' into 'original' failed: at least one image dimension is zero: 0x10"
 			end
 		end
