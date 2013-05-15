@@ -1,6 +1,7 @@
 require 'unicorn-cuba-base'
 require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
+require 'httpimagestore/configuration/handler'
 
 module Configuration
 	class Thumnailer

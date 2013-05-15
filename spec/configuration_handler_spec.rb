@@ -1,5 +1,9 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
+Configuration::Scope.logger = Logger.new('/dev/null')
+
+require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/output'
 
 describe Configuration do
 	subject do

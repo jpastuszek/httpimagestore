@@ -89,14 +89,3 @@ module Configuration
 	end
 end
 
-# connect Scope tree with Controler logger
-Configuration::Scope.logger = Controler.logger_for(Configuration::Scope)
-
-# load builin supported set
-require 'httpimagestore/configuration/path'
-require 'httpimagestore/configuration/handler'
-require 'httpimagestore/configuration/thumbnailer'
-require 'httpimagestore/configuration/file'
-require 'httpimagestore/configuration/output'
-require 'httpimagestore/configuration/s3'
-

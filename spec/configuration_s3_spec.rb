@@ -1,8 +1,11 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
+Configuration::Scope.logger = Logger.new('/dev/null')
+
 require 'httpimagestore/configuration/s3'
 
 describe Configuration do
+
 	describe 's3' do
 		subject do
 			Configuration.from_file(support_dir + 's3.cfg')

@@ -1,3 +1,5 @@
+require 'httpimagestore/configuration/handler'
+
 module Configuration
 	class OutputImage
 		def self.match(node)

@@ -1,3 +1,5 @@
+require 'httpimagestore/configuration/path'
+require 'httpimagestore/configuration/handler'
 require 'pathname'
 
 module Configuration
