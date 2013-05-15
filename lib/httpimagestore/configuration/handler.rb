@@ -1,9 +1,13 @@
 module Configuration
-	CouldNotFindImageError = Class.new MissingStatementError
+	class ImageNotLoadedError < ConfigurationError
+		def initialize(image_name)
+			super "image '#{image_name}' not loaded"
+		end
+	end
 
 	class RequestState
 		def initialize(body = '', locals = {})
-			@images = Hash.new{|hash, image_name| raise CouldNotFindImageError, "could not find '#{image_name}' image"}
+			@images = Hash.new{|hash, image_name| raise ImageNotLoadedError.new(image_name)}
 			@body = body
 			@locals = locals
 			@output_callback = nil

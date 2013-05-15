@@ -2,11 +2,11 @@ require_relative 'spec_helper'
 require 'httpimagestore/configuration'
 
 describe Configuration do
-	subject do
-		Configuration.from_file(support_dir + 'file.cfg')
-	end
-
 	describe 'file source and store' do
+		subject do
+			Configuration.from_file(support_dir + 'file.cfg')
+		end
+
 		it 'should source image from file and store image in file using path spec' do
 			in_file = Pathname.new("/tmp/test.in")
 			out_file = Pathname.new("/tmp/test.out")
@@ -37,7 +37,39 @@ describe Configuration do
 			state = Configuration::RequestState.new
 			expect {
 				subject.handlers[1].image_sources[0].realize(state)
-			}.to raise_error Configuration::StorageOutsideOfRootDirError
+			}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
+		end
+
+		describe 'error handling' do
+			it 'should raise error on missing image name' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_file root="/tmp" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'source_file path="hash" root="/tmp"': expected image name}
+			end
+
+			it 'should raise error on missing root argument' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_file "original" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_file "original" path="hash"': expected 'root' attribute to be set}
+			end
+
+			it 'should raise error on missing path argument' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_file "original" root="/tmp"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_file "original" root="/tmp"': expected 'path' attribute to be set}
+			end
 		end
 	end
 end

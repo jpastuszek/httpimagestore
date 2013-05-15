@@ -1,26 +1,39 @@
+require 'unicorn-cuba-base'
 require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
 
 module Configuration
 	class Thumnailer
+		include ClassLogging
+
 		def self.match(node)
 			node.name == 'thumbnailer'
 		end
 
 		def self.pre(configuration)
 			configuration.thumbnailer = Struct.new(:url, :client).new
-			configuration.thumbnailer.url = configuration.defaults[:thumbnailer_url] || 'http://localhost:3100'
 		end
 
 		def self.parse(configuration, node)
-			configuration.thumbnailer.url = node.attribute('url') or raise MissingArgumentError, 'thumbnailer url'
+			configuration.thumbnailer.url and raise StatementCollisionError.new(node, 'thumbnailer')
+			configuration.thumbnailer.url = node.attribute('url') or raise NoAttributeError.new(node, 'url')
 		end
 
 		def self.post(configuration)
+			if not configuration.thumbnailer.url
+				configuration.thumbnailer.url = configuration.defaults[:thumbnailer_url] || 'http://localhost:3100'
+			end
 			configuration.thumbnailer.client = HTTPThumbnailerClient.new(configuration.thumbnailer.url)
+			log.info "using thumbnailer at #{configuration.thumbnailer.url}"
 		end
 	end
 	Global.register_node_parser Thumnailer
+
+	class NoValueForSpecTemplatePlaceholerError < ConfigurationError
+		def initialize(image_name, spec_name, value_name, template)
+			super "cannot generate specification for thumbnail '#{image_name}': cannot generate value for attribute '#{spec_name}' from template '#{template}': no value for \#{#{value_name}}"
+		end
+	end
 
 	class Thumbnail
 		include ClassLogging
@@ -35,13 +48,21 @@ module Configuration
 		end
 
 		class ThumbnailSpec
+			class Spec < RubyStringTemplate
+				def initialize(image_name, sepc_name, template)
+					super(template) do |locals, name|
+						locals[name] or raise NoValueForSpecTemplatePlaceholerError.new(image_name, sepc_name, name, template)
+					end
+				end
+			end
+
 			def initialize(image_name, method, width, height, format, options = {})
 				@image_name = image_name
-				@method = RubyStringTemplate.new(method)
-				@width = RubyStringTemplate.new(width)
-				@height = RubyStringTemplate.new(height)
-				@format = RubyStringTemplate.new(format)
-				@options = options.inject({}){|h, v| h[v.first] = RubyStringTemplate.new(v.last); h}
+				@method = Spec.new(image_name, 'method', method)
+				@width = Spec.new(image_name, 'width', width)
+				@height = Spec.new(image_name, 'height', height)
+				@format = Spec.new(image_name, 'format', format)
+				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
 			end
 
 			attr_reader :image_name
@@ -67,9 +88,9 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			source_image_name = node.values.first or raise MissingArgumentError, 'source image name'
+			source_image_name = node.values.first or raise NoValueError.new(node, 'source image name')
 			specs = node.children.map do |node|
-				image_name = node.values.first or raise MissingArgumentError, 'output image name'
+				image_name = node.values.first or raise NoValueError.new(node, 'thumbnail image name')
 				attributes = node.attributes
 				ThumbnailSpec.new(
 					image_name,
@@ -91,8 +112,8 @@ module Configuration
 		end
 
 		def realize(request_state)
-			@configuration.global.thumbnailer or raise MissingStatementError, 'thumbnailer configuration'
-			client = @configuration.global.thumbnailer.client or raise MissingStatementError, 'thumbnailer client'
+			@configuration.global.thumbnailer or fail 'thumbnailer configuration'
+			client = @configuration.global.thumbnailer.client or fail 'thumbnailer client'
 
 			rendered_specs = {}
 			@specs.each do |spec|

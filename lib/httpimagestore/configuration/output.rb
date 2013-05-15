@@ -5,8 +5,8 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			name = node.values.first or raise MissingArgumentError, 'input image name'
-			configuration.output and raise DuplicateArgumentError, 'only one output can be specified'
+			name = node.values.first or raise NoValueError.new(node, 'image name')
+			configuration.output and raise StatementCollisionError.new(node, 'output')
 			configuration.output = OutputImage.new(name)
 		end
 

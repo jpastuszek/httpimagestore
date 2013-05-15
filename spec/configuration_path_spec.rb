@@ -6,7 +6,7 @@ describe Configuration do
 		Configuration.from_file(support_dir + 'path.cfg')
 	end
 
-	describe 'path specs' do
+	describe 'path rendering' do
 		it 'should load path and render spec templates' do
 			subject.paths['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
 			subject.paths['hash'].render(path: 'test/abc.jpg', image_data: 'hello').should == '2cf24dba5fb0a30e.jpg'
@@ -15,10 +15,40 @@ describe Configuration do
 			subject.paths['structured-name'].render(path: 'test/abc.jpg', image_data: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
 		end
 
-		it 'should raise CouldNotFindPathError if path lookup fails' do
-			expect {
-				subject.paths['blah']
-			}.to raise_error Configuration::CouldNotFindPathError, "could not find 'blah' path"
+		describe 'error handling' do
+			it 'should raise error on missing path template' do
+				expect {
+					Configuration.read(<<-EOF)
+						path {
+							"blah"
+						}
+					EOF
+				}.to raise_error Configuration::NoValueError, %{syntax error while parsing '"blah"': expected path template}
+			end
+
+			it 'should raise PathNotDefinedError if path lookup fails' do
+				expect {
+					subject.paths['blah']
+				}.to raise_error Configuration::PathNotDefinedError, "path 'blah' not defined"
+			end
+
+			it 'should raise NoValueForPathTemplatePlaceholerError if locals value is not found' do
+				expect {
+					subject.paths['uri'].render
+				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'uri' from template '#{path}': no value for '#{path}'} 
+			end
+
+			it 'should raise NoValueForPathTemplatePlaceholerError if path value is not found' do
+				expect {
+					subject.paths['structured'].render
+				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'structured' from template '#{dirname}/#{digest}/#{basename}.#{extension}': need 'path' to generate value for '#{dirname}'}
+			end
+
+			it 'should raise NoValueForPathTemplatePlaceholerError if image_data value is not found' do
+				expect {
+					subject.paths['structured'].render(path: '')
+				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'structured' from template '#{dirname}/#{digest}/#{basename}.#{extension}': need 'image_data' to generate value for '#{digest}'}
+			end
 		end
 	end
 end

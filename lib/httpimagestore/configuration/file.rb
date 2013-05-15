@@ -1,13 +1,17 @@
 require 'pathname'
 
 module Configuration
-	StorageOutsideOfRootDirError = Class.new ConfigurationError
+	class FileStorageOutsideOfRootDirError < ConfigurationError
+		def initialize(image_name, file_path)
+			super "error while processing image '#{image_name}': file storage path '#{file_path.to_s}' outside of root direcotry"
+		end
+	end
 
 	class FileBase
 		def self.parse(configuration, node)
-			image_name = node.values.first or raise MissingArgumentError, 'image name'
-			root_dir = node.attribute('root') or raise MissingArgumentError, 'root'
-			path_spec = node.attribute('path') or raise MissingArgumentError, 'path'
+			image_name = node.values.first or raise NoValueError.new(node, 'image name')
+			root_dir = node.attribute('root') or raise NoAttributeError.new(node, 'root')
+			path_spec = node.attribute('path') or raise NoAttributeError.new(node, 'path')
 
 			self.new(image_name, configuration, root_dir, path_spec)
 		end
@@ -26,7 +30,7 @@ module Configuration
 			rendered_path = path.render(request_state.locals)
 
 			final_path = (@root_dir + rendered_path).cleanpath
-			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise StorageOutsideOfRootDirError, "file storage path outside of root direcotry: #{final_path.to_s} root: #{@root_dir.to_s}"
+			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, rendered_path)
 
 			final_path
 		end
@@ -68,7 +72,7 @@ module Configuration
 			image = request_state.images[@image_name]
 			path = final_path(request_state)
 
-			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length}B)"
+			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length} bytes)"
 			path.open('w'){|io| io.write image.data}
 		end
 	end

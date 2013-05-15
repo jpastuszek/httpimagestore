@@ -4,10 +4,33 @@ require 'ostruct'
 require 'unicorn-cuba-base'
 
 module Configuration
+	# parsing errors
+	class SyntaxError < ArgumentError
+		def initialize(node, message)
+			super "syntax error while parsing '#{node}': #{message}"
+		end
+	end
+
+	class NoAttributeError < SyntaxError
+		def initialize(node, attribute)
+			super node, "expected '#{attribute}' attribute to be set"
+		end
+	end
+
+	class NoValueError < SyntaxError
+		def initialize(node, value)
+			super node, "expected #{value}"
+		end
+	end
+
+	class StatementCollisionError < SyntaxError
+		def initialize(node, type)
+			super node, "only one #{type} type statement can be specified within context"
+		end
+	end
+
+	# runtime errors
 	ConfigurationError = Class.new ArgumentError
-	MissingStatementError = Class.new ConfigurationError
-	MissingArgumentError = Class.new ConfigurationError
-	DuplicateArgumentError = Class.new ConfigurationError
 
 	class Scope
 		include ClassLogging
@@ -69,10 +92,11 @@ end
 # connect Scope tree with Controler logger
 Configuration::Scope.logger = Controler.logger_for(Configuration::Scope)
 
-# load minimal supported set
+# load builin supported set
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/thumbnailer'
 require 'httpimagestore/configuration/file'
 require 'httpimagestore/configuration/output'
+require 'httpimagestore/configuration/s3'
 

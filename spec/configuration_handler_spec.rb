@@ -21,10 +21,10 @@ describe Configuration do
 		end
 
 		describe Configuration::RequestState do
-			it 'should raise CouldNotFindImageError if image lookup fails' do
+			it 'should raise ImageNotLoadedError if image lookup fails' do
 				expect {
 					Configuration::RequestState.new.images['test']
-				}.to raise_error Configuration::CouldNotFindImageError, "could not find 'test' image"
+				}.to raise_error Configuration::ImageNotLoadedError, "image 'test' not loaded"
 			end
 		end
 

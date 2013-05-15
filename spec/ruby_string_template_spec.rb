@@ -10,10 +10,10 @@ describe RubyStringTemplate do
 		subject.render(hello: 'hello', world: 'world', test: 123).should == '>hello-world123<'
 	end
 
-	it 'should raise MissingTemplateValueError if template value was not provided' do
+	it 'should raise NoValueForTemplatePlaceholderError if template value was not provided' do
 		expect {
 			subject.render(hello: 'hello', test: 123)
-		}.to raise_error RubyStringTemplate::MissingTemplateValueError
+		}.to raise_error RubyStringTemplate::NoValueForTemplatePlaceholderError, %q{no value for '#{world}' in template '>#{hello}-#{world}#{test}<'}
 	end
 
 	describe 'with custom resolver' do
@@ -33,10 +33,10 @@ describe RubyStringTemplate do
 			subject.render(hello: 'hello', world: 'world', test: 123).should == '>hello-world321<'
 		end
 
-		it 'should raise MissingTemplateValueError if template value was not provided' do
+		it 'should raise NoValueForTemplatePlaceholderError if template value was not provided' do
 			expect {
 				subject.render(hello: 'hello', test: 123)
-			}.to raise_error RubyStringTemplate::MissingTemplateValueError
+			}.to raise_error RubyStringTemplate::NoValueForTemplatePlaceholderError, %q{no value for '#{world}' in template '>#{hello}-#{world}#{test}<'}
 		end
 	end
 end
