@@ -66,7 +66,7 @@ module Configuration
 	end
 end
 
-# connect Scope tree with Configuration logger
+# connect Scope tree with Controler logger
 Configuration::Scope.logger = Controler.logger_for(Configuration::Scope)
 
 # load minimal supported set

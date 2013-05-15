@@ -50,38 +50,36 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			http_method = node.name
-			uri_matchers = node.values.map{|matcher| matcher =~ /^:/ ? matcher.sub(/^:/, '').to_sym : matcher}
+			handler_configuration = 
+				Struct.new(
+					:global,
+					:http_method,
+					:uri_matchers,
+					:image_sources,
+					:stores,
+					:output
+				).new
 
-			handler_configuration = OpenStruct.new
-
-			configuration.handlers << handler_configuration
-			self.new(configuration, handler_configuration, http_method, uri_matchers, node)
-		end
-
-		def self.post(configuration)
-			log.warn 'no handlers configured' if configuration.handlers.empty?
-		end
-
-		def initialize(global_configuration, handler_configuration, http_method, uri_matchers, node)
-			super handler_configuration
-
-			# let parsers access global configuration
-			handler_configuration.global = global_configuration
-
-			handler_configuration.http_method = http_method
-			handler_configuration.uri_matchers = uri_matchers
+			handler_configuration.global = configuration
+			handler_configuration.http_method = node.name
+			handler_configuration.uri_matchers = node.values.map{|matcher| matcher =~ /^:/ ? matcher.sub(/^:/, '').to_sym : matcher}
 			handler_configuration.image_sources = []
 			handler_configuration.stores = []
 			handler_configuration.output = nil
 
-			if http_method != 'get'
+			if handler_configuration.http_method != 'get'
 				handler_configuration.image_sources << InputSource.new
 			end
 
-			parse node
+			configuration.handlers << handler_configuration
+
+			self.new(handler_configuration).parse(node)
 
 			handler_configuration.output = OutputOK.new unless handler_configuration.output
+		end
+
+		def self.post(configuration)
+			log.warn 'no handlers configured' if configuration.handlers.empty?
 		end
 	end
 	Global.register_node_parser Handler

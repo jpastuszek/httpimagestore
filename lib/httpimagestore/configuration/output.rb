@@ -15,7 +15,7 @@ module Configuration
 		end
 
 		def realize(request_state)
-			image = request_state.images[@name] or raise MissingStatementError, "image '#{@name}' not found"
+			image = request_state.images[@name]
 			mime_type = 
 				if image.mime_type
 					image.mime_type

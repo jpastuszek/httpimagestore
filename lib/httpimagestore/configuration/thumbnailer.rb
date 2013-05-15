@@ -2,13 +2,13 @@ require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
 
 module Configuration
-	class Thumnailer < Struct.new(:url, :client)
+	class Thumnailer
 		def self.match(node)
 			node.name == 'thumbnailer'
 		end
 
 		def self.pre(configuration)
-			configuration.thumbnailer = self.new
+			configuration.thumbnailer = Struct.new(:url, :client).new
 			configuration.thumbnailer.url = configuration.defaults[:thumbnailer_url] || 'http://localhost:3100'
 		end
 
@@ -41,14 +41,14 @@ module Configuration
 				@width = RubyStringTemplate.new(width)
 				@height = RubyStringTemplate.new(height)
 				@format = RubyStringTemplate.new(format)
-				@options = Hash[*options.map{|k, v| next k, RubyStringTemplate.new(v)}.flatten]
+				@options = options.inject({}){|h, v| h[v.first] = RubyStringTemplate.new(v.last); h}
 			end
 
 			attr_reader :image_name
 
 			def render(locals = {})
-				options = Hash[*@options.map{|k, v| next k, v.render(locals)}.flatten]
-				nested_options = options['options'] ? Hash[*options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}.flatten] : {}
+				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
+				nested_options = options['options'] ? Hash[options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}] : {}
 				{
 					@image_name =>
 						[
@@ -109,7 +109,7 @@ module Configuration
 				end
 			end
 
-			images = Hash[*rendered_specs.keys.zip(thumbnails).flatten]
+			images = Hash[rendered_specs.keys.zip(thumbnails)]
 			images.each do |name, thumbnail|
 				raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
 			end
