@@ -36,15 +36,15 @@ describe Configuration do
 			in_file.unlink
 		end
 
-		it 'should raise StorageOutsideOfRootDirError on bad paths' do
-			state = Configuration::RequestState.new
-			expect {
-				subject.handlers[1].image_sources[0].realize(state)
-			}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
-		end
-
 		describe 'error handling' do
-			it 'should raise error on missing image name' do
+			it 'should raise StorageOutsideOfRootDirError on bad paths' do
+				state = Configuration::RequestState.new
+				expect {
+					subject.handlers[1].image_sources[0].realize(state)
+				}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
+			end
+
+			it 'should raise NoValueError on missing image name' do
 				expect {
 					Configuration.read(<<-EOF)
 					get "test" {
@@ -54,7 +54,7 @@ describe Configuration do
 				}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'source_file path="hash" root="/tmp"': expected image name}
 			end
 
-			it 'should raise error on missing root argument' do
+			it 'should raise NoAttributeError on missing root argument' do
 				expect {
 					Configuration.read(<<-EOF)
 					get "test" {
@@ -64,7 +64,7 @@ describe Configuration do
 				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_file "original" path="hash"': expected 'root' attribute to be set}
 			end
 
-			it 'should raise error on missing path argument' do
+			it 'should raise NoAttributeError on missing path argument' do
 				expect {
 					Configuration.read(<<-EOF)
 					get "test" {

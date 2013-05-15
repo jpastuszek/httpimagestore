@@ -34,7 +34,7 @@ describe Configuration do
 		end
 
 		describe 'error handling' do
-			it 'should raise error on duplicate thumbnailer statement' do
+			it 'should raise StatementCollisionError on duplicate thumbnailer statement' do
 				expect {
 					Configuration.read(<<-EOF)
 					thumbnailer url="http://2.2.2.2:1000"
@@ -43,7 +43,7 @@ describe Configuration do
 				}.to raise_error Configuration::StatementCollisionError, %{syntax error while parsing 'thumbnailer url="http://2.2.2.2:1000"': only one thumbnailer type statement can be specified within context}
 			end
 
-			it 'should raise error on missing url attribute' do
+			it 'should raise NoAttributeError on missing url attribute' do
 				expect {
 					Configuration.read(<<-EOF)
 					thumbnailer
@@ -95,7 +95,7 @@ describe Configuration do
 			end
 
 			describe 'error handling' do
-				it 'should raise error on missing spec template value' do
+				it 'should raise NoValueForSpecTemplatePlaceholerError on missing spec template value' do
 					locals = {
 						width: 99,
 						height: 66,
@@ -107,7 +107,7 @@ describe Configuration do
 					}.to raise_error Configuration::NoValueForSpecTemplatePlaceholerError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'method' from template '#{operation}': no value for #{operation}}
 				end
 
-				it 'should raise error on missing option template value' do
+				it 'should raise NoValueForSpecTemplatePlaceholerError on missing option template value' do
 					locals = {
 						width: 99,
 						height: 66,
@@ -160,7 +160,7 @@ describe Configuration do
 			end
 
 			describe 'error handling' do
-				it 'should raise error on missing source image name' do
+				it 'should raise NoValueError on missing source image name' do
 					expect {
 						Configuration.read(<<-EOF)
 						put "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
@@ -171,7 +171,7 @@ describe Configuration do
 					}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'thumbnail': expected source image name}
 				end
 
-				it 'should fail on realization of bad thumbnail sepc' do
+				it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
 					state = Configuration::RequestState.new(
 						(support_dir + 'compute.jpg').read,
 						operation: 'pad',

@@ -19,7 +19,7 @@ describe Configuration do
 		end
 
 		describe 'error handling' do
-			it 'should raise error on missing path template' do
+			it 'should raise NoValueError on missing path template' do
 				expect {
 					Configuration.read(<<-EOF)
 						path {

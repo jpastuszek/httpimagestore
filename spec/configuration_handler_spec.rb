@@ -41,30 +41,34 @@ describe Configuration do
 				subject.handlers[2].image_sources.first.should be_a Configuration::InputSource
 			end
 
-			it 'should realize input source' do
-				input_source = subject.handlers[1].image_sources.first
-				state = Configuration::RequestState.new('abc')
-				input_source.realize(state)
-				state.images['input'].data.should == 'abc'
+			describe Configuration::InputSource do
+				it 'should copy input data to "input" image when realized' do
+					input_source = subject.handlers[1].image_sources.first
+					state = Configuration::RequestState.new('abc')
+					input_source.realize(state)
+					state.images['input'].data.should == 'abc'
+				end
 			end
 		end
 
-		describe Configuration::OutputOK do
+		describe 'output' do
 			it 'should default to OutputOK' do
 				subject.handlers[0].output.should_not be_a Configuration::OutputOK
 				subject.handlers[1].output.should_not be_a Configuration::OutputOK
 				subject.handlers[2].output.should be_a Configuration::OutputOK
 			end
 
-			it 'should output 200 with OK text/plain message' do
-				state = Configuration::RequestState.new('abc')
-				subject.handlers[2].output.realize(state)
+			describe Configuration::OutputOK do
+				it 'should output 200 with OK text/plain message when realized' do
+					state = Configuration::RequestState.new('abc')
+					subject.handlers[2].output.realize(state)
 
-				env = CubaResponseEnv.new
-				env.instance_eval &state.output_callback
-				env.res.status.should == 200
-				env.res.data.should == "OK\r\n"
-				env.res['Content-Type'].should == 'text/plain'
+					env = CubaResponseEnv.new
+					env.instance_eval &state.output_callback
+					env.res.status.should == 200
+					env.res.data.should == "OK\r\n"
+					env.res['Content-Type'].should == 'text/plain'
+				end
 			end
 		end
 	end
