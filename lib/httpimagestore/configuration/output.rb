@@ -2,6 +2,8 @@ require 'httpimagestore/configuration/handler'
 
 module Configuration
 	class OutputImage
+		include ClassLogging
+
 		def self.match(node)
 			node.name == 'output_image'
 		end

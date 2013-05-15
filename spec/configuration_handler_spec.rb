@@ -1,4 +1,6 @@
 require_relative 'spec_helper'
+require_relative 'support/cuba_response_env'
+
 require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
@@ -47,11 +49,22 @@ describe Configuration do
 			end
 		end
 
-		describe 'output' do
+		describe Configuration::OutputOK do
 			it 'should default to OutputOK' do
 				subject.handlers[0].output.should_not be_a Configuration::OutputOK
 				subject.handlers[1].output.should_not be_a Configuration::OutputOK
 				subject.handlers[2].output.should be_a Configuration::OutputOK
+			end
+
+			it 'should output 200 with OK text/plain message' do
+				state = Configuration::RequestState.new('abc')
+				subject.handlers[2].output.realize(state)
+
+				env = CubaResponseEnv.new
+				env.instance_eval &state.output_callback
+				env.res.status.should == 200
+				env.res.data.should == "OK\r\n"
+				env.res['Content-Type'].should == 'text/plain'
 			end
 		end
 	end
