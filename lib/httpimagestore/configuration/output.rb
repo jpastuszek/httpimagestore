@@ -6,6 +6,31 @@ module Configuration
 			super "store path not set for image '#{image_name}'"
 		end
 	end
+
+	class StoreURLNotSetForImage < ConfigurationError
+		def initialize(image_name)
+			super "store URL not set for image '#{image_name}'"
+		end
+	end
+
+	class OutputMultiBase
+		def self.parse(configuration, node)
+			names =
+				unless node.values.empty?
+					[node.values.first]
+				else
+					node.children.map do |node|
+						node.values.first or raise NoValueError.new(node, 'image name')
+					end
+				end
+			configuration.output and raise StatementCollisionError.new(node, 'output')
+			configuration.output = self.new(names)
+		end
+
+		def initialize(names)
+			@names = names
+		end
+	end
 	
 	class OutputImage
 		include ClassLogging
@@ -41,31 +66,13 @@ module Configuration
 	end
 	Handler::register_node_parser OutputImage
 
-	class OutputStorePath
+	class OutputStorePath < OutputMultiBase
 		def self.match(node)
 			node.name == 'output_store_path'
 		end
 
-		def self.parse(configuration, node)
-			image_names =
-				unless node.values.empty?
-					[node.values.first]
-				else
-					node.children.map do |node|
-						node.values.first or raise NoValueError.new(node, 'image name')
-					end
-				end
-
-			configuration.output and raise StatementCollisionError.new(node, 'output')
-			configuration.output = OutputStorePath.new(image_names)
-		end
-
-		def initialize(image_names)
-			@image_names = image_names
-		end
-
 		def realize(request_state)
-			paths = @image_names.map do |name|
+			paths = @names.map do |name|
 				request_state.images[name].store_path or raise StorePathNotSetForImage.new(name)
 			end
 
@@ -75,5 +82,22 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser OutputStorePath
+
+	class OutputStoreURL < OutputMultiBase
+		def self.match(node)
+			node.name == 'output_store_url'
+		end
+
+		def realize(request_state)
+			urls = @names.map do |name|
+				request_state.images[name].store_url or raise StoreURLNotSetForImage.new(name)
+			end
+
+			request_state.output do
+				write_plain 200, urls
+			end
+		end
+	end
+	Handler::register_node_parser OutputStoreURL
 end
 
