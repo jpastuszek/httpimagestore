@@ -2,7 +2,7 @@ source "http://rubygems.org"
 
 gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
 gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
-gem "right_aws", "~> 3.0"
+gem "aws-sdk", "~> 1.10"
 gem "mime-types", "~> 1.17"
 gem "sdl4r", "~> 0.9"
 

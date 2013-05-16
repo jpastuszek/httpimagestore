@@ -29,10 +29,10 @@ module Configuration
 
 		def final_path(request_state)
 			path = @configuration.global.paths[@path_spec]
-			rendered_path = Pathname.new(path.render(request_state.locals))
+			path = Pathname.new(path.render(request_state.locals))
 
-			final_path = (@root_dir + rendered_path).cleanpath
-			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, rendered_path)
+			final_path = (@root_dir + path).cleanpath
+			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, path)
 
 			final_path
 		end

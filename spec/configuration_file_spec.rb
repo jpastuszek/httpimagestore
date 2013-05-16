@@ -34,7 +34,7 @@ describe Configuration do
 			in_file.unlink
 		end
 
-		it 'should sorice image from file using path spec' do
+		it 'should source image from file using path spec' do
 			subject.handlers[0].image_sources[0].should be_a Configuration::FileSource
 			subject.handlers[0].image_sources[0].realize(state)
 

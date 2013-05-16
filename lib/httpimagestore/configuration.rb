@@ -23,6 +23,12 @@ module Configuration
 		end
 	end
 
+	class BadValueError < SyntaxError
+		def initialize(node, value, valid)
+			super node, "expected #{value} to be #{valid}"
+		end
+	end
+
 	class StatementCollisionError < SyntaxError
 		def initialize(node, type)
 			super node, "only one #{type} type statement can be specified within context"
