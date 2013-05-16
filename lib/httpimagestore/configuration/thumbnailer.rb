@@ -90,8 +90,19 @@ module Configuration
 
 		def self.parse(configuration, node)
 			source_image_name = node.values.first or raise NoValueError.new(node, 'source image name')
-			specs = node.children.map do |node|
-				image_name = node.values.first or raise NoValueError.new(node, 'thumbnail image name')
+			use_multipart_api = false
+
+			nodes =
+				if node.values.drop(1).empty?
+					use_multipart_api = true
+					node.children
+				else
+					[node]
+				end
+
+			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
+			specs = nodes.map do |node|
+				image_name = node.values.last or raise NoValueError.new(node, 'thumbnail image name')
 				attributes = node.attributes
 				ThumbnailSpec.new(
 					image_name,
@@ -103,13 +114,14 @@ module Configuration
 				)
 			end
 
-			configuration.image_sources << self.new(source_image_name, configuration, specs)
+			configuration.image_sources << self.new(source_image_name, configuration, specs, use_multipart_api)
 		end
 
-		def initialize(source_image_name, configuration, specs)
+		def initialize(source_image_name, configuration, specs, use_multipart_api)
 			@source_image_name = source_image_name
 			@configuration = configuration
 			@specs = specs
+			@use_multipart_api = use_multipart_api
 		end
 
 		def realize(request_state)
@@ -120,34 +132,50 @@ module Configuration
 			@specs.each do |spec|
 				rendered_specs.merge! spec.render(request_state.locals)
 			end
-			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs}"
-			return if rendered_specs.empty?
+			source_image = request_state.images[@source_image_name]
 
-			image = request_state.images[@source_image_name]
+			thumbnails = {}
+			input_mime_type = nil
 
-			thumbnails = client.thumbnail(image.data) do
-				rendered_specs.values.each do |spec|
-					thumbnail(*spec)
+			if @use_multipart_api
+				log.info "thumbnailing '#{@source_image_name}' to multiple specs: #{rendered_specs}"
+
+				thumbnails = client.thumbnail(source_image.data) do
+					rendered_specs.values.each do |spec|
+						thumbnail(*spec)
+					end
+				end
+				input_mime_type = thumbnails.input_mime_type
+
+				thumbnails = Hash[rendered_specs.keys.zip(thumbnails)]
+
+				thumbnails.each do |name, thumbnail|
+					raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+				end
+			else
+				name, rendered_spec = *rendered_specs.first
+				log.info "thumbnailing '#{@source_image_name}' to '#{name}' with spec: #{rendered_spec}"
+
+				begin
+					thumbnail = client.thumbnail(source_image.data, *rendered_spec)
+					input_mime_type = thumbnail.input_mime_type
+					thumbnails[name] = thumbnail
+				rescue HTTPThumbnailerClient::InvalidThumbnailSpecificationError => error
+					raise ThumbnailingError.new(@source_image_name, name, error)
 				end
 			end
 
-			images = Hash[rendered_specs.keys.zip(thumbnails)]
-
-			images.each do |name, thumbnail|
-				raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
-			end
-
 			# copy input source path and url
-			images.each do |name, thumbnail|
+			thumbnails.each do |name, thumbnail|
 				thumbnail.extend ImageMetaData
-				thumbnail.source_path = image.source_path
-				thumbnail.source_url = image.source_url
+				thumbnail.source_path = source_image.source_path
+				thumbnail.source_url = source_image.source_url
 			end
 
 			# update input image mime type from httpthumbnailer provided information
-			image.mime_type = thumbnails.input_mime_type unless image.mime_type
+			source_image.mime_type = input_mime_type unless source_image.mime_type
 
-			request_state.images.merge! images
+			request_state.images.merge! thumbnails
 		end
 	end
 	Handler::register_node_parser Thumbnail
