@@ -95,7 +95,7 @@ describe Configuration do
 			subject.handlers[0].image_sources[0].realize(state)
 
 			state.images['original'].source_path.should == "test.jpg"
-			state.images['original'].source_url.should == "https://httpimagestoretest.s3.amazonaws.com/test.jpg"
+			state.images['original'].source_url.should start_with 'https://httpimagestoretest.s3.amazonaws.com/test.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
 		end
 
 		describe 'non encrypted connection mode' do
@@ -120,7 +120,7 @@ describe Configuration do
 				subject.handlers[0].image_sources[0].realize(state)
 
 				state.images['original'].source_path.should == "test.jpg"
-				state.images['original'].source_url.should == "http://httpimagestoretest.s3.amazonaws.com/test.jpg"
+				state.images['original'].source_url.should start_with 'http://httpimagestoretest.s3.amazonaws.com/test.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
 			end
 		end
 	end

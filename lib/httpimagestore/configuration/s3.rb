@@ -93,7 +93,8 @@ module Configuration
 				image = Image.new(object.read, object.head[:content_type])
 
 				image.source_path = path
-				image.source_url = "#{@configuration.global.s3.ssl ? 'https' : 'http'}://#{@bucket}.s3.amazonaws.com/#{path}"
+#				image.source_url = "#{@configuration.global.s3.ssl ? 'https' : 'http'}://#{@bucket}.s3.amazonaws.com/#{path}"
+				image.source_url = object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
 
 				request_state.images[@image_name] = image
 			rescue AWS::S3::Errors::NoSuchBucket
