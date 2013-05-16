@@ -36,10 +36,15 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			node.children.each do |child|
-				path_name, template = *child.values
-				path_name or fail NoValueError.new(child, 'path name')
-				template or fail NoValueError.new(child, 'path template')
+			nodes = []
+			nodes << node unless node.values.empty?
+			nodes |= node.children
+
+			nodes.empty? and raise NoValueError.new(node, 'path name')
+			nodes.each do |node|
+				path_name, template = *node.values
+				path_name or raise NoValueError.new(node, 'path name')
+				template or raise NoValueError.new(node, 'path template')
 				configuration.paths[path_name] = Path.new(path_name, template)
 			end
 		end

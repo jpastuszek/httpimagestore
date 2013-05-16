@@ -6,11 +6,11 @@ require 'httpimagestore/configuration/path'
 
 describe Configuration do
 	describe 'path rendering' do
-		it 'should load path and render spec templates' do
+		it 'should load paths form single line and multi line declarations and render spec templates' do
 			subject = Configuration.read(<<-'EOF')
+			path "uri"						"#{path}"
+			path "hash"						"#{digest}.#{extension}"
 			path {
-				"uri"								"#{path}"
-				"hash"							"#{digest}.#{extension}"
 				"hash-name"					"#{digest}/#{imagename}.#{extension}"
 				"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
 				"structured-name"		"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
@@ -25,6 +25,14 @@ describe Configuration do
 		end
 
 		describe 'error handling' do
+			it 'should raise NoValueError on missing path name' do
+				expect {
+					Configuration.read(<<-'EOF')
+						path
+					EOF
+				}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'path': expected path name}
+			end
+
 			it 'should raise NoValueError on missing path template' do
 				expect {
 					Configuration.read(<<-'EOF')
