@@ -26,7 +26,16 @@ module Configuration
 		end
 	end
 
-	Image = Class.new Struct.new(:data, :mime_type)
+	module ImageMetaData
+		attr_accessor :source_path
+		attr_accessor :source_url
+		attr_accessor :store_path
+		attr_accessor :store_url
+	end
+
+	class Image < Struct.new(:data, :mime_type)
+		include ImageMetaData
+	end
 
 	class InputSource
 		def realize(request_state)

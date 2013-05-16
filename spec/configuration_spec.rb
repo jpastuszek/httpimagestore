@@ -7,11 +7,11 @@ describe Configuration do
 	end
 
 	it 'should read configuration from string' do
-		Configuration.read(<<EOF)
-path {
-	"uri" "blah"
-}
-EOF
+		Configuration.read(<<-EOF)
+		path {
+			"uri" "blah"
+		}
+		EOF
 	end
 end
 

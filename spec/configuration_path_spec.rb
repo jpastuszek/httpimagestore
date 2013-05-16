@@ -5,12 +5,18 @@ Configuration::Scope.logger = Logger.new('/dev/null')
 require 'httpimagestore/configuration/path'
 
 describe Configuration do
-	subject do
-		Configuration.from_file(support_dir + 'path.cfg')
-	end
-
 	describe 'path rendering' do
 		it 'should load path and render spec templates' do
+			subject = Configuration.read(<<-'EOF')
+			path {
+				"uri"								"#{path}"
+				"hash"							"#{digest}.#{extension}"
+				"hash-name"					"#{digest}/#{imagename}.#{extension}"
+				"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
+				"structured-name"		"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
+			}
+			EOF
+
 			subject.paths['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
 			subject.paths['hash'].render(path: 'test/abc.jpg', image_data: 'hello').should == '2cf24dba5fb0a30e.jpg'
 			subject.paths['hash-name'].render(path: 'test/abc.jpg', image_data: 'hello', imagename: 'xbrna').should == '2cf24dba5fb0a30e/xbrna.jpg'
@@ -21,7 +27,7 @@ describe Configuration do
 		describe 'error handling' do
 			it 'should raise NoValueError on missing path template' do
 				expect {
-					Configuration.read(<<-EOF)
+					Configuration.read(<<-'EOF')
 						path {
 							"blah"
 						}
@@ -30,27 +36,47 @@ describe Configuration do
 			end
 
 			it 'should raise PathNotDefinedError if path lookup fails' do
+				subject = Configuration.read('')
+
 				expect {
 					subject.paths['blah']
 				}.to raise_error Configuration::PathNotDefinedError, "path 'blah' not defined"
 			end
 
 			it 'should raise NoValueForPathTemplatePlaceholerError if locals value is not found' do
+				subject = Configuration.read(<<-'EOF')
+				path {
+					"test"								"#{abc}#{xyz}"
+				}
+				EOF
+
 				expect {
-					subject.paths['uri'].render
-				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'uri' from template '#{path}': no value for '#{path}'} 
+					subject.paths['test'].render
+				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'} 
 			end
 
 			it 'should raise NoValueForPathTemplatePlaceholerError if path value is not found' do
+				subject = Configuration.read(<<-'EOF')
+				path {
+					"test"								"#{dirname}#{basename}"
+				}
+				EOF
+
 				expect {
-					subject.paths['structured'].render
-				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'structured' from template '#{dirname}/#{digest}/#{basename}.#{extension}': need 'path' to generate value for '#{dirname}'}
+					subject.paths['test'].render
+				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{dirname}#{basename}': need 'path' to generate value for '#{dirname}'}
 			end
 
 			it 'should raise NoValueForPathTemplatePlaceholerError if image_data value is not found' do
+				subject = Configuration.read(<<-'EOF')
+				path {
+					"test"								"#{digest}"
+				}
+				EOF
+
 				expect {
-					subject.paths['structured'].render(path: '')
-				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'structured' from template '#{dirname}/#{digest}/#{basename}.#{extension}': need 'image_data' to generate value for '#{digest}'}
+					subject.paths['test'].render(path: '')
+				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{digest}': need 'image_data' to generate value for '#{digest}'}
 			end
 		end
 	end

@@ -5,42 +5,70 @@ Configuration::Scope.logger = Logger.new('/dev/null')
 require 'httpimagestore/configuration/file'
 
 describe Configuration do
-	describe 'file source and store' do
+	let :state do
+		Configuration::RequestState.new('abc')
+	end
+
+	describe Configuration::FileSource do
 		subject do
-			Configuration.from_file(support_dir + 'file.cfg')
+			Configuration.read(<<-EOF)
+			path {
+				"in"	"test.in"
+			}
+
+			get "small" {
+				source_file "original" root="/tmp" path="in"
+			}
+			EOF
 		end
 
-		it 'should source image from file and store image in file using path spec' do
-			in_file = Pathname.new("/tmp/test.in")
-			out_file = Pathname.new("/tmp/test.out")
+		let :in_file do
+			Pathname.new("/tmp/test.in")
+		end
 
+		before :each do
 			in_file.open('w'){|io| io.write('abc')}
-			out_file.unlink if out_file.exist?
+		end
 
+		after :each do
+			in_file.unlink
+		end
+
+		it 'should sorice image from file using path spec' do
 			subject.handlers[0].image_sources[0].should be_a Configuration::FileSource
-
-			state = Configuration::RequestState.new
 			subject.handlers[0].image_sources[0].realize(state)
 
 			state.images["original"].should_not be_nil
 			state.images["original"].data.should == 'abc'
+		end
+
+		it 'should have nil mime type' do
+			subject.handlers[0].image_sources[0].realize(state)
+
 			state.images["original"].mime_type.should be_nil
+		end
 
-			subject.handlers[0].stores[0].should be_a Configuration::FileStore
-			subject.handlers[0].stores[0].realize(state)
+		it 'should have source path and url' do
+			subject.handlers[0].image_sources[0].realize(state)
 
-			out_file.should exist
-			out_file.read.should == 'abc'
-
-			out_file.unlink
-			in_file.unlink
+			state.images['original'].source_path.should == "/tmp/test.in"
+			state.images['original'].source_url.should == "file:///tmp/test.in"
 		end
 
 		describe 'error handling' do
 			it 'should raise StorageOutsideOfRootDirError on bad paths' do
-				state = Configuration::RequestState.new
+				subject = Configuration.read(<<-EOF)
+				path {
+					"bad"	"../test.in"
+				}
+
+				get "bad_path" {
+					source_file "original" root="/tmp" path="bad"
+				}
+				EOF
+
 				expect {
-					subject.handlers[1].image_sources[0].realize(state)
+					subject.handlers[0].image_sources[0].realize(state)
 				}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
 			end
 
@@ -72,6 +100,96 @@ describe Configuration do
 					}
 					EOF
 				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_file "original" root="/tmp"': expected 'path' attribute to be set}
+			end
+		end
+	end
+
+	describe Configuration::FileStore do
+		subject do
+			Configuration.read(<<-EOF)
+			path {
+				"out"	"test.out"
+			}
+
+			post "small" {
+				store_file "input" root="/tmp" path="out"
+			}
+			EOF
+		end
+
+		let :out_file do
+			Pathname.new("/tmp/test.out")
+		end
+
+		before :each do
+			out_file.unlink if out_file.exist?
+			subject.handlers[0].image_sources[0].realize(state)
+		end
+
+		after :each do
+			out_file.unlink if out_file.exist?
+		end
+
+		it 'should store image in file using path spec' do
+			subject.handlers[0].stores[0].should be_a Configuration::FileStore
+			subject.handlers[0].stores[0].realize(state)
+
+			out_file.should exist
+			out_file.read.should == 'abc'
+		end
+
+		it 'should have store path and url' do
+			subject.handlers[0].stores[0].realize(state)
+
+			state.images['input'].store_path.should == "/tmp/test.out"
+			state.images['input'].store_url.should == "file:///tmp/test.out"
+		end
+
+		describe 'error handling' do
+			it 'should raise StorageOutsideOfRootDirError on bad paths' do
+				subject = Configuration.read(<<-EOF)
+				path {
+					"bad"	"../test.in"
+				}
+
+				post "bad_path" {
+					store_file "input" root="/tmp" path="bad"
+				}
+				EOF
+
+				expect {
+					subject.handlers[0].stores[0].realize(state)
+				}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'input': file storage path '../test.in' outside of root direcotry}
+			end
+
+			it 'should raise NoValueError on missing image name' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						store_file root="/tmp" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'store_file path="hash" root="/tmp"': expected image name}
+			end
+
+			it 'should raise NoAttributeError on missing root argument' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						store_file "original" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'store_file "original" path="hash"': expected 'root' attribute to be set}
+			end
+
+			it 'should raise NoAttributeError on missing path argument' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						store_file "original" root="/tmp"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'store_file "original" root="/tmp"': expected 'path' attribute to be set}
 			end
 		end
 	end

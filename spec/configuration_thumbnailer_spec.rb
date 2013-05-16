@@ -5,22 +5,27 @@ Configuration::Scope.logger = Logger.new('/dev/null')
 require 'httpimagestore/configuration/thumbnailer'
 
 describe Configuration do
-	subject do
-		Configuration.from_file(support_dir + 'thumbnailer.cfg')
-	end
-
 	describe 'thumbnailer' do
+		subject do
+			Configuration.read('')
+		end
+
 		it 'should provide default URL' do
 			subject.thumbnailer.url.should == 'http://localhost:3100'
 		end
 
 		it 'should allow to override default URL' do
-			subject = Configuration.from_file(support_dir + 'thumbnailer.cfg', thumbnailer_url: 'http://1.1.1.1:8080')
+			subject = Configuration.read(<<-EOF, thumbnailer_url: 'http://1.1.1.1:8080')
+			EOF
+
 			subject.thumbnailer.url.should == 'http://1.1.1.1:8080'
 		end
 
 		it 'should get thumbnailer URL from configuration' do
-			subject = Configuration.read('thumbnailer url="http://2.2.2.2:1000"')
+			subject = Configuration.read(<<-EOF, thumbnailer_url: 'http://1.1.1.1:8080')
+			thumbnailer url="http://2.2.2.2:1000"
+			EOF
+			
 			subject.thumbnailer.url.should == 'http://2.2.2.2:1000'
 		end
 
@@ -28,7 +33,9 @@ describe Configuration do
 			subject.thumbnailer.client.should be_a HTTPThumbnailerClient
 			subject.thumbnailer.client.server_url.should == 'http://localhost:3100'
 
-			subject = Configuration.read('thumbnailer url="http://2.2.2.2:1000"')
+			subject = Configuration.read(<<-EOF)
+			thumbnailer url="http://2.2.2.2:1000"
+			EOF
 			subject.thumbnailer.client.should be_a HTTPThumbnailerClient
 			subject.thumbnailer.client.server_url.should == 'http://2.2.2.2:1000'
 		end
@@ -121,7 +128,7 @@ describe Configuration do
 			end
 		end
 
-		describe 'thumbnail image source' do
+		describe 'thumbnail source image' do
 			before :all do
 				log = support_dir + 'server.log'
 				start_server(
@@ -132,8 +139,20 @@ describe Configuration do
 				)
 			end
 
-			it 'should realize thumbnailer source and set input image mime type' do
-				state = Configuration::RequestState.new(
+			subject do
+				Configuration.read(<<-'EOF')
+				put "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
+					thumbnail "input" {
+						"original" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
+						"small"		operation="crop"	width=128	height=128	format="jpeg"
+						"padded"	operation="pad"		width=128	height=128	format="png"	background-color="gray"
+					}
+				}
+				EOF
+			end
+
+			let :state do
+				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
 					operation: 'pad',
 					width: '10',
@@ -141,14 +160,15 @@ describe Configuration do
 					options: 'background-color:green',
 					path: nil
 				)
+			end
 
-				# need input image
+			before :each do
 				subject.handlers[0].image_sources[0].realize(state)
-				state.images['input'].data.should_not be_nil
-				state.images['input'].mime_type.should be_nil
+			end
 
-				# thumbanil
+			it 'should realize thumbnailer source and set input image mime type' do
 				subject.handlers[0].image_sources[1].realize(state)
+
 				state.images['original'].data.should_not be_nil
 				state.images['original'].mime_type.should == 'image/jpeg'
 				state.images['small'].data.should_not be_nil
@@ -159,18 +179,21 @@ describe Configuration do
 				state.images['input'].mime_type.should == 'image/jpeg'
 			end
 
-			describe 'error handling' do
-				it 'should raise NoValueError on missing source image name' do
-					expect {
-						Configuration.read(<<-EOF)
-						put "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
-							thumbnail {
-							}
-						}
-						EOF
-					}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'thumbnail': expected source image name}
-				end
+			it 'should keep source path and url' do
+				state.images['input'].source_path = 'test.in'
+				state.images['input'].source_url = 'file://test.in'
 
+				subject.handlers[0].image_sources[1].realize(state)
+
+				state.images['original'].source_path.should == 'test.in'
+				state.images['original'].source_url.should == 'file://test.in'
+				state.images['small'].source_path.should == 'test.in'
+				state.images['small'].source_url.should == 'file://test.in'
+				state.images['padded'].source_path.should == 'test.in'
+				state.images['padded'].source_url.should == 'file://test.in'
+			end
+
+			describe 'error handling' do
 				it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
 					state = Configuration::RequestState.new(
 						(support_dir + 'compute.jpg').read,
@@ -181,12 +204,22 @@ describe Configuration do
 						path: nil
 					)
 
-					# need input image
 					subject.handlers[0].image_sources[0].realize(state)
 
 					expect {
 						subject.handlers[0].image_sources[1].realize(state)
 					}.to raise_error Configuration::Thumbnail::ThumbnailingError, "thumbnailing of 'input' into 'original' failed: at least one image dimension is zero: 0x10"
+				end
+
+				it 'should raise NoValueError on missing source image name' do
+					expect {
+						Configuration.read(<<-EOF)
+						put "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
+							thumbnail {
+							}
+						}
+						EOF
+					}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'thumbnail': expected source image name}
 				end
 			end
 		end

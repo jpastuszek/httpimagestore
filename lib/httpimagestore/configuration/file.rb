@@ -21,7 +21,7 @@ module Configuration
 		def initialize(image_name, configuration, root_dir, path_spec)
 			@image_name = image_name
 			@configuration = configuration
-			@root_dir = Pathname.new(root_dir).realpath
+			@root_dir = Pathname.new(root_dir).cleanpath
 			@path_spec = path_spec
 		end
 
@@ -29,7 +29,7 @@ module Configuration
 
 		def final_path(request_state)
 			path = @configuration.global.paths[@path_spec]
-			rendered_path = path.render(request_state.locals)
+			rendered_path = Pathname.new(path.render(request_state.locals))
 
 			final_path = (@root_dir + rendered_path).cleanpath
 			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, rendered_path)
@@ -54,6 +54,10 @@ module Configuration
 
 			log.info "sourcing '#{@image_name}' from file '#{path}'"
 			image = Image.new(path.open('r'){|io| io.read})
+
+			image.source_path = path.to_s
+			image.source_url = "file://#{path.to_s}"
+
 			request_state.images[@image_name] = image
 		end
 	end
@@ -73,6 +77,9 @@ module Configuration
 		def realize(request_state)
 			image = request_state.images[@image_name]
 			path = final_path(request_state)
+
+			image.store_path = path.to_s
+			image.store_url = "file://#{path.to_s}"
 
 			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length} bytes)"
 			path.open('w'){|io| io.write image.data}

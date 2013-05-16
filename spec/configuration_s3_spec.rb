@@ -7,11 +7,11 @@ require 'httpimagestore/configuration/s3'
 describe Configuration do
 
 	describe 's3' do
-		subject do
-			Configuration.from_file(support_dir + 's3.cfg')
-		end
-
 		it 'should provide S3 key and secret' do
+			subject = Configuration.read(<<-EOF)
+			s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
+			EOF
+
 			subject.s3.key.should == 'AKIAJMUYVYOSACNXLPTQ'
 			subject.s3.secret.should == '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'
 		end

@@ -132,8 +132,16 @@ module Configuration
 			end
 
 			images = Hash[rendered_specs.keys.zip(thumbnails)]
+
 			images.each do |name, thumbnail|
 				raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+			end
+
+			# copy input source path and url
+			images.each do |name, thumbnail|
+				thumbnail.extend ImageMetaData
+				thumbnail.source_path = image.source_path
+				thumbnail.source_url = image.source_url
 			end
 
 			# update input image mime type from httpthumbnailer provided information
