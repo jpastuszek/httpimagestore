@@ -160,7 +160,7 @@ module Configuration
 					thumbnail = client.thumbnail(source_image.data, *rendered_spec)
 					input_mime_type = thumbnail.input_mime_type
 					thumbnails[name] = thumbnail
-				rescue HTTPThumbnailerClient::InvalidThumbnailSpecificationError => error
+				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 					raise ThumbnailingError.new(@source_image_name, name, error)
 				end
 			end
