@@ -28,7 +28,7 @@ Application.new('httpimagestore', port: 3000) do
 				env['app.configuration'].handlers.each do |handler|
 					on eval(handler.http_method), *handler.uri_matchers do |*args|
 						locals = {
-							path: env["PATH_INFO"][1..-1]
+							path: env["PATH_INFO"].drop(1)
 						}.merge Hash[handler.uri_matchers.select{|m| m.is_a? Symbol}.zip(args)]
 						state = Configuration::RequestState.new(req.body.read, locals)
 

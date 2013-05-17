@@ -10,15 +10,19 @@ describe Configuration do
 			Configuration.read('')
 		end
 
-		it 'should provide default URL' do
-			subject.thumbnailer.url.should == 'http://localhost:3100'
+		it 'should provide HTTPThumbnailerClient' do
+			subject.thumbnailer.should be_a HTTPThumbnailerClient
+		end
+
+		it 'should use default URL' do
+			subject.thumbnailer.server_url.should == 'http://localhost:3100'
 		end
 
 		it 'should allow to override default URL' do
 			subject = Configuration.read(<<-EOF, thumbnailer_url: 'http://1.1.1.1:8080')
 			EOF
 
-			subject.thumbnailer.url.should == 'http://1.1.1.1:8080'
+			subject.thumbnailer.server_url.should == 'http://1.1.1.1:8080'
 		end
 
 		it 'should get thumbnailer URL from configuration' do
@@ -26,18 +30,7 @@ describe Configuration do
 			thumbnailer url="http://2.2.2.2:1000"
 			EOF
 			
-			subject.thumbnailer.url.should == 'http://2.2.2.2:1000'
-		end
-
-		it 'should provide HTTPThumbnailerClient' do
-			subject.thumbnailer.client.should be_a HTTPThumbnailerClient
-			subject.thumbnailer.client.server_url.should == 'http://localhost:3100'
-
-			subject = Configuration.read(<<-EOF)
-			thumbnailer url="http://2.2.2.2:1000"
-			EOF
-			subject.thumbnailer.client.should be_a HTTPThumbnailerClient
-			subject.thumbnailer.client.server_url.should == 'http://2.2.2.2:1000'
+			subject.thumbnailer.server_url.should == 'http://2.2.2.2:1000'
 		end
 
 		describe 'error handling' do

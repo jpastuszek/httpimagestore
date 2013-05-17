@@ -51,8 +51,6 @@ module Configuration
 					raise BadValueError.new(node, 'ssl', 'true or false')
 				end
 
-			log.info "S3 client using '#{key}' key and #{ssl ? 'HTTPS' : 'HTTP'} connections"
-
 			configuration.s3 = AWS::S3.new(
 				access_key_id: key,
 				secret_access_key: secret,
@@ -60,6 +58,8 @@ module Configuration
 				log_level: :debug,
 				use_ssl: ssl
 			)
+
+			log.info "S3 client using '#{key}' key and #{ssl ? 'HTTPS' : 'HTTP'} connections"
 		end
 	end
 	Global.register_node_parser S3

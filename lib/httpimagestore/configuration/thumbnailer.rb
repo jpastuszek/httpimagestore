@@ -11,21 +11,16 @@ module Configuration
 			node.name == 'thumbnailer'
 		end
 
-		def self.pre(configuration)
-			configuration.thumbnailer = Struct.new(:url, :client).new
-		end
-
 		def self.parse(configuration, node)
-			configuration.thumbnailer.url and raise StatementCollisionError.new(node, 'thumbnailer')
-			configuration.thumbnailer.url = node.attribute('url') or raise NoAttributeError.new(node, 'url')
+			configuration.thumbnailer and raise StatementCollisionError.new(node, 'thumbnailer')
+			configuration.thumbnailer = HTTPThumbnailerClient.new(node.attribute('url') || raise(NoAttributeError.new(node, 'url')))
 		end
 
 		def self.post(configuration)
-			if not configuration.thumbnailer.url
-				configuration.thumbnailer.url = configuration.defaults[:thumbnailer_url] || 'http://localhost:3100'
+			if not configuration.thumbnailer
+				configuration.thumbnailer = HTTPThumbnailerClient.new(configuration.defaults[:thumbnailer_url] || 'http://localhost:3100')
 			end
-			configuration.thumbnailer.client = HTTPThumbnailerClient.new(configuration.thumbnailer.url)
-			log.info "using thumbnailer at #{configuration.thumbnailer.url}"
+			log.info "using thumbnailer at #{configuration.thumbnailer.server_url}"
 		end
 	end
 	Global.register_node_parser Thumnailer
@@ -125,8 +120,7 @@ module Configuration
 		end
 
 		def realize(request_state)
-			@configuration.global.thumbnailer or fail 'thumbnailer configuration'
-			client = @configuration.global.thumbnailer.client or fail 'thumbnailer client'
+			client = @configuration.global.thumbnailer or fail 'thumbnailer configuration'
 
 			rendered_specs = {}
 			@specs.each do |spec|
