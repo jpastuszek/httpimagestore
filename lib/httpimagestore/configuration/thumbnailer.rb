@@ -52,13 +52,19 @@ module Configuration
 				end
 			end
 
-			def initialize(image_name, method, width, height, format, options = {})
+			def initialize(image_name, method, width, height, format, options = {}, exclusion_matcher = nil)
 				@image_name = image_name
 				@method = Spec.new(image_name, 'method', method)
 				@width = Spec.new(image_name, 'width', width)
 				@height = Spec.new(image_name, 'height', height)
 				@format = Spec.new(image_name, 'format', format)
 				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
+				@exclusion_matcher = exclusion_matcher
+			end
+
+			def excluded?(request_state)
+				return false unless @exclusion_matcher
+				@exclusion_matcher.excluded?(request_state)
 			end
 
 			attr_reader :image_name
@@ -99,31 +105,36 @@ module Configuration
 			specs = nodes.map do |node|
 				image_name = node.values.last or raise NoValueError.new(node, 'thumbnail image name')
 				attributes = node.attributes
+				exclusion_matcher = ExclusionMatcher.new(image_name, attributes.delete("if_name_on")) if attributes['if_name_on']
+
 				ThumbnailSpec.new(
 					image_name,
 					attributes.delete("operation") || 'fit',
 					attributes.delete("width") || 'input',
 					attributes.delete("height") || 'input',
 					attributes.delete("format") || 'jpeg',
-					attributes
+					attributes,
+					exclusion_matcher
 				)
 			end
 
-			configuration.image_sources << self.new(source_image_name, configuration, specs, use_multipart_api)
+			configuration.image_sources << self.new(configuration.global, source_image_name, specs, use_multipart_api)
 		end
 
-		def initialize(source_image_name, configuration, specs, use_multipart_api)
+		def initialize(global, source_image_name, specs, use_multipart_api)
+			@global = global
 			@source_image_name = source_image_name
-			@configuration = configuration
 			@specs = specs
 			@use_multipart_api = use_multipart_api
 		end
 
 		def realize(request_state)
-			client = @configuration.global.thumbnailer or fail 'thumbnailer configuration'
+			client = @global.thumbnailer or fail 'thumbnailer configuration'
 
 			rendered_specs = {}
-			@specs.each do |spec|
+			@specs.select do |spec|
+				not spec.excluded?(request_state)
+			end.each do |spec|
 				rendered_specs.merge! spec.render(request_state.locals)
 			end
 			source_image = request_state.images[@source_image_name]

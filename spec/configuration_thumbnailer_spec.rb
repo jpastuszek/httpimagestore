@@ -262,6 +262,38 @@ describe Configuration do
 					state.images['padded'].source_url.should == 'file://test.in'
 				end
 
+				describe 'if name on list handling' do
+					subject do 
+						Configuration.read(<<-'EOF')
+						put {
+							thumbnail "input" {
+								"original"	if_name_on="#{list}"
+								"small"			if_name_on="#{list}"
+								"padded"		if_name_on="#{list}"
+							}
+						}
+						EOF
+					end
+
+					let :state do
+						Configuration::RequestState.new(
+							(support_dir + 'compute.jpg').read,
+							operation: 'pad',
+							width: '10',
+							height: '10',
+							options: 'background-color:green',
+							path: nil,
+							list: 'small,padded'
+						)
+					end
+
+					it 'should provide all thumbnails when name match comma separated name list' do
+						state.images.should_not include 'original'
+						state.images['small'].data.should_not be_nil
+						state.images['padded'].data.should_not be_nil
+					end
+				end
+
 				describe 'error handling' do
 					it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
 						state = Configuration::RequestState.new(

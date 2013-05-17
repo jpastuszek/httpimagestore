@@ -80,6 +80,17 @@ module Configuration
 	class Global < Scope
 	end
 
+	class ExclusionMatcher
+		def initialize(value, template)
+			@value = value
+			@template = RubyStringTemplate.new(template)
+		end
+
+		def excluded?(request_state)
+			not @template.render(request_state.locals).split(',').include? @value
+		end
+	end
+
 	def self.from_file(config_file, defaults = {})
 		read Pathname.new(config_file), defaults
 	end

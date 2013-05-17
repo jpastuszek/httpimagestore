@@ -84,12 +84,12 @@ module Configuration
 				end
 			cache_control = node.attribute('cache-control')
 			
-			self.new(image_name, configuration, bucket, path_spec, public_access, cache_control)
+			self.new(configuration.global, image_name, bucket, path_spec, public_access, cache_control)
 		end
 
-		def initialize(image_name, configuration, bucket, path_spec, public_access, cache_control)
+		def initialize(global, image_name, bucket, path_spec, public_access, cache_control)
+			@global = global
 			@image_name = image_name
-			@configuration = configuration
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
@@ -97,11 +97,11 @@ module Configuration
 		end
 
 		def client
-			@configuration.global.s3 or raise S3NotConfiguredError
+			@global.s3 or raise S3NotConfiguredError
 		end
 
 		def rendered_path(request_state)
-			path = @configuration.global.paths[@path_spec]
+			path = @global.paths[@path_spec]
 			path.render(request_state.locals)
 		end
 
