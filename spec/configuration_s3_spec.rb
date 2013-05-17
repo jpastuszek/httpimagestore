@@ -272,14 +272,6 @@ describe Configuration do
 			state.images['input'].store_url.should start_with 'https://httpimagestoretest.s3.amazonaws.com/test_out.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
 		end
 
-		it 'should store images that are not accessible by public by default' do
-			subject.handlers[0].stores[0].realize(state)
-
-			expect {
-				get('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg')
-			}.to raise_error HTTPClient::BadResponseError
-		end
-
 		describe 'non encrypted connection mode' do
 			subject do
 				Configuration.read(<<-'EOF')
@@ -305,33 +297,17 @@ describe Configuration do
 			end
 		end
 
-		describe 'public permission with public=true' do
-			subject do
-				Configuration.read(<<-'EOF')
-				s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
-				path "hash" "#{test_image}"
-				post {
-					store_s3 "input" bucket="httpimagestoretest" path="hash" public=true
-				}
-				EOF
-			end
-
-			it 'should store image accessible for bublic' do
+		describe 'permission control' do
+			it 'should store images that are not accessible by public by default' do
 				subject.handlers[0].stores[0].realize(state)
 
-				get('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg').should == @test_data
+				status('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg').should == 403
 			end
 
-			it 'should provide public source HTTPS url' do
-				subject.handlers[0].stores[0].realize(state)
-
-				state.images['input'].store_url.should == 'https://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
-			end
-
-			describe 'non encrypted connection mode' do
+			describe 'public' do
 				subject do
 					Configuration.read(<<-'EOF')
-					s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+					s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
 					path "hash" "#{test_image}"
 					post {
 						store_s3 "input" bucket="httpimagestoretest" path="hash" public=true
@@ -339,10 +315,58 @@ describe Configuration do
 					EOF
 				end
 
-				it 'should provide public source HTTP url' do
+				it 'should store image accessible for public' do
 					subject.handlers[0].stores[0].realize(state)
 
-					state.images['input'].store_url.should == 'http://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
+					get('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg').should == @test_data
+				end
+
+				it 'should provide public source HTTPS url' do
+					subject.handlers[0].stores[0].realize(state)
+
+					state.images['input'].store_url.should == 'https://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
+				end
+
+				describe 'non encrypted connection mode' do
+					subject do
+						Configuration.read(<<-'EOF')
+						s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+						path "hash" "#{test_image}"
+						post {
+							store_s3 "input" bucket="httpimagestoretest" path="hash" public=true
+						}
+						EOF
+					end
+
+					it 'should provide public source HTTP url' do
+						subject.handlers[0].stores[0].realize(state)
+
+						state.images['input'].store_url.should == 'http://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
+					end
+				end
+			end
+		end
+
+		describe 'cache control' do
+			it 'should have no cache control set by default' do
+				headers('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg')["Cache-Control"].should be_nil
+			end
+
+			describe 'set' do
+				subject do
+					Configuration.read(<<-'EOF')
+					s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
+					path "hash" "#{test_image}"
+					post {
+						store_s3 "input" bucket="httpimagestoretest" path="hash" public=true cache-control="public, max-age=3600"
+					}
+					EOF
+				end
+
+				it 'should have given cahce control header set on the object' do
+					subject.handlers[0].stores[0].realize(state)
+
+					headers('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg')["Cache-Control"].should == 'public, max-age=3600'
 				end
 			end
 		end

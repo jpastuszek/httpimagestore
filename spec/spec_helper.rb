@@ -19,6 +19,14 @@ def get(url)
 	HTTPClient.new.get_content(url)
 end
 
+def status(url)
+	HTTPClient.new.get(url).status
+end
+
+def headers(url)
+	HTTPClient.new.get(url).headers
+end
+
 def start_server(cmd, pid_file, log_file, test_url)
 	fork do
 		Daemon.daemonize(pid_file, log_file)

@@ -80,16 +80,18 @@ module Configuration
 				else
 					raise BadValueError.new(node, 'public', 'true or false')
 				end
+			cache_control = node.attribute('cache-control')
 			
-			self.new(image_name, configuration, bucket, path_spec, public_access)
+			self.new(image_name, configuration, bucket, path_spec, public_access, cache_control)
 		end
 
-		def initialize(image_name, configuration, bucket, path_spec, public_access)
+		def initialize(image_name, configuration, bucket, path_spec, public_access, cache_control)
 			@image_name = image_name
 			@configuration = configuration
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
+			@cache_control = cache_control
 		end
 
 		def client
@@ -169,7 +171,13 @@ module Configuration
 				image = request_state.images[@image_name]
 				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
 
-				object.write(image.data, content_type: image.mime_type, acl: acl)
+				options = {}
+				options[:single_request] = true
+				options[:content_type] = image.mime_type
+				options[:acl] = acl
+				options[:cache_control] = @cache_control if @cache_control
+
+				object.write(image.data, options)
 
 				image.store_path = rendered_path
 				image.store_url = url(object)
