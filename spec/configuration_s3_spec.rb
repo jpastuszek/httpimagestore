@@ -6,7 +6,7 @@ Configuration::Scope.logger = Logger.new('/dev/null')
 require 'httpimagestore/configuration/s3'
 
 describe Configuration do
-	describe 's3' do
+	describe Configuration::S3 do
 		subject do
 			Configuration.read(<<-EOF)
 			s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
@@ -16,6 +16,18 @@ describe Configuration do
 		it 'should provide S3 key and secret' do
 			subject.s3.key.should == 'AKIAJMUYVYOSACNXLPTQ'
 			subject.s3.secret.should == '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'
+		end
+
+		it 'should use SSL by default' do
+			subject.s3.ssl.should be_true
+		end
+
+		it 'should allow disabling SSL' do
+			subject = Configuration.read(<<-EOF)
+			s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+			EOF
+
+			subject.s3.ssl.should be_false
 		end
 
 		it 'should provide S3 client' do
@@ -121,6 +133,88 @@ describe Configuration do
 
 				state.images['original'].source_path.should == "test.jpg"
 				state.images['original'].source_url.should start_with 'http://httpimagestoretest.s3.amazonaws.com/test.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
+			end
+		end
+
+		describe 'error handling' do
+			it 'should raise NoValueError on missing image name' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_s3 bucket="httpimagestoretest" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'source_s3 bucket="httpimagestoretest" path="hash"': expected image name}
+			end
+
+			it 'should raise NoAttributeError on missing bucket name' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_s3 "original" path="hash"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_s3 "original" path="hash"': expected 'bucket' attribute to be set}
+			end
+
+			it 'should raise NoAttributeError on missing path' do
+				expect {
+					Configuration.read(<<-EOF)
+					get "test" {
+						source_s3 "original" bucket="httpimagestoretest"
+					}
+					EOF
+				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_s3 "original" bucket="httpimagestoretest"': expected 'path' attribute to be set}
+			end
+
+			it 'should raise S3NotConfiguredError if used but no s3 statement was used' do
+				subject = Configuration.read(<<-EOF)
+				get "test" {
+					source_s3 "original" bucket="httpimagestoretest" path="hash"
+				}
+				EOF
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error Configuration::S3NotConfiguredError, 'S3 client not configured'
+			end
+
+			it 'should raise S3NoSuchBucketError if bucket was not found on S3' do
+				subject = Configuration.read(<<-'EOF')
+				s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+				path "hash" "#{test_image}"
+				get "test" {
+					source_s3 "original" bucket="httpimagestoretestX" path="hash"
+				}
+				EOF
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error Configuration::S3NoSuchBucketError, %{S3 bucket 'httpimagestoretestX' does not exist}
+			end
+
+			it 'should raise S3NoSuchKeyError if object was not found on S3' do
+				subject = Configuration.read(<<-'EOF')
+				s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+				path "hash" "blah"
+				get "test" {
+					source_s3 "original" bucket="httpimagestoretest" path="hash"
+				}
+				EOF
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error Configuration::S3NoSuchKeyError, %{S3 bucket 'httpimagestoretest' does not contain key 'blah'}
+			end
+
+			it 'should raise S3NoSuchBucketError if bucket was not found on S3' do
+				subject = Configuration.read(<<-'EOF')
+				s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+				path "hash" "#{test_image}"
+				get "test" {
+					source_s3 "original" bucket="blah" path="hash"
+				}
+				EOF
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error Configuration::S3AccessDenied, %{access to S3 bucket 'blah' or key 'test.jpg' was denied}
 			end
 		end
 	end

@@ -21,6 +21,12 @@ module Configuration
 		end
 	end
 
+	class S3AccessDenied < ConfigurationError
+		def initialize(bucket, path)
+			super "access to S3 bucket '#{bucket}' or key '#{path}' was denied"
+		end
+	end
+
 	class S3
 		include ClassLogging
 
@@ -97,6 +103,8 @@ module Configuration
 				image.source_url = object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
 
 				request_state.images[@image_name] = image
+			rescue AWS::S3::Errors::AccessDenied
+				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket
 				raise S3NoSuchBucketError.new(@bucket)
 			rescue AWS::S3::Errors::NoSuchKey
