@@ -17,12 +17,12 @@ else
 			end
 
 			it 'should provide S3 key and secret' do
-				subject.s3.key.should == ENV['AWS_ACCESS_KEY_ID']
-				subject.s3.secret.should == ENV['AWS_SECRET_ACCESS_KEY']
+				subject.s3.config.access_key_id.should == ENV['AWS_ACCESS_KEY_ID']
+				subject.s3.config.secret_access_key.should == ENV['AWS_SECRET_ACCESS_KEY']
 			end
 
 			it 'should use SSL by default' do
-				subject.s3.ssl.should be_true
+				subject.s3.config.use_ssl.should be_true
 			end
 
 			it 'should allow disabling SSL' do
@@ -30,11 +30,11 @@ else
 				s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}" ssl=false
 				EOF
 
-				subject.s3.ssl.should be_false
+				subject.s3.config.use_ssl.should be_false
 			end
 
 			it 'should provide S3 client' do
-				subject.s3.client.should be_a AWS::S3
+				subject.s3.should be_a AWS::S3
 			end
 
 			describe 'error handling' do

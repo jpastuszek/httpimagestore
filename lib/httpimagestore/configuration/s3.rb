@@ -36,10 +36,10 @@ module Configuration
 
 		def self.parse(configuration, node)
 			configuration.s3 and raise StatementCollisionError.new(node, 's3')
-			configuration.s3 = Struct.new(:key, :secret, :ssl, :client).new
-			configuration.s3.key = node.attribute('key') or raise NoAttributeError.new(node, 'key')
-			configuration.s3.secret = node.attribute('secret') or raise NoAttributeError.new(node, 'secret')
-			configuration.s3.ssl = 
+
+			key = node.attribute('key') or raise NoAttributeError.new(node, 'key')
+			secret = node.attribute('secret') or raise NoAttributeError.new(node, 'secret')
+			ssl = 
 				case node.attribute('ssl')
 				when nil
 					true
@@ -51,13 +51,14 @@ module Configuration
 					raise BadValueError.new(node, 'ssl', 'true or false')
 				end
 
-			log.info "S3 client using '#{configuration.s3.key}' key and #{configuration.s3.ssl ? 'HTTPS' : 'HTTP'} connections"
-			configuration.s3.client = AWS::S3.new(
-				access_key_id: configuration.s3.key,
-				secret_access_key: configuration.s3.secret,
+			log.info "S3 client using '#{key}' key and #{ssl ? 'HTTPS' : 'HTTP'} connections"
+
+			configuration.s3 = AWS::S3.new(
+				access_key_id: key,
+				secret_access_key: secret,
 				logger: logger_for(AWS::S3),
 				log_level: :debug,
-				use_ssl: configuration.s3.ssl
+				use_ssl: ssl
 			)
 		end
 	end
@@ -97,7 +98,6 @@ module Configuration
 
 		def client
 			@configuration.global.s3 or raise S3NotConfiguredError
-			@configuration.global.s3.client or fail 'no S3 client'
 		end
 
 		def rendered_path(request_state)
