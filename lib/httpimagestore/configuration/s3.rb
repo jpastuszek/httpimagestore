@@ -69,15 +69,27 @@ module Configuration
 			image_name = node.values.first or raise NoValueError.new(node, 'image name')
 			bucket = node.attribute('bucket') or raise NoAttributeError.new(node, 'bucket')
 			path_spec = node.attribute('path') or raise NoAttributeError.new(node, 'path')
+			public_access = 
+				case node.attribute('public')
+				when nil
+					false
+				when true
+					true
+				when false
+					false
+				else
+					raise BadValueError.new(node, 'public', 'true or false')
+				end
 			
-			self.new(image_name, configuration, bucket, path_spec)
+			self.new(image_name, configuration, bucket, path_spec, public_access)
 		end
 
-		def initialize(image_name, configuration, bucket, path_spec)
+		def initialize(image_name, configuration, bucket, path_spec, public_access)
 			@image_name = image_name
 			@configuration = configuration
 			@bucket = bucket
 			@path_spec = path_spec
+			@public_access = public_access
 		end
 
 		def client
@@ -91,8 +103,11 @@ module Configuration
 		end
 
 		def url(object)
-			#				image.source_url = "#{@configuration.global.s3.ssl ? 'https' : 'http'}://#{@bucket}.s3.amazonaws.com/#{path}"
-			object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
+			if @public_access
+				object.public_url.to_s
+			else
+				object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
+			end
 		end
 
 		def object(path)
@@ -146,13 +161,15 @@ module Configuration
 
 		def realize(request_state)
 			rendered_path = rendered_path(request_state)
+			acl = @public_access ?  :public_read : :private
 
-			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key"
+			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
 
 			object(rendered_path) do |object|
 				image = request_state.images[@image_name]
 				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
-				object.write(image.data, content_type: image.mime_type)
+
+				object.write(image.data, content_type: image.mime_type, acl: acl)
 
 				image.store_path = rendered_path
 				image.store_url = url(object)

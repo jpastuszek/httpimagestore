@@ -131,7 +131,6 @@ describe Configuration do
 			it 'should provide source HTTP url' do
 				subject.handlers[0].image_sources[0].realize(state)
 
-				state.images['original'].source_path.should == "test.jpg"
 				state.images['original'].source_url.should start_with 'http://httpimagestoretest.s3.amazonaws.com/test.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
 			end
 		end
@@ -273,6 +272,14 @@ describe Configuration do
 			state.images['input'].store_url.should start_with 'https://httpimagestoretest.s3.amazonaws.com/test_out.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
 		end
 
+		it 'should store images that are not accessible by public by default' do
+			subject.handlers[0].stores[0].realize(state)
+
+			expect {
+				get('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg')
+			}.to raise_error HTTPClient::BadResponseError
+		end
+
 		describe 'non encrypted connection mode' do
 			subject do
 				Configuration.read(<<-'EOF')
@@ -294,8 +301,49 @@ describe Configuration do
 			it 'should provide source HTTP url' do
 				subject.handlers[0].stores[0].realize(state)
 
-				state.images['input'].store_path.should == "test_out.jpg"
 				state.images['input'].store_url.should start_with 'http://httpimagestoretest.s3.amazonaws.com/test_out.jpg?AWSAccessKeyId=AKIAJMUYVYOSACNXLPTQ&'
+			end
+		end
+
+		describe 'public permission with public=true' do
+			subject do
+				Configuration.read(<<-'EOF')
+				s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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"
+				path "hash" "#{test_image}"
+				post {
+					store_s3 "input" bucket="httpimagestoretest" path="hash" public=true
+				}
+				EOF
+			end
+
+			it 'should store image accessible for bublic' do
+				subject.handlers[0].stores[0].realize(state)
+
+				get('http://httpimagestoretest.s3.amazonaws.com/test_out.jpg').should == @test_data
+			end
+
+			it 'should provide public source HTTPS url' do
+				subject.handlers[0].stores[0].realize(state)
+
+				state.images['input'].store_url.should == 'https://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
+			end
+
+			describe 'non encrypted connection mode' do
+				subject do
+					Configuration.read(<<-'EOF')
+					s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+					path "hash" "#{test_image}"
+					post {
+						store_s3 "input" bucket="httpimagestoretest" path="hash" public=true
+					}
+					EOF
+				end
+
+				it 'should provide public source HTTP url' do
+					subject.handlers[0].stores[0].realize(state)
+
+					state.images['input'].store_url.should == 'http://httpimagestoretest.s3.amazonaws.com/test_out.jpg'
+				end
 			end
 		end
 

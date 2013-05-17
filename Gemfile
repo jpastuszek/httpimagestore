@@ -9,6 +9,7 @@ gem "sdl4r", "~> 0.9"
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
 group :development do
+  gem "httpclient", ">= 2.3"
   gem "rspec", "~> 2.13"
   gem "cucumber", ">= 0"
   gem "jeweler", "~> 1.8.4"

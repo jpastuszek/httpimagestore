@@ -94,6 +94,7 @@ DEPENDENCIES
   aws-sdk (~> 1.10)
   cucumber
   daemon (~> 1)
+  httpclient (>= 2.3)
   httpthumbnailer!
   httpthumbnailer-client!
   jeweler (~> 1.8.4)
