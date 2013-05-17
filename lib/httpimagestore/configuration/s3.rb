@@ -55,7 +55,8 @@ module Configuration
 			configuration.s3.client = AWS::S3.new(
 				access_key_id: configuration.s3.key,
 				secret_access_key: configuration.s3.secret,
-				#logger: logger_for(AWS::S3),
+				logger: logger_for(AWS::S3),
+				log_level: :debug,
 				use_ssl: configuration.s3.ssl
 			)
 		end

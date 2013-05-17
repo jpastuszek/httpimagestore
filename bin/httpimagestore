@@ -6,14 +6,6 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 Application.new('httpimagestore', port: 3000) do
 	cli do
 		description 'HTTP based image storage and thumbnailer'
-		option :upload_retry_time,
-			default: 2,
-			cast: Integer,
-			description: 'keep retrying uploads until that time in seconds has passed'
-		option :upload_retry_initial_delay,
-			default: 0.1,
-			cast: Float,
-			description: 'initial retry delay that will be multiplied by 2 each retry cycle'
 		argument :config,
 			cast: Pathname,
 			description: 'configuration file path'
@@ -21,9 +13,6 @@ Application.new('httpimagestore', port: 3000) do
 	end
 
 	settings do |settings|
-		Controler.settings[:upload_retry_times] = settings.upload_retry_times
-		Controler.settings[:upload_retry_delay] = settings.upload_retry_delay
-
 		Controler.settings[:config_file] = settings.config
 	end
 
