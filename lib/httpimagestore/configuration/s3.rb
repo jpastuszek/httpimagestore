@@ -62,19 +62,15 @@ module Configuration
 	end
 	Global.register_node_parser S3
 
-	class S3Source
+	class S3Base
 		include ClassLogging
-
-		def self.match(node)
-			node.name == 'source_s3'
-		end
 
 		def self.parse(configuration, node)
 			image_name = node.values.first or raise NoValueError.new(node, 'image name')
 			bucket = node.attribute('bucket') or raise NoAttributeError.new(node, 'bucket')
 			path_spec = node.attribute('path') or raise NoAttributeError.new(node, 'path')
 			
-			configuration.image_sources << self.new(image_name, configuration, bucket, path_spec)
+			self.new(image_name, configuration, bucket, path_spec)
 		end
 
 		def initialize(image_name, configuration, bucket, path_spec)
@@ -84,25 +80,25 @@ module Configuration
 			@path_spec = path_spec
 		end
 
-		def realize(request_state)
+		def client
 			@configuration.global.s3 or raise S3NotConfiguredError
-			client = @configuration.global.s3.client or fail 'no S3 client'
+			@configuration.global.s3.client or fail 'no S3 client'
+		end
 
+		def rendered_path(request_state)
 			path = @configuration.global.paths[@path_spec]
-			path = path.render(request_state.locals)
+			path.render(request_state.locals)
+		end
 
-			log.info "sourcing '#{@image_name}' image from S3 '#{@bucket}' bucket: #{path}"
+		def url(object)
+			#				image.source_url = "#{@configuration.global.s3.ssl ? 'https' : 'http'}://#{@bucket}.s3.amazonaws.com/#{path}"
+			object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
+		end
 
+		def object(path)
 			begin
 				bucket = client.buckets[@bucket]
-				object = bucket.objects[path]
-				image = Image.new(object.read, object.head[:content_type])
-
-				image.source_path = path
-#				image.source_url = "#{@configuration.global.s3.ssl ? 'https' : 'http'}://#{@bucket}.s3.amazonaws.com/#{path}"
-				image.source_url = object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
-
-				request_state.images[@image_name] = image
+				yield bucket.objects[path]
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket
@@ -112,6 +108,57 @@ module Configuration
 			end
 		end
 	end
+
+	class S3Source < S3Base
+		def self.match(node)
+			node.name == 'source_s3'
+		end
+
+		def self.parse(configuration, node)
+			configuration.image_sources << super
+		end
+
+		def realize(request_state)
+			rendered_path = rendered_path(request_state)
+
+			log.info "sourcing '#{@image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
+
+			object(rendered_path) do |object|
+				image = Image.new(object.read, object.head[:content_type])
+
+				image.source_path = rendered_path
+				image.source_url = url(object)
+
+				request_state.images[@image_name] = image
+			end
+		end
+	end
 	Handler::register_node_parser S3Source
+
+	class S3Store < S3Base
+		def self.match(node)
+			node.name == 'store_s3'
+		end
+
+		def self.parse(configuration, node)
+			configuration.stores << super
+		end
+
+		def realize(request_state)
+			rendered_path = rendered_path(request_state)
+
+			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key"
+
+			object(rendered_path) do |object|
+				image = request_state.images[@image_name]
+				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
+				object.write(image.data, content_type: image.mime_type)
+
+				image.store_path = rendered_path
+				image.store_url = url(object)
+			end
+		end
+	end
+	Handler::register_node_parser S3Store
 end
 
