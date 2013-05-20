@@ -37,19 +37,12 @@ module Configuration
 		def self.parse(configuration, node)
 			configuration.s3 and raise StatementCollisionError.new(node, 's3')
 
-			key = node.attribute('key') or raise NoAttributeError.new(node, 'key')
-			secret = node.attribute('secret') or raise NoAttributeError.new(node, 'secret')
-			ssl = 
-				case node.attribute('ssl')
-				when nil
-					true
-				when true
-					true
-				when false
-					false
-				else
-					raise BadValueError.new(node, 'ssl', 'true or false')
-				end
+			node.grab_values
+			node.required_attributes('key', 'secret')
+			node.valid_attribute_values('ssl', true, false, nil)
+			
+			key, secret, ssl = node.grab_attributes('key', 'secret', 'ssl')
+			ssl = true if ssl.nil?
 
 			configuration.s3 = AWS::S3.new(
 				access_key_id: key,
@@ -68,22 +61,15 @@ module Configuration
 		include ClassLogging
 
 		def self.parse(configuration, node)
-			image_name = node.values.first or raise NoValueError.new(node, 'image name')
-			bucket = node.attribute('bucket') or raise NoAttributeError.new(node, 'bucket')
-			path_spec = node.attribute('path') or raise NoAttributeError.new(node, 'path')
-			public_access = 
-				case node.attribute('public')
-				when nil
-					false
-				when true
-					true
-				when false
-					false
-				else
-					raise BadValueError.new(node, 'public', 'true or false')
-				end
-			cache_control = node.attribute('cache-control')
-			
+			image_name = node.grab_values('image name').first
+
+			node.required_attributes('bucket', 'path')
+			node.valid_attribute_values('public_access', true, false, nil)
+
+			bucket, path_spec, cache_control, public_access, if_image_name_on = 
+				*node.grab_attributes('bucket', 'path', 'cache-control', 'public', 'if_image_name_on')
+			public_access = false if public_access.nil?
+
 			self.new(configuration.global, image_name, bucket, path_spec, public_access, cache_control)
 		end
 

@@ -267,9 +267,9 @@ describe Configuration do
 						Configuration.read(<<-'EOF')
 						put {
 							thumbnail "input" {
-								"original"	if_name_on="#{list}"
-								"small"			if_name_on="#{list}"
-								"padded"		if_name_on="#{list}"
+								"original"	if_image_name_on="#{list}"
+								"small"			if_image_name_on="#{list}"
+								"padded"		if_image_name_on="#{list}"
 							}
 						}
 						EOF

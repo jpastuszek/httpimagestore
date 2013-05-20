@@ -23,9 +23,21 @@ module Configuration
 		end
 	end
 
-	class BadValueError < SyntaxError
-		def initialize(node, value, valid)
-			super node, "expected #{value} to be #{valid}"
+	class BadAttributeValueError < SyntaxError
+		def initialize(node, attribute, value, valid)
+			super node, "expected '#{attribute}' attribute value to be #{valid.map(&:inspect).join(' or ')}; got: #{value.inspect}"
+		end
+	end
+
+	class UnexpectedValueError < SyntaxError
+		def initialize(node, values)
+			super node, "unexpected values: #{values.map(&:inspect).join(', ')}"
+		end
+	end
+
+	class UnexpectedAttributesError < SyntaxError
+		def initialize(node, attributes)
+			super node, "unexpected attributes: #{attributes.keys.map{|a| "'#{a}'"}.join(', ')}"
 		end
 	end
 
@@ -37,6 +49,50 @@ module Configuration
 
 	# runtime errors
 	ConfigurationError = Class.new ArgumentError
+
+	module SDL4RTagExtensions
+		def required_attributes(*list)
+			list.each do |attribute|
+				attribute(attribute) or raise NoAttributeError.new(self, attribute)
+			end
+			true
+		end
+
+		def grab_attributes(*list)
+			attributes = self.attributes.dup
+			values = list.map do |attribute|
+				value = attributes.delete(attribute)
+				value
+			end
+			attributes.empty? or raise UnexpectedAttributesError.new(self, attributes)
+			values
+		end
+
+		def grab_attributes_with_remaining(*list)
+			attributes = self.attributes.dup
+			values = list.map do |attribute|
+				value = attributes.delete(attribute)
+				value
+			end
+			values | [attributes]
+		end
+
+		def valid_attribute_values(attribute, *valid)
+			value = self.attribute(attribute)
+			valid.include? value or raise BadAttributeValueError.new(self, attribute, value, valid)
+		end
+
+		def grab_values(*list)
+			values = self.values.dup
+			out = []
+			list.each do |name|
+				val = values.shift or raise NoValueError.new(self, name)
+				out << val
+			end
+			values.empty? or raise UnexpectedValueError.new(self, values)
+			out
+		end
+	end
 
 	class Scope
 		include ClassLogging
@@ -80,17 +136,6 @@ module Configuration
 	class Global < Scope
 	end
 
-	class ExclusionMatcher
-		def initialize(value, template)
-			@value = value
-			@template = RubyStringTemplate.new(template)
-		end
-
-		def excluded?(request_state)
-			not @template.render(request_state.locals).split(',').include? @value
-		end
-	end
-
 	def self.from_file(config_file, defaults = {})
 		read Pathname.new(config_file), defaults
 	end
@@ -104,5 +149,9 @@ module Configuration
 		configuration.defaults = defaults
 		Global.new(configuration).parse(root)
 	end
+end
+
+class SDL4R::Tag
+	include Configuration::SDL4RTagExtensions
 end
 

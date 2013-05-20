@@ -103,9 +103,10 @@ module Configuration
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
 			specs = nodes.map do |node|
+				attributes = node.attributes.dup
+
 				image_name = node.values.last or raise NoValueError.new(node, 'thumbnail image name')
-				attributes = node.attributes
-				exclusion_matcher = ExclusionMatcher.new(image_name, attributes.delete("if_name_on")) if attributes['if_name_on']
+				if_image_name_on = attributes.delete("if_image_name_on")
 
 				ThumbnailSpec.new(
 					image_name,
@@ -114,7 +115,7 @@ module Configuration
 					attributes.delete("height") || 'input',
 					attributes.delete("format") || 'jpeg',
 					attributes,
-					exclusion_matcher
+					OptionalExclusionMatcher.new(image_name, if_image_name_on)
 				)
 			end
 

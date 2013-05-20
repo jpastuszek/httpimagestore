@@ -51,6 +51,18 @@ module Configuration
 		end
 	end
 
+	class OptionalExclusionMatcher
+		def initialize(value, template)
+			@value = value
+			@template = RubyStringTemplate.new(template) if template
+		end
+
+		def excluded?(request_state)
+			return false if not @template
+			not @template.render(request_state.locals).split(',').include? @value
+		end
+	end
+
 	class Handler < Scope
 		def self.match(node)
 			node.name == 'put' or
