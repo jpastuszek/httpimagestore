@@ -53,6 +53,8 @@ module Configuration
 				end
 			end
 
+			include Exclusion
+
 			def initialize(image_name, method, width, height, format, options = {}, exclusion_matcher = nil)
 				@image_name = image_name
 				@method = Spec.new(image_name, 'method', method)
@@ -61,11 +63,6 @@ module Configuration
 				@format = Spec.new(image_name, 'format', format)
 				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
 				@exclusion_matcher = exclusion_matcher
-			end
-
-			def excluded?(request_state)
-				return false unless @exclusion_matcher
-				@exclusion_matcher.excluded?(request_state)
 			end
 
 			attr_reader :image_name
@@ -86,6 +83,8 @@ module Configuration
 			end
 		end
 
+		include Exclusion
+
 		def self.match(node)
 			node.name == 'thumbnail'
 		end
@@ -97,6 +96,7 @@ module Configuration
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
+			if_source_image_name_on = nil
 
 			specs = nodes.map do |node|
 				if use_multipart_api
@@ -105,7 +105,7 @@ module Configuration
 					source_image_name, image_name = *node.grab_values('source image name', 'thumbnail image name')
 				end
 
-				operation, width, height, format, if_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on')
+				operation, width, height, format, if_image_name_on_spec, if_source_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on', 'if-source-image-name-on')
 
 				ThumbnailSpec.new(
 					image_name,
@@ -114,18 +114,27 @@ module Configuration
 					height || 'input',
 					format || 'jpeg',
 					remaining || {},
-					OptionalExclusionMatcher.new(image_name, if_image_name_on)
+					OptionalExclusionMatcher.new(image_name, if_image_name_on_spec)
 				)
 			end
 
-			configuration.image_sources << self.new(configuration.global, source_image_name, specs, use_multipart_api)
+			if_source_image_name_on = node.grab_attributes('if-source-image-name-on').first if not if_source_image_name_on and use_multipart_api
+
+			configuration.image_sources << self.new(
+				configuration.global, 
+				source_image_name, 
+				specs, 
+				use_multipart_api,
+				OptionalExclusionMatcher.new(source_image_name, if_source_image_name_on)
+			)
 		end
 
-		def initialize(global, source_image_name, specs, use_multipart_api)
+		def initialize(global, source_image_name, specs, use_multipart_api, exclusion_matcher)
 			@global = global
 			@source_image_name = source_image_name
 			@specs = specs
 			@use_multipart_api = use_multipart_api
+			@exclusion_matcher = exclusion_matcher
 		end
 
 		def realize(request_state)

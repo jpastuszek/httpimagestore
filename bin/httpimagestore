@@ -32,11 +32,11 @@ Application.new('httpimagestore', port: 3000) do
 						}.merge Hash[handler.uri_matchers.select{|m| m.is_a? Symbol}.zip(args)]
 						state = Configuration::RequestState.new(req.body.read, locals)
 
-						handler.image_sources.each do |image_sources|
-							image_sources.realize(state)
+						handler.image_sources.each do |image_source|
+							image_source.realize(state) unless image_source.excluded?(state)
 						end
 						handler.stores.each do |store|
-							store.realize(state)
+							store.realize(state) unless store.excluded?(state)
 						end
 						handler.output.realize(state)
 

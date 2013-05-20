@@ -262,7 +262,7 @@ describe Configuration do
 					state.images['padded'].source_url.should == 'file://test.in'
 				end
 
-				describe 'if name on list handling' do
+				describe 'if image name on support' do
 					subject do 
 						Configuration.read(<<-'EOF')
 						put {
@@ -287,7 +287,7 @@ describe Configuration do
 						)
 					end
 
-					it 'should provide all thumbnails when name match comma separated name list' do
+					it 'should provide thumbnails only when name match comma separated name list' do
 						state.images.should_not include 'original'
 						state.images['small'].data.should_not be_nil
 						state.images['padded'].data.should_not be_nil
@@ -323,6 +323,37 @@ describe Configuration do
 						}.to raise_error Configuration::NoValueError, %{syntax error while parsing 'thumbnail': expected source image name}
 					end
 				end
+			end
+		end
+
+		describe 'if image name on support' do
+			let :state do
+				Configuration::RequestState.new(
+					(support_dir + 'compute.jpg').read,
+					list: 'input1,input4'
+				)
+			end
+
+			subject do
+				Configuration.read(<<-'EOF')
+				put {
+					thumbnail "input1" "thumbnail" if-source-image-name-on="#{list}"
+					thumbnail "input2" "thumbnail" if-source-image-name-on="#{list}"
+					thumbnail "input3" if-source-image-name-on="#{list}" {
+						"thumbnail" 
+					}
+					thumbnail "input4" if-source-image-name-on="#{list}" {
+						"thumbnail" 
+					}
+				}
+				EOF
+			end
+
+			it 'should mark source to be excluded by list' do
+				subject.handlers[0].image_sources[1].excluded?(state).should be_false
+				subject.handlers[0].image_sources[2].excluded?(state).should be_true
+				subject.handlers[0].image_sources[3].excluded?(state).should be_true
+				subject.handlers[0].image_sources[4].excluded?(state).should be_false
 			end
 		end
 	end

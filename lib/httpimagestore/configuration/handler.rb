@@ -63,6 +63,13 @@ module Configuration
 		end
 	end
 
+	module Exclusion
+		def excluded?(request_state)
+			return false unless @exclusion_matcher
+			@exclusion_matcher.excluded?(request_state)
+		end
+	end
+
 	class Handler < Scope
 		def self.match(node)
 			node.name == 'put' or

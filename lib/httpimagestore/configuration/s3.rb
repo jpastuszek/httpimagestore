@@ -59,6 +59,7 @@ module Configuration
 
 	class S3Base
 		include ClassLogging
+		include Exclusion
 
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
@@ -132,7 +133,6 @@ module Configuration
 		end
 
 		def realize(request_state)
-			return if @exclusion_matcher and @exclusion_matcher.excluded?(request_state)
 			rendered_path = rendered_path(request_state)
 			log.info "sourcing '#{@image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
 
@@ -158,7 +158,6 @@ module Configuration
 		end
 
 		def realize(request_state)
-			return if @exclusion_matcher and @exclusion_matcher.excluded?(request_state)
 			rendered_path = rendered_path(request_state)
 			acl = @public_access ?  :public_read : :private
 
