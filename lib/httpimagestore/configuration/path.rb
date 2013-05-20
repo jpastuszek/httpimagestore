@@ -42,9 +42,7 @@ module Configuration
 
 			nodes.empty? and raise NoValueError.new(node, 'path name')
 			nodes.each do |node|
-				path_name, template = *node.values
-				path_name or raise NoValueError.new(node, 'path name')
-				template or raise NoValueError.new(node, 'path template')
+				path_name, template = *node.grab_values('path name', 'path template')
 				configuration.paths[path_name] = Path.new(path_name, template)
 			end
 		end

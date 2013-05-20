@@ -67,19 +67,28 @@ module Configuration
 			node.valid_attribute_values('public_access', true, false, nil)
 
 			bucket, path_spec, cache_control, public_access, if_image_name_on = 
-				*node.grab_attributes('bucket', 'path', 'cache-control', 'public', 'if_image_name_on')
+				*node.grab_attributes('bucket', 'path', 'cache-control', 'public', 'if-image-name-on')
 			public_access = false if public_access.nil?
 
-			self.new(configuration.global, image_name, bucket, path_spec, public_access, cache_control)
+			self.new(
+				configuration.global, 
+				image_name, 
+				bucket, 
+				path_spec, 
+				public_access, 
+				cache_control, 
+				OptionalExclusionMatcher.new(image_name, if_image_name_on)
+			)
 		end
 
-		def initialize(global, image_name, bucket, path_spec, public_access, cache_control)
+		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, exclusion_matcher = nil)
 			@global = global
 			@image_name = image_name
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
+			@exclusion_matcher = exclusion_matcher
 		end
 
 		def client
@@ -123,8 +132,8 @@ module Configuration
 		end
 
 		def realize(request_state)
+			return if @exclusion_matcher and @exclusion_matcher.excluded?(request_state)
 			rendered_path = rendered_path(request_state)
-
 			log.info "sourcing '#{@image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
 
 			object(rendered_path) do |object|
@@ -149,6 +158,7 @@ module Configuration
 		end
 
 		def realize(request_state)
+			return if @exclusion_matcher and @exclusion_matcher.excluded?(request_state)
 			rendered_path = rendered_path(request_state)
 			acl = @public_access ?  :public_read : :private
 

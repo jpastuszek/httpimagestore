@@ -58,23 +58,18 @@ module Configuration
 			true
 		end
 
-		def grab_attributes(*list)
-			attributes = self.attributes.dup
-			values = list.map do |attribute|
-				value = attributes.delete(attribute)
-				value
-			end
-			attributes.empty? or raise UnexpectedAttributesError.new(self, attributes)
-			values
-		end
-
 		def grab_attributes_with_remaining(*list)
 			attributes = self.attributes.dup
 			values = list.map do |attribute|
-				value = attributes.delete(attribute)
-				value
+				attributes.delete(attribute)
 			end
-			values | [attributes]
+			values + [attributes]
+		end
+
+		def grab_attributes(*list)
+			*values, remaining = *grab_attributes_with_remaining(*list)
+			remaining.empty? or raise UnexpectedAttributesError.new(self, remaining)
+			values
 		end
 
 		def valid_attribute_values(attribute, *valid)

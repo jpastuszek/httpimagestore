@@ -13,7 +13,8 @@ module Configuration
 
 		def self.parse(configuration, node)
 			configuration.thumbnailer and raise StatementCollisionError.new(node, 'thumbnailer')
-			configuration.thumbnailer = HTTPThumbnailerClient.new(node.attribute('url') || raise(NoAttributeError.new(node, 'url')))
+			node.required_attributes('url')
+			configuration.thumbnailer = HTTPThumbnailerClient.new(node.grab_attributes('url').first)
 		end
 
 		def self.post(configuration)
@@ -90,31 +91,29 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			source_image_name = node.values.first or raise NoValueError.new(node, 'source image name')
-			use_multipart_api = false
+			use_multipart_api = node.values.length == 1 ? true : false
 
-			nodes =
-				if node.values.drop(1).empty?
-					use_multipart_api = true
-					node.children
-				else
-					[node]
-				end
+			nodes = use_multipart_api ?  node.children : [node]
+			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
-			specs = nodes.map do |node|
-				attributes = node.attributes.dup
 
-				image_name = node.values.last or raise NoValueError.new(node, 'thumbnail image name')
-				if_image_name_on = attributes.delete("if_image_name_on")
+			specs = nodes.map do |node|
+				if use_multipart_api
+					image_name = node.grab_values('thumbnail image name').first
+				else
+					source_image_name, image_name = *node.grab_values('source image name', 'thumbnail image name')
+				end
+
+				operation, width, height, format, if_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on')
 
 				ThumbnailSpec.new(
 					image_name,
-					attributes.delete("operation") || 'fit',
-					attributes.delete("width") || 'input',
-					attributes.delete("height") || 'input',
-					attributes.delete("format") || 'jpeg',
-					attributes,
+					operation || 'fit',
+					width || 'input',
+					height || 'input',
+					format || 'jpeg',
+					remaining || {},
 					OptionalExclusionMatcher.new(image_name, if_image_name_on)
 				)
 			end

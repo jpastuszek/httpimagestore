@@ -366,6 +366,48 @@ else
 				end
 			end
 
+			describe 'if image name on support' do
+				let :state do
+					Configuration::RequestState.new(@test_data, :test_image => 'test_out.jpg', :list => 'input')
+				end
+
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}.1"
+					path "hash" "\#{test_image}.2"
+					path "hash" "\#{test_image}.3"
+					post {
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+						store_s3 "input1" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+					}
+					EOF
+				end
+
+				before :all do
+					@test_data = (support_dir + 'compute.jpg').read.force_encoding('ASCII-8BIT')
+
+					s3_client = AWS::S3.new(use_ssl: false)
+					s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
+					@test_object_1 = s3_test_bucket.objects['test_out.jpg.1']
+					@test_object_1.delete
+					@test_object_2 = s3_test_bucket.objects['test_out.jpg.2']
+					@test_object_2.delete
+					@test_object_3 = s3_test_bucket.objects['test_out.jpg.3']
+					@test_object_3.delete
+				end
+
+				it 'should only store images that are on list' do
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].stores[1].realize(state)
+					subject.handlers[0].stores[2].realize(state)
+
+					state.images.should include 'input'
+					state.images.should_not include 'input1'
+				end
+			end
+
 			describe 'error handling' do
 				it 'should raise NoValueError on missing image name' do
 					expect {

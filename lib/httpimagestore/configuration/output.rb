@@ -17,10 +17,10 @@ module Configuration
 		def self.parse(configuration, node)
 			names =
 				unless node.values.empty?
-					[node.values.first]
+					[node.grab_values('image name').first]
 				else
 					node.children.map do |node|
-						node.values.first or raise NoValueError.new(node, 'image name')
+						node.grab_values('image name').first
 					end
 				end
 			configuration.output and raise StatementCollisionError.new(node, 'output')
@@ -40,9 +40,9 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			name = node.values.first or raise NoValueError.new(node, 'image name')
 			configuration.output and raise StatementCollisionError.new(node, 'output')
-			configuration.output = OutputImage.new(name)
+			image_name = node.grab_values('image name').first
+			configuration.output = OutputImage.new(image_name)
 		end
 
 		def initialize(name)

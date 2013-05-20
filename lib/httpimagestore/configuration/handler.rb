@@ -92,6 +92,8 @@ module Configuration
 			handler_configuration.stores = []
 			handler_configuration.output = nil
 
+			node.grab_attributes
+
 			if handler_configuration.http_method != 'get'
 				handler_configuration.image_sources << InputSource.new
 			end

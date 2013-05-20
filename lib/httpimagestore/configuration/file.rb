@@ -11,9 +11,9 @@ module Configuration
 
 	class FileBase
 		def self.parse(configuration, node)
-			image_name = node.values.first or raise NoValueError.new(node, 'image name')
-			root_dir = node.attribute('root') or raise NoAttributeError.new(node, 'root')
-			path_spec = node.attribute('path') or raise NoAttributeError.new(node, 'path')
+			image_name = node.grab_values('image name').first
+			node.required_attributes('root', 'path')
+			root_dir, path_spec = *node.grab_attributes('root', 'path')
 
 			self.new(image_name, configuration, root_dir, path_spec)
 		end
