@@ -96,7 +96,7 @@ module Configuration
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
-			if_source_image_name_on = nil
+			matcher = nil
 
 			specs = nodes.map do |node|
 				if use_multipart_api
@@ -105,7 +105,9 @@ module Configuration
 					source_image_name, image_name = *node.grab_values('source image name', 'thumbnail image name')
 				end
 
-				operation, width, height, format, if_image_name_on_spec, if_source_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on', 'if-source-image-name-on')
+				operation, width, height, format, if_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on')
+
+				matcher = OptionalExclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
 
 				ThumbnailSpec.new(
 					image_name,
@@ -114,18 +116,18 @@ module Configuration
 					height || 'input',
 					format || 'jpeg',
 					remaining || {},
-					OptionalExclusionMatcher.new(image_name, if_image_name_on_spec)
+					matcher
 				)
 			end
 
-			if_source_image_name_on = node.grab_attributes('if-source-image-name-on').first if not if_source_image_name_on and use_multipart_api
+			matcher = OptionalExclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if not matcher and use_multipart_api
 
 			configuration.image_sources << self.new(
 				configuration.global, 
 				source_image_name, 
 				specs, 
 				use_multipart_api,
-				OptionalExclusionMatcher.new(source_image_name, if_source_image_name_on)
+				matcher
 			)
 		end
 

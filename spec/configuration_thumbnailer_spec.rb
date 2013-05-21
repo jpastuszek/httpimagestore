@@ -330,26 +330,26 @@ describe Configuration do
 			let :state do
 				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
-					list: 'input1,input4'
+					list: 'thumbnail1,input4'
 				)
 			end
 
 			subject do
 				Configuration.read(<<-'EOF')
 				put {
-					thumbnail "input1" "thumbnail" if-source-image-name-on="#{list}"
-					thumbnail "input2" "thumbnail" if-source-image-name-on="#{list}"
-					thumbnail "input3" if-source-image-name-on="#{list}" {
-						"thumbnail" 
+					thumbnail "input1" "thumbnail1" if-image-name-on="#{list}"
+					thumbnail "input2" "thumbnail2" if-image-name-on="#{list}"
+					thumbnail "input3" if-image-name-on="#{list}" {
+						"thumbnail3" 
 					}
-					thumbnail "input4" if-source-image-name-on="#{list}" {
-						"thumbnail" 
+					thumbnail "input4" if-image-name-on="#{list}" {
+						"thumbnail4" 
 					}
 				}
 				EOF
 			end
 
-			it 'should mark source to be excluded by list' do
+			it 'should mark source to be excluded by list using output image name in oneline and destination image name in multiline statement' do
 				subject.handlers[0].image_sources[1].excluded?(state).should be_false
 				subject.handlers[0].image_sources[2].excluded?(state).should be_true
 				subject.handlers[0].image_sources[3].excluded?(state).should be_true
