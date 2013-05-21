@@ -135,6 +135,52 @@ describe Configuration do
 				env.res.data.should == "/tmp/test.out\r\n/tmp/test.out2\r\n"
 			end
 
+			describe 'conditional inclusion support' do
+				let :state do
+					Configuration::RequestState.new('abc', list: 'input,image2')
+				end
+
+				subject do
+					Configuration.read(<<-'EOF')
+					path {
+						"in"		"test.in"
+						"out1"	"test.out1"
+						"out2"	"test.out2"
+						"out3"	"test.out3"
+					}
+
+					post "multi" {
+						source_file "image1" root="/tmp" path="in"
+						source_file "image2" root="/tmp" path="in"
+
+						store_file "input" root="/tmp" path="out1"
+						store_file "image1" root="/tmp" path="out2"
+						store_file "image2" root="/tmp" path="out3"
+
+						output_store_path {
+							"input"		if-image-name-on="#{list}"
+							"image1"	if-image-name-on="#{list}"
+							"image2"	if-image-name-on="#{list}"
+						}
+					}
+					EOF
+				end
+
+				it 'should output store path only for images that names match if-image-name-on list' do
+					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].image_sources[2].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].stores[1].realize(state)
+					subject.handlers[0].stores[2].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/plain'
+					env.res.data.should == "/tmp/test.out1\r\n/tmp/test.out3\r\n"
+				end
+			end
+
 			describe 'error handling' do
 				it 'should raise StorePathNotSetForImage for output of not stored image' do
 					subject = Configuration.read(<<-EOF)
@@ -205,6 +251,52 @@ describe Configuration do
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/plain'
 				env.res.data.should == "file:///tmp/test.out\r\nfile:///tmp/test.out2\r\n"
+			end
+			
+			describe 'conditional inclusion support' do
+				let :state do
+					Configuration::RequestState.new('abc', list: 'input,image2')
+				end
+
+				subject do
+					Configuration.read(<<-'EOF')
+					path {
+						"in"		"test.in"
+						"out1"	"test.out1"
+						"out2"	"test.out2"
+						"out3"	"test.out3"
+					}
+
+					post "multi" {
+						source_file "image1" root="/tmp" path="in"
+						source_file "image2" root="/tmp" path="in"
+
+						store_file "input" root="/tmp" path="out1"
+						store_file "image1" root="/tmp" path="out2"
+						store_file "image2" root="/tmp" path="out3"
+
+						output_store_url {
+							"input"		if-image-name-on="#{list}"
+							"image1"	if-image-name-on="#{list}"
+							"image2"	if-image-name-on="#{list}"
+						}
+					}
+					EOF
+				end
+
+				it 'should output store path only for images that names match if-image-name-on list' do
+					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].image_sources[2].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].stores[1].realize(state)
+					subject.handlers[0].stores[2].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/plain'
+					env.res.data.should == "file:///tmp/test.out1\r\nfile:///tmp/test.out3\r\n"
+				end
 			end
 
 			describe 'error handling' do

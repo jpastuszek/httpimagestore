@@ -14,15 +14,23 @@ module Configuration
 	end
 
 	class OutputMultiBase
+		class ImageName < String
+			include Exclusion
+
+			def initialize(name, exclusion_matcher)
+				super name
+				@exclusion_matcher = exclusion_matcher
+			end
+		end
+
 		def self.parse(configuration, node)
-			names =
-				unless node.values.empty?
-					[node.grab_values('image name').first]
-				else
-					node.children.map do |node|
-						node.grab_values('image name').first
-					end
-				end
+			nodes = node.values.empty? ? node.children : [node]
+			names = nodes.map do |node|
+				image_name = node.grab_values('image name').first
+				matcher = OptionalExclusionMatcher.new(image_name, node.grab_attributes('if-image-name-on').first)
+				ImageName.new(image_name, matcher)
+			end
+
 			configuration.output and raise StatementCollisionError.new(node, 'output')
 			configuration.output = self.new(names)
 		end
@@ -72,7 +80,9 @@ module Configuration
 		end
 
 		def realize(request_state)
-			paths = @names.map do |name|
+			paths = @names.select do |name|
+				not name.excluded?(request_state)
+			end.map do |name|
 				request_state.images[name].store_path or raise StorePathNotSetForImage.new(name)
 			end
 
@@ -89,7 +99,9 @@ module Configuration
 		end
 
 		def realize(request_state)
-			urls = @names.map do |name|
+			urls = @names.select do |name|
+					not name.excluded?(request_state)
+			end.map do |name|
 				request_state.images[name].store_url or raise StoreURLNotSetForImage.new(name)
 			end
 
