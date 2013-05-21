@@ -284,7 +284,7 @@ describe Configuration do
 					EOF
 				end
 
-				it 'should output store path only for images that names match if-image-name-on list' do
+				it 'should output store url only for images that names match if-image-name-on list' do
 					subject.handlers[0].image_sources[0].realize(state)
 					subject.handlers[0].image_sources[1].realize(state)
 					subject.handlers[0].image_sources[2].realize(state)

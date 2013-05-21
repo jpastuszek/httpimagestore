@@ -53,16 +53,16 @@ module Configuration
 				end
 			end
 
-			include Exclusion
+			include ConditionalInclusion
 
-			def initialize(image_name, method, width, height, format, options = {}, exclusion_matcher = nil)
+			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
 				@image_name = image_name
 				@method = Spec.new(image_name, 'method', method)
 				@width = Spec.new(image_name, 'width', width)
 				@height = Spec.new(image_name, 'height', height)
 				@format = Spec.new(image_name, 'format', format)
 				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
-				@exclusion_matcher = exclusion_matcher
+				inclusion_matcher matcher if matcher
 			end
 
 			attr_reader :image_name
@@ -83,7 +83,7 @@ module Configuration
 			end
 		end
 
-		include Exclusion
+		include ConditionalInclusion
 
 		def self.match(node)
 			node.name == 'thumbnail'
@@ -107,7 +107,7 @@ module Configuration
 
 				operation, width, height, format, if_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on')
 
-				matcher = OptionalExclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
+				matcher = InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
 
 				ThumbnailSpec.new(
 					image_name,
@@ -120,7 +120,7 @@ module Configuration
 				)
 			end
 
-			matcher = OptionalExclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
+			matcher = InclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
 
 			configuration.image_sources << self.new(
 				configuration.global, 
@@ -131,12 +131,12 @@ module Configuration
 			)
 		end
 
-		def initialize(global, source_image_name, specs, use_multipart_api, exclusion_matcher)
+		def initialize(global, source_image_name, specs, use_multipart_api, matcher)
 			@global = global
 			@source_image_name = source_image_name
 			@specs = specs
 			@use_multipart_api = use_multipart_api
-			@exclusion_matcher = exclusion_matcher
+			inclusion_matcher matcher
 		end
 
 		def realize(request_state)
@@ -144,7 +144,7 @@ module Configuration
 
 			rendered_specs = {}
 			@specs.select do |spec|
-				not spec.excluded?(request_state)
+				spec.included?(request_state)
 			end.each do |spec|
 				rendered_specs.merge! spec.render(request_state.locals)
 			end

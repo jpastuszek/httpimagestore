@@ -366,7 +366,7 @@ else
 				end
 			end
 
-			describe 'if image name on support' do
+			describe 'conditional inclusion support' do
 				let :state do
 					Configuration::RequestState.new(@test_data, :test_image => 'test_out.jpg', :list => 'input,input2')
 				end
@@ -381,7 +381,7 @@ else
 					EOF
 				end
 
-				it 'should mark sores to be excluded by list' do
+				it 'should mark sores to be included when image name match if-image-name-on list' do
 					subject.handlers[0].stores[0].excluded?(state).should be_false
 					subject.handlers[0].stores[1].excluded?(state).should be_true
 					subject.handlers[0].stores[2].excluded?(state).should be_false

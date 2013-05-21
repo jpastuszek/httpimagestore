@@ -145,6 +145,32 @@ describe Configuration do
 			state.images['input'].store_url.should == "file:///tmp/test.out"
 		end
 
+		describe 'conditional inclusion support' do
+			subject do
+				Configuration.read(<<-'EOF')
+				path {
+					"out"	"test.out"
+				}
+
+				post "small" {
+					store_file "input1" root="/tmp" path="out" if-image-name-on="#{list}"
+					store_file "input2" root="/tmp" path="out" if-image-name-on="#{list}"
+					store_file "input3" root="/tmp" path="out" if-image-name-on="#{list}"
+				}
+				EOF
+			end
+
+			let :state do
+				Configuration::RequestState.new('abc', list: 'input1,input3')
+			end
+
+			it 'should mark stores to ib included when image name match if-image-name-on list' do
+				subject.handlers[0].stores[0].excluded?(state).should be_false
+				subject.handlers[0].stores[1].excluded?(state).should be_true
+				subject.handlers[0].stores[2].excluded?(state).should be_false
+			end
+		end
+
 		describe 'error handling' do
 			it 'should raise StorageOutsideOfRootDirError on bad paths' do
 				subject = Configuration.read(<<-EOF)

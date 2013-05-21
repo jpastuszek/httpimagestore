@@ -62,7 +62,7 @@ module Configuration
 					Pathname.new(path).extname.delete('.')
 				when :digest
 					return @digest if @digest
-					data = locals[:image_data] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :image_data, name) 
+					data = locals[:body] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :body, name) 
 					@digest = Digest::SHA2.new.update(data).to_s[0,16]
 				else
 					locals[name] or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)

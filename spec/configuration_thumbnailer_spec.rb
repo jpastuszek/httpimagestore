@@ -262,7 +262,7 @@ describe Configuration do
 					state.images['padded'].source_url.should == 'file://test.in'
 				end
 
-				describe 'if image name on support' do
+				describe 'conditional inclusion support' do
 					subject do 
 						Configuration.read(<<-'EOF')
 						put {
@@ -287,7 +287,7 @@ describe Configuration do
 						)
 					end
 
-					it 'should provide thumbnails only when name match comma separated name list' do
+					it 'should provide thumbnails that name match if-image-name-on list' do
 						state.images.should_not include 'original'
 						state.images['small'].data.should_not be_nil
 						state.images['padded'].data.should_not be_nil
@@ -326,7 +326,7 @@ describe Configuration do
 			end
 		end
 
-		describe 'if image name on support' do
+		describe 'conditional inclusion support' do
 			let :state do
 				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
@@ -355,7 +355,7 @@ describe Configuration do
 				EOF
 			end
 
-			it 'should mark source to be excluded by list using output image name in oneline and destination image name in multiline statement' do
+			it 'should mark source to be included when output image name in oneline and destination image name in multiline statement match if-image-name-on list' do
 				subject.handlers[0].image_sources[1].excluded?(state).should be_false
 				subject.handlers[0].image_sources[2].excluded?(state).should be_true
 				subject.handlers[0].image_sources[3].excluded?(state).should be_true

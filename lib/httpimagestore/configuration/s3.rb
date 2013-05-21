@@ -59,7 +59,7 @@ module Configuration
 
 	class S3Base
 		include ClassLogging
-		include Exclusion
+		include ConditionalInclusion
 
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
@@ -78,18 +78,19 @@ module Configuration
 				path_spec, 
 				public_access, 
 				cache_control, 
-				OptionalExclusionMatcher.new(image_name, if_image_name_on)
+				InclusionMatcher.new(image_name, if_image_name_on)
 			)
 		end
 
-		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, exclusion_matcher = nil)
+		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, matcher)
 			@global = global
 			@image_name = image_name
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
-			@exclusion_matcher = exclusion_matcher
+			@locals = {imagename: @image_name, bucket: @bucket}
+			inclusion_matcher matcher
 		end
 
 		def client
@@ -98,7 +99,7 @@ module Configuration
 
 		def rendered_path(request_state)
 			path = @global.paths[@path_spec]
-			path.render(request_state.locals)
+			path.render(@locals.merge(request_state.locals))
 		end
 
 		def url(object)
@@ -163,8 +164,10 @@ module Configuration
 
 			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
 
+			image = request_state.images[@image_name]
+			@locals[:mimeextension] = image.mime_extension
+
 			object(rendered_path) do |object|
-				image = request_state.images[@image_name]
 				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
 
 				options = {}

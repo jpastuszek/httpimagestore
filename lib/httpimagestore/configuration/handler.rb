@@ -1,3 +1,5 @@
+require 'mime/types'
+
 module Configuration
 	class ImageNotLoadedError < ConfigurationError
 		def initialize(image_name)
@@ -8,13 +10,11 @@ module Configuration
 	class RequestState
 		def initialize(body = '', locals = {})
 			@images = Hash.new{|hash, image_name| raise ImageNotLoadedError.new(image_name)}
-			@body = body
-			@locals = locals
+			@locals = {body: body}.merge(locals)
 			@output_callback = nil
 		end
 
 		attr_reader :images
-		attr_reader :body
 		attr_reader :locals
 
 		def output(&callback)
@@ -31,6 +31,12 @@ module Configuration
 		attr_accessor :source_url
 		attr_accessor :store_path
 		attr_accessor :store_url
+
+		def mime_extension
+			return nil unless mime_type
+			mime = MIME::Types[mime_type].first
+			mime.extensions.select{|e| e.length == 3}.first or mime.extensions.first
+		end
 	end
 
 	class Image < Struct.new(:data, :mime_type)
@@ -39,7 +45,7 @@ module Configuration
 
 	class InputSource
 		def realize(request_state)
-			request_state.images['input'] = Image.new(request_state.body)
+			request_state.images['input'] = Image.new(request_state.locals[:body])
 		end
 	end
 
@@ -51,22 +57,32 @@ module Configuration
 		end
 	end
 
-	class OptionalExclusionMatcher
+	class InclusionMatcher
 		def initialize(value, template)
 			@value = value
 			@template = RubyStringTemplate.new(template) if template
 		end
 
-		def excluded?(request_state)
-			return false if not @template
-			not @template.render(request_state.locals).split(',').include? @value
+		def included?(request_state)
+			return true if not @template
+			@template.render(request_state.locals).split(',').include? @value
 		end
 	end
 
-	module Exclusion
+	module ConditionalInclusion
+		def inclusion_matcher(matcher)
+			(@matchers ||= []) << matcher
+		end
+
+		def included?(request_state)
+			return true unless @matchers
+			@matchers.any? do |matcher|
+				matcher.included?(request_state)
+			end
+		end
+
 		def excluded?(request_state)
-			return false unless @exclusion_matcher
-			@exclusion_matcher.excluded?(request_state)
+			not included? request_state
 		end
 	end
 

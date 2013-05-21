@@ -15,11 +15,11 @@ module Configuration
 
 	class OutputMultiBase
 		class ImageName < String
-			include Exclusion
+			include ConditionalInclusion
 
-			def initialize(name, exclusion_matcher)
+			def initialize(name, matcher)
 				super name
-				@exclusion_matcher = exclusion_matcher
+				inclusion_matcher matcher
 			end
 		end
 
@@ -27,7 +27,7 @@ module Configuration
 			nodes = node.values.empty? ? node.children : [node]
 			names = nodes.map do |node|
 				image_name = node.grab_values('image name').first
-				matcher = OptionalExclusionMatcher.new(image_name, node.grab_attributes('if-image-name-on').first)
+				matcher = InclusionMatcher.new(image_name, node.grab_attributes('if-image-name-on').first)
 				ImageName.new(image_name, matcher)
 			end
 
@@ -81,7 +81,7 @@ module Configuration
 
 		def realize(request_state)
 			paths = @names.select do |name|
-				not name.excluded?(request_state)
+				name.included?(request_state)
 			end.map do |name|
 				request_state.images[name].store_path or raise StorePathNotSetForImage.new(name)
 			end
@@ -100,7 +100,7 @@ module Configuration
 
 		def realize(request_state)
 			urls = @names.select do |name|
-					not name.excluded?(request_state)
+				name.included?(request_state)
 			end.map do |name|
 				request_state.images[name].store_url or raise StoreURLNotSetForImage.new(name)
 			end
