@@ -120,7 +120,7 @@ module Configuration
 				)
 			end
 
-			matcher = OptionalExclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if not matcher and use_multipart_api
+			matcher = OptionalExclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
 
 			configuration.image_sources << self.new(
 				configuration.global, 

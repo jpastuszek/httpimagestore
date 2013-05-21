@@ -330,7 +330,7 @@ describe Configuration do
 			let :state do
 				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
-					list: 'thumbnail1,input4'
+					list: 'thumbnail1,input4,thumbnail5,input6'
 				)
 			end
 
@@ -345,6 +345,12 @@ describe Configuration do
 					thumbnail "input4" if-image-name-on="#{list}" {
 						"thumbnail4" 
 					}
+					thumbnail "input5" if-image-name-on="#{list}" {
+						"thumbnail5" if-image-name-on="#{list}"
+					}
+					thumbnail "input6" if-image-name-on="#{list}" {
+						"thumbnail6" if-image-name-on="#{list}"
+					}
 				}
 				EOF
 			end
@@ -354,6 +360,8 @@ describe Configuration do
 				subject.handlers[0].image_sources[2].excluded?(state).should be_true
 				subject.handlers[0].image_sources[3].excluded?(state).should be_true
 				subject.handlers[0].image_sources[4].excluded?(state).should be_false
+				subject.handlers[0].image_sources[5].excluded?(state).should be_true
+				subject.handlers[0].image_sources[6].excluded?(state).should be_false
 			end
 		end
 	end
