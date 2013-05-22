@@ -159,13 +159,13 @@ module Configuration
 		end
 
 		def realize(request_state)
+			image = request_state.images[@image_name]
+			@locals[:mimeextension] = image.mime_extension
+
 			rendered_path = rendered_path(request_state)
 			acl = @public_access ?  :public_read : :private
 
 			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
-
-			image = request_state.images[@image_name]
-			@locals[:mimeextension] = image.mime_extension
 
 			object(rendered_path) do |object|
 				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"

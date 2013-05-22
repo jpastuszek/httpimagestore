@@ -134,6 +134,39 @@ else
 				end
 			end
 
+			describe 'context locals' do
+				before :all do
+					s3_client = AWS::S3.new(use_ssl: false)
+					s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
+					s3_test_bucket.objects['test-image-name.jpg'].write('hello world', content_type: 'image/jpeg')
+					s3_test_bucket.objects["#{ENV['AWS_S3_TEST_BUCKET']}.jpg"].write('hello bucket', content_type: 'image/jpeg')
+				end
+
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}" ssl=false
+					path "imagename" "\#{imagename}.jpg"
+					path "bucket" "\#{bucket}.jpg"
+					get {
+						source_s3 "test-image-name" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="imagename"
+						source_s3 "bucket" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="bucket"
+					}
+					EOF
+				end
+
+				it 'should provide image name to be used as #{imagename}' do
+					subject.handlers[0].image_sources[0].realize(state)
+					state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
+					state.images['test-image-name'].data.should == 'hello world'
+				end
+
+				it 'should provide bucket to be used as #{bucket}' do
+					subject.handlers[0].image_sources[1].realize(state)
+					state.images['bucket'].source_path.should == "#{ENV['AWS_S3_TEST_BUCKET']}.jpg"
+					state.images['bucket'].data.should == 'hello bucket'
+				end
+			end
+
 			describe 'error handling' do
 				it 'should raise NoValueError on missing image name' do
 					expect {
@@ -385,6 +418,47 @@ else
 					subject.handlers[0].stores[0].excluded?(state).should be_false
 					subject.handlers[0].stores[1].excluded?(state).should be_true
 					subject.handlers[0].stores[2].excluded?(state).should be_false
+				end
+			end
+
+			describe 'context locals' do
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}" ssl=false
+					path "imagename" "\#{imagename}"
+					path "bucket" "\#{bucket}"
+					path "mimeextension" "\#{mimeextension}"
+					post {
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="imagename"
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="bucket"
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="mimeextension"
+					}
+					EOF
+				end
+
+				it 'should provide image name to be used as #{imagename}' do
+					subject.handlers[0].stores[0].realize(state)
+
+					state.images['input'].store_path.should == 'input'
+				end
+
+				it 'should provide bucket to be used as #{bucket}' do
+					subject.handlers[0].stores[1].realize(state)
+
+					state.images['input'].store_path.should == ENV['AWS_S3_TEST_BUCKET']
+				end
+
+				it 'should provide image mime type based file extension to be used as #{mimeextension}' do
+					state.images['input'].mime_type = 'image/jpeg'
+					subject.handlers[0].stores[2].realize(state)
+
+					state.images['input'].store_path.should == 'jpg'
+				end
+
+				it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{mimeextension}' do
+					expect {
+						subject.handlers[0].stores[2].realize(state)
+					}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'mimeextension' from template '#{mimeextension}': no value for '#{mimeextension}'}
 				end
 			end
 
