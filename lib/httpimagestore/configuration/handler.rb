@@ -106,7 +106,7 @@ module Configuration
 
 		def rendered_path(request_state)
 			path = @global.paths[@path_spec]
-			path.render(@locals.merge(request_state.locals))
+			Pathname.new(path.render(@locals.merge(request_state.locals))).cleanpath.to_s
 		end
 
 		def put_sourced_named_image(request_state)
