@@ -18,12 +18,17 @@ module Configuration
 			root_dir, path_spec, if_image_name_on = *node.grab_attributes('root', 'path', 'if-image-name-on')
 			matcher = InclusionMatcher.new(image_name, if_image_name_on)
 
-			self.new(image_name, configuration, root_dir, path_spec, matcher)
+			self.new(
+				configuration.global, 
+				image_name, root_dir, 
+				path_spec, 
+				matcher
+			)
 		end
 
-		def initialize(image_name, configuration, root_dir, path_spec, matcher)
+		def initialize(global, image_name, root_dir, path_spec, matcher)
+			@global = global
 			@image_name = image_name
-			@configuration = configuration
 			@root_dir = Pathname.new(root_dir).cleanpath
 			@path_spec = path_spec
 			@locals = {imagename: @image_name}
@@ -32,9 +37,13 @@ module Configuration
 
 		private
 
-		def final_path(request_state)
-			path = @configuration.global.paths[@path_spec]
-			path = Pathname.new(path.render(@locals.merge(request_state.locals)))
+		def rendered_path(request_state)
+			path = @global.paths[@path_spec]
+			path.render(@locals.merge(request_state.locals))
+		end
+
+		def final_path(rendered_path)
+			path = Pathname.new(rendered_path)
 
 			final_path = (@root_dir + path).cleanpath
 			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, path)
@@ -55,13 +64,14 @@ module Configuration
 		end
 
 		def realize(request_state)
-			path = final_path(request_state)
+			rendered_path = rendered_path(request_state)
+			path = final_path(rendered_path)
 
 			log.info "sourcing '#{@image_name}' from file '#{path}'"
 			image = Image.new(path.open('r'){|io| io.read})
 
-			image.source_path = path.to_s
-			image.source_url = "file://#{path.to_s}"
+			image.source_path = rendered_path
+			image.source_url = "file://#{rendered_path}"
 
 			request_state.images[@image_name] = image
 		end
@@ -82,10 +92,12 @@ module Configuration
 		def realize(request_state)
 			image = request_state.images[@image_name]
 			@locals[:mimeextension] = image.mime_extension
-			path = final_path(request_state)
 
-			image.store_path = path.to_s
-			image.store_url = "file://#{path.to_s}"
+			rendered_path = rendered_path(request_state)
+			path = final_path(rendered_path)
+
+			image.store_path = rendered_path
+			image.store_url = "file://#{rendered_path.to_s}"
 
 			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length} bytes)"
 			path.open('w'){|io| io.write image.data}

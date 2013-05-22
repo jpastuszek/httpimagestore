@@ -51,13 +51,13 @@ describe Configuration do
 		it 'should have source path and url' do
 			subject.handlers[0].image_sources[0].realize(state)
 
-			state.images['original'].source_path.should == "/tmp/test.in"
-			state.images['original'].source_url.should == "file:///tmp/test.in"
+			state.images['original'].source_path.should == "test.in"
+			state.images['original'].source_url.should == "file://test.in"
 		end
 
 		describe 'context locals' do
 			before :all do
-				Pathname.new('/tmp/test-image-name.jpg').open('w') do |io|
+				Pathname.new('test-image-name.jpg').open('w') do |io|
 					io.write('hello world')
 				end
 			end
@@ -74,7 +74,7 @@ describe Configuration do
 
 			it 'should provide image name to be used as #{imagename}' do
 				subject.handlers[0].image_sources[0].realize(state)
-				state.images['test-image-name'].source_path.should == '/tmp/test-image-name.jpg'
+				state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
 				state.images['test-image-name'].data.should == 'hello world'
 			end
 		end
@@ -165,8 +165,8 @@ describe Configuration do
 		it 'should have store path and url' do
 			subject.handlers[0].stores[0].realize(state)
 
-			state.images['input'].store_path.should == "/tmp/test.out"
-			state.images['input'].store_url.should == "file:///tmp/test.out"
+			state.images['input'].store_path.should == "test.out"
+			state.images['input'].store_url.should == "file://test.out"
 		end
 
 		describe 'conditional inclusion support' do
@@ -211,14 +211,14 @@ describe Configuration do
 			it 'should provide image name to be used as #{imagename}' do
 				subject.handlers[0].stores[0].realize(state)
 
-				state.images['input'].store_path.should == '/tmp/input.jpg'
+				state.images['input'].store_path.should == 'input.jpg'
 			end
 			
 			it 'should provide image mime type based file extension to be used as #{mimeextension}' do
 				state.images['input'].mime_type = 'image/jpeg'
 				subject.handlers[0].stores[1].realize(state)
 
-				state.images['input'].store_path.should == '/tmp/test-store-file.jpg'
+				state.images['input'].store_path.should == 'test-store-file.jpg'
 			end
 
 			it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{mimeextension}' do
