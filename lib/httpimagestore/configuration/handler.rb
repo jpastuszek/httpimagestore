@@ -86,6 +86,49 @@ module Configuration
 		end
 	end
 
+	class SourceStoreBase
+		include ConditionalInclusion
+
+		def initialize(global, image_name, matcher)
+			@global = global
+			@image_name = image_name
+			@locals = {imagename: @image_name}
+			inclusion_matcher matcher
+		end
+
+		private
+
+		attr_accessor :image_name
+
+		def local(name, value)
+			@locals[name] = value
+		end
+
+		def rendered_path(request_state)
+			path = @global.paths[@path_spec]
+			path.render(@locals.merge(request_state.locals))
+		end
+
+		def put_sourced_named_image(request_state)
+			rendered_path = rendered_path(request_state)
+
+			image = yield @image_name, rendered_path
+
+			image.source_path = rendered_path
+			request_state.images[@image_name] = image
+		end
+
+		def get_named_image_for_storage(request_state)
+			image = request_state.images[@image_name]
+			local :mimeextension, image.mime_extension
+
+			rendered_path = rendered_path(request_state)
+			image.store_path = rendered_path
+
+			yield @image_name, image, rendered_path
+		end
+	end
+
 	class Handler < Scope
 		def self.match(node)
 			node.name == 'put' or

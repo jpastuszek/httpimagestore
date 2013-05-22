@@ -57,9 +57,8 @@ module Configuration
 	end
 	Global.register_node_parser S3
 
-	class S3Base
+	class S3SourceStoreBase < SourceStoreBase
 		include ClassLogging
-		include ConditionalInclusion
 
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
@@ -74,32 +73,25 @@ module Configuration
 			self.new(
 				configuration.global, 
 				image_name, 
+				InclusionMatcher.new(image_name, if_image_name_on),
 				bucket, 
 				path_spec, 
 				public_access, 
-				cache_control, 
-				InclusionMatcher.new(image_name, if_image_name_on)
+				cache_control
 			)
 		end
 
-		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, matcher)
-			@global = global
-			@image_name = image_name
+		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control)
+			super global, image_name, matcher
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
-			@locals = {imagename: @image_name, bucket: @bucket}
-			inclusion_matcher matcher
+			local :bucket, @bucket
 		end
 
 		def client
 			@global.s3 or raise S3NotConfiguredError
-		end
-
-		def rendered_path(request_state)
-			path = @global.paths[@path_spec]
-			path.render(@locals.merge(request_state.locals))
 		end
 
 		def url(object)
@@ -124,7 +116,7 @@ module Configuration
 		end
 	end
 
-	class S3Source < S3Base
+	class S3Source < S3SourceStoreBase
 		def self.match(node)
 			node.name == 'source_s3'
 		end
@@ -134,22 +126,20 @@ module Configuration
 		end
 
 		def realize(request_state)
-			rendered_path = rendered_path(request_state)
-			log.info "sourcing '#{@image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
+			put_sourced_named_image(request_state) do |image_name, rendered_path|
+				log.info "sourcing '#{image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
 
-			object(rendered_path) do |object|
-				image = Image.new(object.read, object.head[:content_type])
-
-				image.source_path = rendered_path
-				image.source_url = url(object)
-
-				request_state.images[@image_name] = image
+				object(rendered_path) do |object|
+					image = Image.new(object.read, object.head[:content_type])
+					image.source_url = url(object)
+					image
+				end
 			end
 		end
 	end
 	Handler::register_node_parser S3Source
 
-	class S3Store < S3Base
+	class S3Store < S3SourceStoreBase
 		def self.match(node)
 			node.name == 'store_s3'
 		end
@@ -159,27 +149,24 @@ module Configuration
 		end
 
 		def realize(request_state)
-			image = request_state.images[@image_name]
-			@locals[:mimeextension] = image.mime_extension
+			get_named_image_for_storage(request_state) do |image_name, image, rendered_path|
+				acl = @public_access ?  :public_read : :private
 
-			rendered_path = rendered_path(request_state)
-			acl = @public_access ?  :public_read : :private
+				log.info "storing '#{image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
 
-			log.info "storing '#{@image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
+				object(rendered_path) do |object|
+					image.mime_type or log.warn "storing '#{image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
 
-			object(rendered_path) do |object|
-				image.mime_type or log.warn "storing '#{@image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
+					options = {}
+					options[:single_request] = true
+					options[:content_type] = image.mime_type
+					options[:acl] = acl
+					options[:cache_control] = @cache_control if @cache_control
 
-				options = {}
-				options[:single_request] = true
-				options[:content_type] = image.mime_type
-				options[:acl] = acl
-				options[:cache_control] = @cache_control if @cache_control
+					object.write(image.data, options)
 
-				object.write(image.data, options)
-
-				image.store_path = rendered_path
-				image.store_url = url(object)
+					image.store_url = url(object)
+				end
 			end
 		end
 	end

@@ -100,7 +100,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/plain'
-				env.res.data.should == "/tmp/test.out\r\n"
+				env.res.data.should == "test.out\r\n"
 			end
 
 			it 'should provide multiple file store paths' do
@@ -132,7 +132,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/plain'
-				env.res.data.should == "/tmp/test.out\r\n/tmp/test.out2\r\n"
+				env.res.data.should == "test.out\r\ntest.out2\r\n"
 			end
 
 			describe 'conditional inclusion support' do
@@ -177,7 +177,7 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/plain'
-					env.res.data.should == "/tmp/test.out1\r\n/tmp/test.out3\r\n"
+					env.res.data.should == "test.out1\r\ntest.out3\r\n"
 				end
 			end
 
@@ -218,7 +218,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/plain'
-				env.res.data.should == "file:///tmp/test.out\r\n"
+				env.res.data.should == "file://test.out\r\n"
 			end
 
 			it 'should provide multiple file store URLs' do
@@ -250,7 +250,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/plain'
-				env.res.data.should == "file:///tmp/test.out\r\nfile:///tmp/test.out2\r\n"
+				env.res.data.should == "file://test.out\r\nfile://test.out2\r\n"
 			end
 			
 			describe 'conditional inclusion support' do
@@ -295,7 +295,7 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/plain'
-					env.res.data.should == "file:///tmp/test.out1\r\nfile:///tmp/test.out3\r\n"
+					env.res.data.should == "file://test.out1\r\nfile://test.out3\r\n"
 				end
 			end
 

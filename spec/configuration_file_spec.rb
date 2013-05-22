@@ -57,7 +57,7 @@ describe Configuration do
 
 		describe 'context locals' do
 			before :all do
-				Pathname.new('test-image-name.jpg').open('w') do |io|
+				Pathname.new('/tmp/test-image-name.jpg').open('w') do |io|
 					io.write('hello world')
 				end
 			end

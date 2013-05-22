@@ -9,9 +9,7 @@ module Configuration
 		end
 	end
 
-	class FileBase
-		include ConditionalInclusion
-
+	class FileSourceStoreBase < SourceStoreBase
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
 			node.required_attributes('root', 'path')
@@ -20,39 +18,30 @@ module Configuration
 
 			self.new(
 				configuration.global, 
-				image_name, root_dir, 
-				path_spec, 
-				matcher
+				image_name, 
+				matcher,
+				root_dir, 
+				path_spec 
 			)
 		end
 
-		def initialize(global, image_name, root_dir, path_spec, matcher)
-			@global = global
-			@image_name = image_name
+		def initialize(global, image_name, matcher, root_dir, path_spec)
+			super global, image_name, matcher
 			@root_dir = Pathname.new(root_dir).cleanpath
 			@path_spec = path_spec
-			@locals = {imagename: @image_name}
-			inclusion_matcher matcher
 		end
 
-		private
-
-		def rendered_path(request_state)
-			path = @global.paths[@path_spec]
-			path.render(@locals.merge(request_state.locals))
-		end
-
-		def final_path(rendered_path)
+		def storage_path(rendered_path)
 			path = Pathname.new(rendered_path)
 
-			final_path = (@root_dir + path).cleanpath
-			final_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, path)
+			storage_path = (@root_dir + path).cleanpath
+			storage_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, path)
 
-			final_path
+			storage_path
 		end
 	end
 
-	class FileSource < FileBase
+	class FileSource < FileSourceStoreBase
 		include ClassLogging
 
 		def self.match(node)
@@ -64,21 +53,19 @@ module Configuration
 		end
 
 		def realize(request_state)
-			rendered_path = rendered_path(request_state)
-			path = final_path(rendered_path)
+			put_sourced_named_image(request_state) do |image_name, rendered_path|
+				storage_path = storage_path(rendered_path)
 
-			log.info "sourcing '#{@image_name}' from file '#{path}'"
-			image = Image.new(path.open('r'){|io| io.read})
-
-			image.source_path = rendered_path
-			image.source_url = "file://#{rendered_path}"
-
-			request_state.images[@image_name] = image
+				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
+				image = Image.new(storage_path.open('r'){|io| io.read})
+				image.source_url = "file://#{rendered_path}"
+				image
+			end
 		end
 	end
 	Handler::register_node_parser FileSource
 	
-	class FileStore < FileBase
+	class FileStore < FileSourceStoreBase
 		include ClassLogging
 
 		def self.match(node)
@@ -90,17 +77,14 @@ module Configuration
 		end
 
 		def realize(request_state)
-			image = request_state.images[@image_name]
-			@locals[:mimeextension] = image.mime_extension
+			get_named_image_for_storage(request_state) do |image_name, image, rendered_path|
+				storage_path = storage_path(rendered_path)
 
-			rendered_path = rendered_path(request_state)
-			path = final_path(rendered_path)
+				image.store_url = "file://#{rendered_path.to_s}"
 
-			image.store_path = rendered_path
-			image.store_url = "file://#{rendered_path.to_s}"
-
-			log.info "storing '#{@image_name}' in file '#{path}' (#{image.data.length} bytes)"
-			path.open('w'){|io| io.write image.data}
+				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
+				storage_path.open('w'){|io| io.write image.data}
+			end
 		end
 	end
 	Handler::register_node_parser FileStore
