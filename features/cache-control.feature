@@ -1,5 +1,4 @@
 Feature: Stored objects should have proper Cache-Control header set
-
 	Background:
 		Given issthumbtest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
@@ -20,13 +19,14 @@ Feature: Stored objects should have proper Cache-Control header set
 			store_s3 "cache"	bucket="httpimagestoretest" public=true path="hash-name" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 		"""
+		Given httpthumbnailer server is running at http://localhost:3100/
+
+	@cache-control
+	Scenario: Image files get don't get Cache-Control header by default
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		And there is no 4006450256177f4a-no-cache.jpg file in S3 bucket
 		And there is no 4006450256177f4a-cache.jpg file in S3 bucket
 		Given test.jpg file content as request body
-
-	@cache-control
-	Scenario: Image files get don't get Cache-Control header by default
 		When I do PUT request http://localhost:3000/thumbnail
 		Then response status will be 200
 		And response content type will be text/plain
