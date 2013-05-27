@@ -1,4 +1,6 @@
-Feature: Stored objects should have proper Cache-Control header set
+Feature: S3 object Cache-Control header settings
+	S3 objects can have Cache-Control header set during storage.
+
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration

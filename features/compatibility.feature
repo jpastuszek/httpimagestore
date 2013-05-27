@@ -1,7 +1,6 @@
-Feature: Storing of original image and specified classes of its thumbnails on S3
-	In order to store original image and its thumbnails in preconfigured S3 bucket
-	A user must PUT the image data to URI representing its path within the bucket
-	The response will be paths to files stored in S3
+Feature: Image list based thumbnailing and S3 storage
+	Storage based on URL specified image names to be generated and stored using two different path formats.
+	This configuration should be mostly compatible with pre v1.0 release.
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
@@ -16,68 +15,43 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 
 		put "thumbnail" ":name_list" ":path/.+/" {
 			thumbnail "input" {
-				"original"	operation="limit"	width=1080	height=1080	format="jpeg"		quality=95
 				"small"		operation="crop"	width=128	height=128	format="jpeg"		if-image-name-on="#{name_list}"
-				"tiny"		operation="crop"	width=32	height=32				if-image-name-on="#{name_list}"
 				"tiny_png"	operation="crop"	width=32	height=32	format="png"		if-image-name-on="#{name_list}"
 				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"	bucket="@AWS_S3_TEST_BUCKET@-originals"	path="hash"
 			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured"	public=true
 			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"		bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
 			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"		bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "superlarge"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "large_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
 				"small"		if-image-name-on="#{name_list}"
-				"tiny"		if-image-name-on="#{name_list}"
 				"tiny_png"	if-image-name-on="#{name_list}"
-				"bad"		if-image-name-on="#{name_list}"
-				"superlarge"	if-image-name-on="#{name_list}"
-				"large_png"	if-image-name-on="#{name_list}"
 			}
 		}
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
-				"original"	operation="limit"	width=1080	height=1080	format="jpeg"	quality=95
 				"small"		operation="crop"	width=128	height=128	format="jpeg"	if-image-name-on="#{name_list}"
-				"tiny"		operation="crop"	width=32	height=32			if-image-name-on="#{name_list}"
 				"tiny_png"	operation="crop"	width=32	height=32	format="png"	if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0			if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000			if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"	if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"	bucket="@AWS_S3_TEST_BUCKET@-originals"	path="hash"
 			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash"	 public=true
 			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"		bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
 			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"		bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "superlarge"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "large_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
 				"small"		if-image-name-on="#{name_list}"
-				"tiny"		if-image-name-on="#{name_list}"
 				"tiny_png"	if-image-name-on="#{name_list}"
 				"bad"		if-image-name-on="#{name_list}"
-				"superlarge"	if-image-name-on="#{name_list}"
-				"large_png"	if-image-name-on="#{name_list}"
 			}
 		}
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
 
+	@compatibility
 	Scenario: Putting original and its thumbnails to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		And there is no 4006450256177f4a/small.jpg file in S3 bucket
@@ -99,6 +73,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/tiny_png.png will contain PNG image of size 32x32
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/tiny_png.png content type will be image/png
 
+	@compatibility
 	Scenario: Putting original and its thumbnails to S3 bucket under custom path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
@@ -120,6 +95,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png will contain PNG image of size 32x32
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
 
+	@compatibility
 	Scenario: Input file extension should be based on content detected mime type and not on provided path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-tiny_png.jpg file in S3 bucket
@@ -135,6 +111,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg content type will be image/jpeg
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
 
+	@compatibility
 	Scenario: Custom path name encoding when UTF-8 characters can be used
 		Given there is no test/图像/4006450256177f4a/测试.jpg file in S3 bucket
 		And there is no test/图像/4006450256177f4a/测试-small.jpg file in S3 bucket
@@ -149,75 +126,4 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		"""
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
-
-	Scenario: Reporting of missing resource
-		When I do GET request http://localhost:3000/blah
-		Then response status will be 404
-		And response content type will be text/plain
-		And response body will be CRLF ended lines
-		"""
-		request for URI '/blah' was not handled by the server
-		"""
-
-	Scenario: Reporting of unsupported media type
-		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
-		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
-		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
-		Given test.txt file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,tiny/test/image/test.jpg
-		Then response status will be 415
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		unsupported media type: no decode delegate for this image format
-		"""
-		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
-		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
-		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
-
-	Scenario: Reporting and handling of thumbnailing errors
-		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
-		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
-		And there is no test/image/4006450256177f4a/test-tiny.jpg file in S3 bucket
-		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,tiny,bad/test/image/test.jpg
-		Then response status will be 400
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		thumbnailing of 'input' into 'bad' failed: at least one image dimension is zero: 0x0
-		"""
-		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
-		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
-		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
-
-	Scenario: Too large image - uploaded image too big to fit in memory limit
-		Given test-large.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/large_png/test/image/test.jpg
-		Then response status will be 413
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		image too large: cache resources exhausted
-		"""
-
-	Scenario: Too large image - memory exhausted when thmbnailing
-		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/superlarge/test/image/test.jpg
-		Then response status will be 413
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		thumbnailing of 'input' into 'superlarge' failed: image too large: cache resources exhausted
-		"""
-
-	Scenario: Zero body length
-		Given test.empty file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small/test/image/test.jpg
-		Then response status will be 400
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		empty body - expected image data
-		"""
 
