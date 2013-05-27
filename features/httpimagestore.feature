@@ -47,23 +47,23 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
-				"original"	operation="limit"	width=1080	height=1080	format="jpeg"		quality=95
-				"small"		operation="crop"	width=128	height=128	format="jpeg"		if-image-name-on="#{name_list}"
-				"tiny"		operation="crop"	width=32	height=32				if-image-name-on="#{name_list}"
-				"tiny_png"	operation="crop"	width=32	height=32	format="png"		if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
+				"original"	operation="limit"	width=1080	height=1080	format="jpeg"	quality=95
+				"small"		operation="crop"	width=128	height=128	format="jpeg"	if-image-name-on="#{name_list}"
+				"tiny"		operation="crop"	width=32	height=32			if-image-name-on="#{name_list}"
+				"tiny_png"	operation="crop"	width=32	height=32	format="png"	if-image-name-on="#{name_list}"
+				"bad"		operation="crop"	width=0		height=0			if-image-name-on="#{name_list}"
+				"superlarge"	operation="crop"	width=16000	height=16000			if-image-name-on="#{name_list}"
+				"large_png"	operation="crop"	width=7000	height=7000	format="png"	if-image-name-on="#{name_list}"
 			}
 
 			store_s3 "original"	bucket="httpimagestoretest-originals"	path="hash"
-			store_s3 "input"	bucket="httpimagestoretest"		path="hash"		public=true
-			store_s3 "small"	bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"		bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"		bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "superlarge"	bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "large_png"	bucket="httpimagestoretest"		path="hash-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "input"	bucket="httpimagestoretest"		path="hash"	 public=true
+			store_s3 "small"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny"		bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "bad"		bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "superlarge"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "large_png"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
