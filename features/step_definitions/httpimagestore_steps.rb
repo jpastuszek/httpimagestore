@@ -62,6 +62,14 @@ Given /(.*) header set to (.*)/ do |header, value|
 	@request_headers[header] = value
 end
 
+Given /(.*) file content is stored in S3 under (.*)/ do |file, key|
+	@bucket.objects[key].write(File.open(support_dir + file){|f| f.read }, content_type: 'image/jpeg')
+end
+
+Then /S3 bucket will not contain (.*)/ do |key|
+	@bucket.objects[key].exists?.should_not be_true
+end
+
 When /I do (.*) request (.*)/ do |method, uri|
 	@response = HTTPClient.new.request(method, URI.encode(uri.replace_s3_variables), nil, @request_body, (@request_headers or {}))
 end
@@ -97,7 +105,7 @@ Then /(http.*) ([^ ]+) header will not be set/ do |url, header|
 	get_headers(url.replace_s3_variables)[header].should be_nil
 end
 
-Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
+Then /(http.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
 	data = get(url.replace_s3_variables)
 	
 	@image.destroy! if @image
@@ -108,7 +116,30 @@ Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, he
 	@image.rows.should == height.to_i
 end
 
-Then /S3 bucket will not contain (.*)/ do |path|
-	@bucket.objects[path].exists?.should_not be_true
+Then /S3 object (.*) will contain (.*) image of size (.*)x(.*)/ do |key, format, width, height|
+	data = @bucket.objects[key].read
+	
+	@image.destroy! if @image
+	@image = Magick::Image.from_blob(data).first
+
+	@image.format.should == format
+	@image.columns.should == width.to_i
+	@image.rows.should == height.to_i
+end
+
+Then /response body will contain (.*) image of size (.*)x(.*)/ do |format, width, height|
+	data = @response.body
+	Pathname.new('/tmp/out.jpg').open('w'){|io| io.write data}
+	
+	@image.destroy! if @image
+	@image = Magick::Image.from_blob(data).first
+
+	@image.format.should == format
+	@image.columns.should == width.to_i
+	@image.rows.should == height.to_i
+end
+
+And /that image pixel at (.*)x(.*) should be of color (.*)/ do |x, y, color|
+	@image.pixel_color(x.to_i, y.to_i).to_color.sub(/^#/, '0x').should == color
 end
 

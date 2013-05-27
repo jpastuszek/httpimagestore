@@ -78,7 +78,7 @@ module Configuration
 
 	module ConditionalInclusion
 		def inclusion_matcher(matcher)
-			(@matchers ||= []) << matcher
+			(@matchers ||= []) << matcher if matcher
 		end
 
 		def included?(request_state)
@@ -136,7 +136,15 @@ module Configuration
 		end
 	end
 
-	Matcher = Class.new Struct.new(:name, :matcher)
+	class Matcher
+		def initialize(name, &matcher)
+			@name = name
+			@matcher = matcher
+		end
+
+		attr_reader :name
+		attr_reader :matcher
+	end
 
 	class Handler < Scope
 		def self.match(node)
@@ -166,21 +174,23 @@ module Configuration
 				case matcher
 				when %r{^:[^/]+/.*/$}
 					name, regexp = *matcher.match(%r{^:([^/]+)/(.*)/$}).captures
-					Matcher.new(
-						name.to_sym,
+					Matcher.new(name.to_sym) do
 						Regexp.new("(#{regexp})")
-					)
+					end
+				when /^:.+\?$/
+					name = matcher.sub(/^:(.+)\?$/, '\1').to_sym
+					Matcher.new(name) do
+						->{match(name) || captures.push('')}
+					end
 				when /^:/
 					name = matcher.sub(/^:/, '').to_sym
-					Matcher.new(
-						name,
+					Matcher.new(name) do
 						name
-					)
+					end
 				else
-					Matcher.new(
-						nil,
+					Matcher.new(nil) do
 						matcher
-					)
+					end
 				end
 			end
 			handler_configuration.image_sources = []

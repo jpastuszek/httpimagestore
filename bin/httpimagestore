@@ -26,7 +26,7 @@ Application.new('httpimagestore', port: 3000) do
 				end
 
 				env['app.configuration'].handlers.each do |handler|
-					on eval(handler.http_method), *handler.uri_matchers.map{|m| m.matcher} do |*args|
+					on eval(handler.http_method), *handler.uri_matchers.map{|m| instance_eval(&m.matcher)} do |*args|
 						locals = {}
 
 						{

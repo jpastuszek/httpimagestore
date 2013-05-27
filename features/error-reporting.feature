@@ -29,7 +29,7 @@ Feature: Image list based thumbnailing and S3 storage
 		request for URI '/blah' was not handled by the server
 		"""
 
-	@error-reporting @test
+	@error-reporting
 	Scenario: Reporting of unsupported media type
 		Given test.txt file content as request body
 		When I do PUT request http://localhost:3000/thumbnail/small,tiny
