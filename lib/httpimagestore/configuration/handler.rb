@@ -129,6 +129,8 @@ module Configuration
 		end
 	end
 
+	Matcher = Class.new Struct.new(:name, :matcher)
+
 	class Handler < Scope
 		def self.match(node)
 			node.name == 'put' or
@@ -153,7 +155,27 @@ module Configuration
 
 			handler_configuration.global = configuration
 			handler_configuration.http_method = node.name
-			handler_configuration.uri_matchers = node.values.map{|matcher| matcher =~ /^:/ ? matcher.sub(/^:/, '').to_sym : matcher}
+			handler_configuration.uri_matchers = node.values.map do |matcher|
+				case matcher
+				when %r{^:[^/]+/.*/$}
+					name, regexp = *matcher.match(%r{^:([^/]+)/(.*)/$}).captures
+					Matcher.new(
+						name.to_sym,
+						Regexp.new("(#{regexp})")
+					)
+				when /^:/
+					name = matcher.sub(/^:/, '').to_sym
+					Matcher.new(
+						name,
+						name
+					)
+				else
+					Matcher.new(
+						nil,
+						matcher
+					)
+				end
+			end
 			handler_configuration.image_sources = []
 			handler_configuration.stores = []
 			handler_configuration.output = nil

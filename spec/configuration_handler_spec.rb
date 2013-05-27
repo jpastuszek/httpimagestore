@@ -14,7 +14,7 @@ describe Configuration do
 			get "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
 			}
 
-			put "thumbnail" "v1" ":operation" ":width" ":height" ":options" {
+			put "thumbnail" "v1" ":test/.+/" {
 			}
 
 			post {
@@ -27,10 +27,21 @@ describe Configuration do
 				subject.handlers.length.should == 3
 
 				subject.handlers[0].http_method.should == 'get'
-				subject.handlers[0].uri_matchers.should == ['thumbnail', 'v1', :operation, :width, :height, :options]
+				subject.handlers[0].uri_matchers.map{|m| [m.name, m.matcher]}.should == [
+					[nil, "thumbnail"], 
+					[nil, "v1"], 
+					[:operation, :operation], 
+					[:width, :width], 
+					[:height, :height], 
+					[:options, :options]
+				]
 
 				subject.handlers[1].http_method.should == 'put'
-				subject.handlers[1].uri_matchers.should == ['thumbnail', 'v1', :operation, :width, :height, :options]
+				subject.handlers[1].uri_matchers.map{|m| [m.name, m.matcher]}.should == [
+					[nil, "thumbnail"], 
+					[nil, "v1"], 
+					[:test, /(.+)/]
+				]
 
 				subject.handlers[2].http_method.should == 'post'
 				subject.handlers[2].uri_matchers.should be_empty
