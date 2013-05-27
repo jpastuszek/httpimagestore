@@ -1,6 +1,10 @@
 class ErrorReporter < Controler
 	self.define do
-		on error Rack::UnhandledRequest::UnhandledRequestError do
+		on error(
+			Rack::UnhandledRequest::UnhandledRequestError,
+			Configuration::S3NoSuchKeyError,
+			Configuration::NoSuchFileError
+		)	do
 			write_error 404, env['app.error']
 		end
 
@@ -16,7 +20,10 @@ class ErrorReporter < Controler
 			write_error env['app.error'].remote_error.status, env['app.error']
 		end
 
-		on error Configuration::ZeroBodyLengthError do
+		on error(
+			HTTPThumbnailerClient::InvalidThumbnailSpecificationError,
+		 	Configuration::ZeroBodyLengthError
+		) do
 			write_error 400, env['app.error']
 		end
 

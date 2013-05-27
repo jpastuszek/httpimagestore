@@ -9,6 +9,12 @@ module Configuration
 		end
 	end
 
+	class NoSuchFileError < ConfigurationError
+		def initialize(image_name, file_path)
+			super "error while processing image '#{image_name}': file '#{file_path.to_s}' not found"
+		end
+	end
+
 	class FileSourceStoreBase < SourceStoreBase
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
@@ -57,9 +63,13 @@ module Configuration
 				storage_path = storage_path(rendered_path)
 
 				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
-				image = Image.new(storage_path.open('r'){|io| io.read})
-				image.source_url = "file://#{rendered_path}"
-				image
+				begin
+					image = Image.new(storage_path.open('r'){|io| io.read})
+					image.source_url = "file://#{rendered_path}"
+					image
+				rescue Errno::ENOENT
+					raise NoSuchFileError.new(image_name, rendered_path)
+				end
 			end
 		end
 	end

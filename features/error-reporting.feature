@@ -6,15 +6,27 @@ Feature: Image list based thumbnailing and S3 storage
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
+		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
+
 		path "structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+		path "missing"		"blah"
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
-				"small"		operation="crop"	width=128	height=128			if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0			if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000			if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"	if-image-name-on="#{name_list}"
+				"small"		operation="crop"	width=128	height=128			    if-image-name-on="#{name_list}"
+				"bad"		operation="crop"	width=0		height=0			    if-image-name-on="#{name_list}"
+				"superlarge"	operation="crop"	width=16000	height=16000			    if-image-name-on="#{name_list}"
+				"large_png"	operation="crop"	width=7000	height=7000	format="png"	    if-image-name-on="#{name_list}"
+				"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"   if-image-name-on="#{name_list}"
 			}
+		}
+
+		get "s3" {
+			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="missing"
+		}
+
+		get "file" {
+			source_file "original" root="/tmp" path="missing"
 		}
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
@@ -27,6 +39,26 @@ Feature: Image list based thumbnailing and S3 storage
 		And response body will be CRLF ended lines
 		"""
 		request for URI '/blah' was not handled by the server
+		"""
+
+	@error-reporting
+	Scenario: Reporting of missing S3 resource
+		When I do GET request http://localhost:3000/s3
+		Then response status will be 404
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		S3 bucket 'httpimagestoretest' does not contain key 'blah'
+		"""
+
+	@error-reporting
+	Scenario: Reporting of missing file resource
+		When I do GET request http://localhost:3000/file
+		Then response status will be 404
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		error while processing image 'original': file 'blah' not found
 		"""
 
 	@error-reporting
@@ -49,6 +81,17 @@ Feature: Image list based thumbnailing and S3 storage
 		And response body will be CRLF ended lines like
 		"""
 		thumbnailing of 'input' into 'bad' failed: at least one image dimension is zero: 0x0
+		"""
+
+	@error-reporting
+	Scenario: Reporting and handling of thumbnailing errors - bad options format
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/small,bad_opts
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		missing option value for key 'foo=bar'
 		"""
 
 	@error-reporting

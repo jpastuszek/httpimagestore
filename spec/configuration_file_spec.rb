@@ -96,6 +96,22 @@ describe Configuration do
 				}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
 			end
 
+			it 'should raise NoSuchFileError on missing file' do
+				subject = Configuration.read(<<-EOF)
+				path {
+					"missing"	"blah"
+				}
+
+				get "bad_path" {
+					source_file "original" root="/tmp" path="missing"
+				}
+				EOF
+
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error Configuration::NoSuchFileError, %{error while processing image 'original': file 'blah' not found}
+			end
+
 			it 'should raise NoValueError on missing image name' do
 				expect {
 					Configuration.read(<<-EOF)
