@@ -19,6 +19,16 @@ require 'tempfile'
 require 'RMagick'
 require 'aws-sdk'
 
+class String
+	def replace_s3_variables
+		string = self.dup
+		string.gsub!(/@AWS_ACCESS_KEY_ID@/, ENV['AWS_ACCESS_KEY_ID'])
+		string.gsub!(/@AWS_SECRET_ACCESS_KEY@/, ENV['AWS_SECRET_ACCESS_KEY'])
+		string.gsub!(/@AWS_S3_TEST_BUCKET@/, ENV['AWS_S3_TEST_BUCKET'])
+		string
+	end
+end
+
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'
 end

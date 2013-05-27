@@ -4,10 +4,10 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 	The response will be paths to files stored in S3
 
 	Background:
-		Given httpimagestoretest S3 bucket with key AKIAJMUYVYOSACNXLPTQ and secret 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
+		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
-		s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
+		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
 		path "hash"		"#{digest}.#{mimeextension}"
 		path "hash-name"	"#{digest}/#{imagename}.#{mimeextension}"
@@ -25,14 +25,14 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"	bucket="httpimagestoretest-originals"	path="hash"
-			store_s3 "input"	bucket="httpimagestoretest"		path="structured"	public=true
-			store_s3 "small"	bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"		bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"		bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "superlarge"	bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "large_png"	bucket="httpimagestoretest"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "original"	bucket="@AWS_S3_TEST_BUCKET@-originals"	path="hash"
+			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured"	public=true
+			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny"		bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "bad"		bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "superlarge"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "large_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
@@ -56,14 +56,14 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 				"large_png"	operation="crop"	width=7000	height=7000	format="png"	if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"	bucket="httpimagestoretest-originals"	path="hash"
-			store_s3 "input"	bucket="httpimagestoretest"		path="hash"	 public=true
-			store_s3 "small"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"		bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"		bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "superlarge"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "large_png"	bucket="httpimagestoretest"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "original"	bucket="@AWS_S3_TEST_BUCKET@-originals"	path="hash"
+			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash"	 public=true
+			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny"		bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "bad"		bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "superlarge"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "large_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
@@ -88,16 +88,16 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a.jpg
-		http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/small.jpg
-		http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/tiny_png.png
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/small.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/tiny_png.png
 		"""
-		Then http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a.jpg will contain JPEG image of size 509x719
-		And http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a.jpg content type will be image/jpeg
-		Then http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/small.jpg will contain JPEG image of size 128x128
-		And http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/small.jpg content type will be image/jpeg
-		Then http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/tiny_png.png will contain PNG image of size 32x32
-		And http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/tiny_png.png content type will be image/png
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a.jpg will contain JPEG image of size 509x719
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a.jpg content type will be image/jpeg
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/small.jpg will contain JPEG image of size 128x128
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/small.jpg content type will be image/jpeg
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/tiny_png.png will contain PNG image of size 32x32
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a/tiny_png.png content type will be image/png
 
 	Scenario: Putting original and its thumbnails to S3 bucket under custom path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
@@ -109,16 +109,16 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
-		http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
-		http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png
 		"""
-		Then http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
-		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg content type will be image/jpeg
-		Then http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
-		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg content type will be image/jpeg
-		Then http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png will contain PNG image of size 32x32
-		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg will contain JPEG image of size 509x719
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg content type will be image/jpeg
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg will contain JPEG image of size 128x128
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-small.jpg content type will be image/jpeg
+		Then http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png will contain PNG image of size 32x32
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
 
 	Scenario: Input file extension should be based on content detected mime type and not on provided path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
@@ -129,11 +129,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
-		http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png
 		"""
-		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg content type will be image/jpeg
-		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test.jpg content type will be image/jpeg
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
 
 	Scenario: Custom path name encoding when UTF-8 characters can be used
 		Given there is no test/图像/4006450256177f4a/测试.jpg file in S3 bucket
@@ -144,11 +144,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		http://httpimagestoretest.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95.jpg
-		http://httpimagestoretest.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95-small.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95.jpg
+		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95-small.jpg
 		"""
-		And http://httpimagestoretest.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
-		And http://httpimagestoretest.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
+		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
 
 	Scenario: Reporting of missing resource
 		When I do GET request http://localhost:3000/blah
