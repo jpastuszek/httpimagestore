@@ -27,9 +27,15 @@ Application.new('httpimagestore', port: 3000) do
 
 				env['app.configuration'].handlers.each do |handler|
 					on eval(handler.http_method), *handler.uri_matchers.map{|m| m.matcher} do |*args|
-						locals = {
+						locals = {}
+
+						{
 							path: env["PATH_INFO"][1..-1] || ''
-						}.merge Hash[handler.uri_matchers.select{|m| m.name}.map{|m| m.name}.zip(args)]
+						}.merge(
+							Hash[handler.uri_matchers.select{|m| m.name}.map{|m| m.name}.zip(args)]
+						).each do |name, value|
+							locals[name] = URI.decode(value).force_encoding('UTF-8')
+						end
 
 						state = Configuration::RequestState.new(req.body.read, locals)
 

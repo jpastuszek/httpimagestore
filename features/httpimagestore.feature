@@ -9,77 +9,76 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		"""
 		s3 key="AKIAJMUYVYOSACNXLPTQ" secret="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" ssl=false
 
-		path "hash"							"#{digest}.#{mimeextension}"
-		path "hash-name"				"#{digest}/#{imagename}.#{mimeextension}"
-		path "structured"				"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
+		path "hash"		"#{digest}.#{mimeextension}"
+		path "hash-name"	"#{digest}/#{imagename}.#{mimeextension}"
+		path "structured"	"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
 		path "structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
 
 		put "thumbnail" ":name_list" ":path/.+/" {
 			thumbnail "input" {
-				"original"			operation="limit"		width=1080	height=1080	format="jpeg"		quality=95
-				"small"					operation="crop"		width=128		height=128	format="jpeg"		if-image-name-on="#{name_list}"
-				"tiny"					operation="crop"		width=32		height=32										if-image-name-on="#{name_list}"
-				"tiny_png"			operation="crop"		width=32		height=32		format="png"		if-image-name-on="#{name_list}"
-				"bad"						operation="crop"		width=0			height=0										if-image-name-on="#{name_list}"
-				"superlarge"		operation="crop"		width=16000	height=16000								if-image-name-on="#{name_list}"
-				"large_png"			operation="crop"		width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
+				"original"	operation="limit"	width=1080	height=1080	format="jpeg"		quality=95
+				"small"		operation="crop"	width=128	height=128	format="jpeg"		if-image-name-on="#{name_list}"
+				"tiny"		operation="crop"	width=32	height=32				if-image-name-on="#{name_list}"
+				"tiny_png"	operation="crop"	width=32	height=32	format="png"		if-image-name-on="#{name_list}"
+				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
+				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
+				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"		bucket="httpimagestoretest-originals"	path="hash"
-			store_s3 "input"			bucket="httpimagestoretest"		path="structured"				cache-control="public, max-age=31557600, s-maxage=0" public=true
-			store_s3 "small"			bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"				bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"		bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"				bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "original"	bucket="httpimagestoretest-originals"	path="hash"
+			store_s3 "input"	bucket="httpimagestoretest"		path="structured"	cache-control="public, max-age=31557600, s-maxage=0" public=true
+			store_s3 "small"	bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny"		bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "bad"		bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 			store_s3 "superlarge"	bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 			store_s3 "large_png"	bucket="httpimagestoretest"		path="structured-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
-				"small"					if-image-name-on="#{name_list}"
-				"tiny"					if-image-name-on="#{name_list}"
-				"tiny_png"			if-image-name-on="#{name_list}"
-				"bad"						if-image-name-on="#{name_list}"
-				"superlarge"		if-image-name-on="#{name_list}"
-				"large_png"			if-image-name-on="#{name_list}"
+				"small"		if-image-name-on="#{name_list}"
+				"tiny"		if-image-name-on="#{name_list}"
+				"tiny_png"	if-image-name-on="#{name_list}"
+				"bad"		if-image-name-on="#{name_list}"
+				"superlarge"	if-image-name-on="#{name_list}"
+				"large_png"	if-image-name-on="#{name_list}"
 			}
 		}
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
-				"original"			operation="limit"		width=1080	height=1080	format="jpeg"		quality=95
-				"small"					operation="crop"		width=128		height=128	format="jpeg"		if-image-name-on="#{name_list}"
-				"tiny"					operation="crop"		width=32		height=32										if-image-name-on="#{name_list}"
-				"tiny_png"			operation="crop"		width=32		height=32		format="png"		if-image-name-on="#{name_list}"
-				"bad"						operation="crop"		width=0			height=0										if-image-name-on="#{name_list}"
-				"superlarge"		operation="crop"		width=16000	height=16000								if-image-name-on="#{name_list}"
-				"large_png"			operation="crop"		width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
+				"original"	operation="limit"	width=1080	height=1080	format="jpeg"		quality=95
+				"small"		operation="crop"	width=128	height=128	format="jpeg"		if-image-name-on="#{name_list}"
+				"tiny"		operation="crop"	width=32	height=32				if-image-name-on="#{name_list}"
+				"tiny_png"	operation="crop"	width=32	height=32	format="png"		if-image-name-on="#{name_list}"
+				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
+				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
+				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "original"		bucket="httpimagestoretest-originals"	path="hash"
-			store_s3 "input"			bucket="httpimagestoretest"		path="hash"				cache-control="public, max-age=31557600, s-maxage=0" public=true
-			store_s3 "small"			bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny"				bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"		bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
-			store_s3 "bad"				bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "original"	bucket="httpimagestoretest-originals"	path="hash"
+			store_s3 "input"	bucket="httpimagestoretest"		path="hash"		cache-control="public, max-age=31557600, s-maxage=0" public=true
+			store_s3 "small"	bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny"		bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
+			store_s3 "bad"		bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 			store_s3 "superlarge"	bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 			store_s3 "large_png"	bucket="httpimagestoretest"		path="hash-name"	cache-control="public, max-age=31557600, s-maxage=0" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
-				"small"					if-image-name-on="#{name_list}"
-				"tiny"					if-image-name-on="#{name_list}"
-				"tiny_png"			if-image-name-on="#{name_list}"
-				"bad"						if-image-name-on="#{name_list}"
-				"superlarge"		if-image-name-on="#{name_list}"
-				"large_png"			if-image-name-on="#{name_list}"
+				"small"		if-image-name-on="#{name_list}"
+				"tiny"		if-image-name-on="#{name_list}"
+				"tiny_png"	if-image-name-on="#{name_list}"
+				"bad"		if-image-name-on="#{name_list}"
+				"superlarge"	if-image-name-on="#{name_list}"
+				"large_png"	if-image-name-on="#{name_list}"
 			}
 		}
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
 		Given Content-Type header set to image/autodetect
 
-	@test
 	Scenario: Putting original and its thumbnails to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		And there is no 4006450256177f4a/small.jpg file in S3 bucket
@@ -101,7 +100,6 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Then http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/tiny_png.png will contain PNG image of size 32x32
 		And http://httpimagestoretest.s3.amazonaws.com/4006450256177f4a/tiny_png.png content type will be image/png
 
-	@test
 	Scenario: Putting original and its thumbnails to S3 bucket under custom path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-small.jpg file in S3 bucket
@@ -123,11 +121,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		Then http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png will contain PNG image of size 32x32
 		And http://httpimagestoretest.s3.amazonaws.com/test/image/4006450256177f4a/test-tiny_png.png content type will be image/png
 
-	Scenario: Custom path name can contain file name extension that may be used as failback to content based detection
+	Scenario: Input file extension should be based on content detected mime type and not on provided path
 		Given there is no test/image/4006450256177f4a/test.jpg file in S3 bucket
 		And there is no test/image/4006450256177f4a/test-tiny_png.jpg file in S3 bucket
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/tiny_png/test/image/test.jpg
+		When I do PUT request http://localhost:3000/thumbnail/tiny_png/test/image/test.gif
 		Then response status will be 200
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
