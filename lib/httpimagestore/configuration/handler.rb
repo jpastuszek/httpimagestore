@@ -7,6 +7,12 @@ module Configuration
 		end
 	end
 
+	class ZeroBodyLengthError < ConfigurationError
+		def initialize
+			super 'empty body - expected image data'
+		end
+	end
+
 	class RequestState
 		def initialize(body = '', locals = {})
 			@images = Hash.new{|hash, image_name| raise ImageNotLoadedError.new(image_name)}
@@ -45,6 +51,7 @@ module Configuration
 
 	class InputSource
 		def realize(request_state)
+			request_state.locals[:body].empty? and raise ZeroBodyLengthError
 			request_state.images['input'] = Image.new(request_state.locals[:body])
 		end
 	end

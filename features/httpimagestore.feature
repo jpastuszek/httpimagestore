@@ -186,21 +186,11 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing for class 'bad' failed: at least one image dimension is zero: 0x0
+		thumbnailing of 'input' into 'bad' failed: at least one image dimension is zero: 0x0
 		"""
 		And S3 bucket will not contain test/image/4006450256177f4a/test.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-small.jpg
 		And S3 bucket will not contain test/image/4006450256177f4a/test-tiny.jpg
-
-	Scenario: Reporting of missing class error
-		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,bogous,bad/test/image/test.jpg
-		Then response status will be 400
-		And response content type will be text/plain
-		And response body will be CRLF ended lines like
-		"""
-		thumbnail class 'bogous' not defined
-		"""
 
 	Scenario: Too large image - uploaded image too big to fit in memory limit
 		Given test-large.jpg file content as request body
@@ -219,7 +209,7 @@ Feature: Storing of original image and specified classes of its thumbnails on S3
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing for class 'superlarge' failed: image too large: cache resources exhausted
+		thumbnailing of 'input' into 'superlarge' failed: image too large: cache resources exhausted
 		"""
 
 	Scenario: Zero body length
