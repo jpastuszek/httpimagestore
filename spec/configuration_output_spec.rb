@@ -217,7 +217,7 @@ describe Configuration do
 				subject.handlers[0].output.realize(state)
 
 				env.instance_eval &state.output_callback
-				env.res['Content-Type'].should == 'text/plain'
+				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "file://test.out\r\n"
 			end
 
@@ -249,7 +249,7 @@ describe Configuration do
 				subject.handlers[0].output.realize(state)
 
 				env.instance_eval &state.output_callback
-				env.res['Content-Type'].should == 'text/plain'
+				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "file://test.out\r\nfile://test.out2\r\n"
 			end
 			
@@ -294,7 +294,7 @@ describe Configuration do
 					subject.handlers[0].output.realize(state)
 
 					env.instance_eval &state.output_callback
-					env.res['Content-Type'].should == 'text/plain'
+					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file://test.out1\r\nfile://test.out3\r\n"
 				end
 			end

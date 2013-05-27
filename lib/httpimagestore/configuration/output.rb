@@ -106,7 +106,7 @@ module Configuration
 			end
 
 			request_state.output do
-				write_plain 200, urls
+				write_url_list 200, urls
 			end
 		end
 	end

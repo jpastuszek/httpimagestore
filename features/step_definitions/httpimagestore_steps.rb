@@ -45,11 +45,12 @@ Given /(.*) file content as request body/ do |file|
 end
 
 Given /(.*) S3 bucket with key (.*) and secret (.*)/ do |bucket, key_id, key_secret|
-	@bucket = RightAws::S3.new(key_id, key_secret, logger: Logger.new('/dev/null')).bucket(bucket)
+	s3_client = AWS::S3.new(access_key_id: key_id, secret_access_key: key_secret, use_ssl: false)
+	@bucket = s3_client.buckets[bucket]
 end
 
 Given /there is no (.*) file in S3 bucket/ do |path|
-	@bucket.key(path).delete rescue S3::Error::NoSuchKey
+	@bucket.objects[path].delete # rescue S3::Error::NoSuchKey
 end
 
 Given /(.*) header set to (.*)/ do |header, value|
@@ -104,6 +105,6 @@ Then /(.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, he
 end
 
 Then /S3 bucket will not contain (.*)/ do |path|
-	@bucket.key(path).exists?.should_not be_true
+	@bucket.objects[path].exists?.should_not be_true
 end
 

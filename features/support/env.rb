@@ -17,7 +17,7 @@ require "open3"
 require "thread"
 require 'tempfile'
 require 'RMagick'
-require 'right_aws'
+require 'aws-sdk'
 
 def gem_dir
 		Pathname.new(__FILE__).dirname + '..' + '..'
