@@ -30,6 +30,10 @@ Given /httpthumbnailer server is running at (.*)/ do |url|
 	)
 end
 
+Given /httpthumbnailer server is not running/ do
+	stop_server('/tmp/httpthumbnailer.pid') 
+end
+
 Given /httpimagestore log is empty/ do
 		log = support_dir + 'server.log'
 		log.truncate(0) if log.exist?

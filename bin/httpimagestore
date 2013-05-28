@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'unicorn-cuba-base'
+require 'base64'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
@@ -52,8 +53,23 @@ Application.new('httpimagestore', port: 3000) do
 				end
 
 				on 'health_check' do
-					log.info "health_check"
-					write_plain 200, 'OK'
+					log.debug "health_check"
+					if client = env['app.configuration'].thumbnailer
+						# 8x8 PNG
+						data = Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAI0lEQVQI1z3KMQoAMAyAwEv//2c7pFQQHISqssXaQWby+NsFYkkV7w+CVgAAAAAASUVORK5CYII=')
+
+						begin
+							thumbnail = client.thumbnail(data, 'fit', 4, 4, 'jpeg')
+							unless thumbnail.data.length > 300 and thumbnail.data.include? 'JFIF'
+								write_plain 502, 'bad image data returned from thumbnailer'
+								halt res.finish
+							end
+						rescue Errno::ECONNREFUSED => error
+							write_error 502, error
+							halt res.finish
+						end
+					end
+					write_plain 200, 'HTTP Image Store OK'
 				end
 
 				on root do
