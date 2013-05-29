@@ -97,6 +97,7 @@ def stop_server(pid_file)
 				sleep 0.1
 			end
 		rescue Errno::ESRCH
+			@@running_cmd.delete pid_file.to_s
 			pid_file.unlink
 		end
 	end

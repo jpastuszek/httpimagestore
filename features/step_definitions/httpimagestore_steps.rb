@@ -10,7 +10,7 @@ Given /httpimagestore server is running at (.*) with the following configuration
 	begin
 		log = support_dir + 'server.log'
 		start_server(
-			"bundle exec #{script('httpimagestore')} -f -d -l #{log} #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
+			"bundle exec #{script('httpimagestore')} -f -d -l #{log} -w 1 #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
 			'/tmp/httpimagestore.pid',
 			log,
 			url
@@ -23,7 +23,7 @@ end
 Given /httpthumbnailer server is running at (.*)/ do |url|
 	log = support_dir + 'thumbniler.log'
 	start_server(
-		"httpthumbnailer -f -d -l #{log}",
+		"httpthumbnailer -f -d -l #{log} -w 1",
 		'/tmp/httpthumbnailer.pid',
 		log,
 		url
