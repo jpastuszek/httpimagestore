@@ -31,7 +31,7 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
 
-	@s3-store-and-thumbnail
+	@s3-store-and-thumbnail @test
 	Scenario: Putting original to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		Given test.jpg file content as request body

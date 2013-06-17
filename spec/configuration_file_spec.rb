@@ -142,6 +142,18 @@ describe Configuration do
 				}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 'source_file "original" root="/tmp"': expected 'path' attribute to be set}
 			end
 		end
+
+		describe 'memory limit' do
+			let :state do
+				Configuration::RequestState.new('abc', {}, MemoryLimit.new(1))
+			end
+
+			it 'should rais MemoryLimit::MemoryLimitedExceededError error if limit exceeded runing file sourcing' do
+				expect {
+					subject.handlers[0].image_sources[0].realize(state)
+				}.to raise_error MemoryLimit::MemoryLimitedExceededError, 'memory limit exceeded'
+			end
+		end
 	end
 
 	describe Configuration::FileStore do

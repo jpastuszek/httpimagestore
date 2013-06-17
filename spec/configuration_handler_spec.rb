@@ -43,6 +43,30 @@ describe Configuration do
 					Configuration::RequestState.new.images['test']
 				}.to raise_error Configuration::ImageNotLoadedError, "image 'test' not loaded"
 			end
+
+			it 'should free memory limit if overwritting image' do
+				limit = MemoryLimit.new(2)
+				request_state = Configuration::RequestState.new('abc', {}, limit)
+
+				limit.borrow 1
+				request_state.images['test'] = Configuration::Image.new('x')
+				limit.limit.should == 1
+				
+				limit.borrow 1
+				limit.limit.should == 0
+				request_state.images['test'] = Configuration::Image.new('x')
+				limit.limit.should == 1
+
+				limit.borrow 1
+				limit.limit.should == 0
+				request_state.images['test'] = Configuration::Image.new('x')
+				limit.limit.should == 1
+
+				limit.borrow 1
+				limit.limit.should == 0
+				request_state.images['test2'] = Configuration::Image.new('x')
+				limit.limit.should == 0
+			end
 		end
 
 		describe 'sources' do

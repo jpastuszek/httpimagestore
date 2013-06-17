@@ -1,4 +1,5 @@
 require 'mime/types'
+require 'httpimagestore/memory_limit'
 
 module Configuration
 	class ImageNotLoadedError < ConfigurationError
@@ -14,16 +15,34 @@ module Configuration
 	end
 
 	class RequestState
-		include MemoryLimited
+		class Images < Hash
+			def initialize(memory_limit)
+				@memory_limit = memory_limit
+				super
+			end
 
-		def initialize(body = '', locals = {})
-			@images = Hash.new{|hash, image_name| raise ImageNotLoadedError.new(image_name)}
+			def []=(name, image)
+				if member?(name)
+					@memory_limit.return fetch(name).data.bytesize
+				end
+				super
+			end
+
+			def [](name)
+				fetch(name){|image_name| raise ImageNotLoadedError.new(image_name)}
+			end
+		end
+		
+		def initialize(body = '', locals = {}, memory_limit = MemoryLimit.new(nil))
+			@images = Images.new(memory_limit)
 			@locals = {body: body}.merge(locals)
+			@memory_limit = memory_limit
 			@output_callback = nil
 		end
 
 		attr_reader :images
 		attr_reader :locals
+		attr_reader :memory_limit
 
 		def output(&callback)
 			@output_callback = callback

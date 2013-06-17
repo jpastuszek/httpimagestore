@@ -64,7 +64,12 @@ module Configuration
 
 				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
 				begin
-					image = Image.new(storage_path.open('r'){|io| io.read})
+					data = storage_path.open('r') do |io|
+						io.extend MemoryLimit::IO
+						io.root_limit request_state.memory_limit
+						io.read
+					end
+					image = Image.new(data)
 					image.source_url = "file://#{rendered_path}"
 					image
 				rescue Errno::ENOENT
