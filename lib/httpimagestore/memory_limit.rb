@@ -18,7 +18,7 @@ class MemoryLimit
 		
 		def read
 			max_read_bytes = @root_limit.limit
-			data = super(max_read_bytes)
+			data = super(max_read_bytes) or return nil
 			@root_limit.borrow(data.length)
 			if data.bytesize == max_read_bytes and super(1)
 				IO.log.warn "remaining memory limit of #{max_read_bytes} bytes is not enoguht to hold data from IO '#{self.inspect}'"
