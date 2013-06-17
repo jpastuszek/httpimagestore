@@ -7,6 +7,10 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 Application.new('httpimagestore', port: 3000) do
 	cli do
 		description 'HTTP based image storage and thumbnailer'
+		options :limit_memory,
+			cast: Integer,
+			description: 'total in memory image data limit in MiB',
+			default: 128
 		argument :config,
 			cast: Pathname,
 			description: 'configuration file path'
@@ -39,6 +43,7 @@ Application.new('httpimagestore', port: 3000) do
 						end
 
 						state = Configuration::RequestState.new(req.body.read, locals)
+						state.memory_limit = settings[:limit_memory] * 1024 ** 2
 
 						handler.image_sources.each do |image_source|
 							image_source.realize(state) unless image_source.respond_to? :excluded? and image_source.excluded?(state)

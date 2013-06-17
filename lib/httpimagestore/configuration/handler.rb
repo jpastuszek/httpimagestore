@@ -14,6 +14,8 @@ module Configuration
 	end
 
 	class RequestState
+		include MemoryLimited
+
 		def initialize(body = '', locals = {})
 			@images = Hash.new{|hash, image_name| raise ImageNotLoadedError.new(image_name)}
 			@locals = {body: body}.merge(locals)
