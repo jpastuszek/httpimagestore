@@ -10,8 +10,6 @@ class MemoryLimit
 	end
 
 	module IO
-		include ClassLogging
-
 		def root_limit(ml)
 			@root_limit = ml
 		end

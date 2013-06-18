@@ -167,6 +167,7 @@ module Configuration
 
 				thumbnails.each do |name, thumbnail|
 					raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+					request_state.memory_limit.borrow thumbnail.data.bytesize
 				end
 			else
 				name, rendered_spec = *rendered_specs.first
@@ -174,6 +175,7 @@ module Configuration
 
 				begin
 					thumbnail = client.thumbnail(source_image.data, *rendered_spec)
+					request_state.memory_limit.borrow thumbnail.data.bytesize
 					input_mime_type = thumbnail.input_mime_type
 					thumbnails[name] = thumbnail
 				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error

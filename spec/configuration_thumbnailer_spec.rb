@@ -3,6 +3,7 @@ require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/thumbnailer'
+MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe 'thumbnailer' do
@@ -159,24 +160,47 @@ describe Configuration do
 				before :each do
 					state.images['input'].source_path = 'test.in'
 					state.images['input'].source_url = 'file://test.in'
-					subject.handlers[0].image_sources[1].realize(state)
 				end
 
 				it 'should provide thumbnail data' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].data.should_not be_nil
 				end
 
 				it 'should set thumbnail mime type' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].mime_type.should == 'image/jpeg'
 				end
 
 				it 'should use input image source path and url' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].source_path.should == 'test.in'
 					state.images['original'].source_url.should == 'file://test.in'
 				end
 
 				it 'should set input image mime type' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['input'].mime_type.should == 'image/jpeg'
+				end
+
+				describe 'memory limit' do
+					let :state do
+						Configuration::RequestState.new(
+							(support_dir + 'compute.jpg').read,
+							{operation: 'pad',
+							width: '10',
+							height: '10',
+							options: 'background-color:green',
+							path: nil},
+							MemoryLimit.new(10)
+						)
+					end
+
+					it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
+						expect {
+							subject.handlers[0].image_sources[1].realize(state)
+						}.to raise_error MemoryLimit::MemoryLimitedExceededError
+					end
 				end
 
 				describe 'error handling' do
@@ -234,32 +258,55 @@ describe Configuration do
 				before :each do
 					state.images['input'].source_path = 'test.in'
 					state.images['input'].source_url = 'file://test.in'
-					subject.handlers[0].image_sources[1].realize(state)
 				end
 
 				it 'should provide thumbnail data' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].data.should_not be_nil
 					state.images['small'].data.should_not be_nil
 					state.images['padded'].data.should_not be_nil
 				end
 
 				it 'should set thumbnail mime type' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].mime_type.should == 'image/jpeg'
 					state.images['small'].mime_type.should == 'image/jpeg'
 					state.images['padded'].mime_type.should == 'image/png'
 				end
 
 				it 'should set input image mime type' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['input'].mime_type.should == 'image/jpeg'
 				end
 
 				it 'should use input image source path and url' do
+					subject.handlers[0].image_sources[1].realize(state)
 					state.images['original'].source_path.should == 'test.in'
 					state.images['original'].source_url.should == 'file://test.in'
 					state.images['small'].source_path.should == 'test.in'
 					state.images['small'].source_url.should == 'file://test.in'
 					state.images['padded'].source_path.should == 'test.in'
 					state.images['padded'].source_url.should == 'file://test.in'
+				end
+
+				describe 'memory limit' do
+					let :state do
+						Configuration::RequestState.new(
+							(support_dir + 'compute.jpg').read,
+							{operation: 'pad',
+							width: '10',
+							height: '10',
+							options: 'background-color:green',
+							path: nil},
+							MemoryLimit.new(10)
+						)
+					end
+
+					it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
+						expect {
+							subject.handlers[0].image_sources[1].realize(state)
+						}.to raise_error MemoryLimit::MemoryLimitedExceededError
+					end
 				end
 
 				describe 'conditional inclusion support' do
@@ -288,6 +335,7 @@ describe Configuration do
 					end
 
 					it 'should provide thumbnails that name match if-image-name-on list' do
+						subject.handlers[0].image_sources[1].realize(state)
 						state.images.should_not include 'original'
 						state.images['small'].data.should_not be_nil
 						state.images['padded'].data.should_not be_nil

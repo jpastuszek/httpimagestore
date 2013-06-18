@@ -27,7 +27,6 @@ Application.new('httpimagestore', port: 3000) do
 			require 'httpimagestore/error_reporter'
 			require 'httpimagestore/memory_limit'
 			MemoryLimit.logger = Controler.logger_for(MemoryLimit)
-			MemoryLimit::IO.logger = Controler.logger_for(MemoryLimit::IO)
 
 			self.define do
 				on error? do
