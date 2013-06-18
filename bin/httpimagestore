@@ -47,9 +47,10 @@ Application.new('httpimagestore', port: 3000) do
 						end
 
 						memory_limit = MemoryLimit.new(settings[:limit_memory] * 1024 ** 2)
+
 						req.body.extend MemoryLimit::IO
 						req.body.root_limit memory_limit
-						state = Configuration::RequestState.new(req.body.read || '', locals, memory_limit)
+						state = Configuration::RequestState.new(req.body.read, locals, memory_limit)
 
 						handler.image_sources.each do |image_source|
 							image_source.realize(state) unless image_source.respond_to? :excluded? and image_source.excluded?(state)

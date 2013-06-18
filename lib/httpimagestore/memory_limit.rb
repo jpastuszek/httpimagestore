@@ -17,35 +17,40 @@ class MemoryLimit
 		end
 		
 		def read
-			max_read_bytes = @root_limit.limit
-			data = super(max_read_bytes) or return nil
-			@root_limit.borrow(data.length)
-			if data.bytesize == max_read_bytes and super(1)
-				IO.log.warn "remaining memory limit of #{max_read_bytes} bytes is not enoguht to hold data from IO '#{self.inspect}'"
-				raise MemoryLimitedExceededError.new
+			data = @root_limit.get do |max_read_bytes|
+				super max_read_bytes + 1 or return '' # read() always returns '' on EOF
 			end
-			data
 		end
 	end	
 
-	def initialize(bytes = nil)
+	def initialize(bytes = 256 * 1024 ** 2)
 		log.info "using memory limit of #{bytes} bytes" if bytes
 		@limit = bytes
 	end
 
 	attr_reader :limit
 
+	def get
+		yield(@limit).tap do |data|
+			borrow data.bytesize if data
+		end
+	end
+
 	def borrow(bytes)
-		return unless @limit
 		log.debug "borrowing #{bytes} from #{@limit} bytes of limit"
 		bytes > @limit and raise MemoryLimitedExceededError.new
 		@limit -= bytes
 	end
 
 	def return(bytes)
-		return unless @limit
 		log.debug "returning #{bytes} to #{@limit} bytes of limit"
 		@limit += bytes
+	end
+
+	def io(io)
+		io.extend MemoryLimit::IO
+		io.root_limit self
+		io
 	end
 end
 

@@ -3,6 +3,7 @@ require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/file'
+MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	let :state do

@@ -65,8 +65,7 @@ module Configuration
 				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
 				begin
 					data = storage_path.open('r') do |io|
-						io.extend MemoryLimit::IO
-						io.root_limit request_state.memory_limit
+						request_state.memory_limit.io io
 						io.read
 					end
 					image = Image.new(data)

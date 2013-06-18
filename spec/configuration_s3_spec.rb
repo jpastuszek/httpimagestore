@@ -4,6 +4,7 @@ require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/s3'
+MemoryLimit.logger = Logger.new('/dev/null')
 
 unless ENV['AWS_ACCESS_KEY_ID'] and ENV['AWS_SECRET_ACCESS_KEY'] and ENV['AWS_S3_TEST_BUCKET']
 	puts "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY or AWS_S3_TEST_BUCKET environment variables not set - Skipping S3 specs"
@@ -67,7 +68,7 @@ else
 
 		describe Configuration::S3Source do
 			let :state do
-				Configuration::RequestState.new('abc', :test_image => 'test.jpg')
+				Configuration::RequestState.new('abc', test_image: 'test.jpg')
 			end
 
 			subject do
@@ -249,11 +250,23 @@ else
 					}.to raise_error Configuration::S3AccessDenied, %{access to S3 bucket 'blah' or key 'test.jpg' was denied}
 				end
 			end
+
+			describe 'memory limit' do
+				let :state do
+					Configuration::RequestState.new('abc', {test_image: 'test.jpg'}, MemoryLimit.new(10))
+				end
+
+				it 'should raise MemoryLimit::MemoryLimitedExceededError when sourcing bigger image than limit' do
+					expect {
+						subject.handlers[0].image_sources[0].realize(state)
+					}.to raise_error MemoryLimit::MemoryLimitedExceededError
+				end
+			end
 		end
 
 		describe Configuration::S3Store do
 			let :state do
-				Configuration::RequestState.new(@test_data, :test_image => 'test_out.jpg')
+				Configuration::RequestState.new(@test_data, test_image: 'test_out.jpg')
 			end
 
 			subject do
@@ -401,7 +414,7 @@ else
 
 			describe 'conditional inclusion support' do
 				let :state do
-					Configuration::RequestState.new(@test_data, :test_image => 'test_out.jpg', :list => 'input,input2')
+					Configuration::RequestState.new(@test_data, test_image: 'test_out.jpg', list: 'input,input2')
 				end
 
 				subject do

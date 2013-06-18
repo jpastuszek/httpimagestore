@@ -6,6 +6,7 @@ Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/output'
+MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe Configuration::Handler do

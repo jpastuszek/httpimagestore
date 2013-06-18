@@ -16,6 +16,24 @@ describe MemoryLimit do
 		}.to raise_error MemoryLimit::MemoryLimitedExceededError, 'memory limit exceeded'
 	end
 
+	describe '#get' do
+		it 'should yield limit left and borrow as much as returned string bytesize' do
+			subject.get do |limit|
+				limit.should == 10
+				'123'
+			end.should == '123'
+			subject.limit.should == 7
+		end
+
+		it 'should raise MemoryLimit::MemoryLimitedExceededError if retruned string is longer than the limit' do
+			expect {
+				subject.get do |limit|
+					'12345678901'
+				end
+			}.to raise_error MemoryLimit::MemoryLimitedExceededError
+		end
+	end
+
 	describe MemoryLimit::IO do
 		it 'should limit reading from extended IO like object' do
 			test_file = Pathname.new('/tmp/memlimtest')
@@ -23,8 +41,7 @@ describe MemoryLimit do
 				io.write '12345'
 				io.seek 0
 
-				io.extend MemoryLimit::IO
-				io.root_limit subject
+				subject.io io
 				io.read.should == '12345'
 
 				io.seek 0

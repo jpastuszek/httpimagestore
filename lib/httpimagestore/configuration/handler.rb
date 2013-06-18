@@ -33,7 +33,7 @@ module Configuration
 			end
 		end
 		
-		def initialize(body = '', locals = {}, memory_limit = MemoryLimit.new(nil))
+		def initialize(body = '', locals = {}, memory_limit = MemoryLimit.new)
 			@images = Images.new(memory_limit)
 			@locals = {body: body}.merge(locals)
 			@memory_limit = memory_limit

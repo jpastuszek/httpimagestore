@@ -130,7 +130,11 @@ module Configuration
 				log.info "sourcing '#{image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
 
 				object(rendered_path) do |object|
-					image = Image.new(object.read, object.head[:content_type])
+					data = request_state.memory_limit.get do |limit|
+						object.read range: 0..(limit + 1)
+					end
+
+					image = Image.new(data, object.head[:content_type])
 					image.source_url = url(object)
 					image
 				end
