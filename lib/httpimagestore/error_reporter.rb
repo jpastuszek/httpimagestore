@@ -12,12 +12,16 @@ class ErrorReporter < Controler
 			write_error 415, env['app.error']
 		end
 
-		on error HTTPThumbnailerClient::ImageTooLargeError do
+		on error(
+			HTTPThumbnailerClient::ImageTooLargeError,
+			MemoryLimit::MemoryLimitedExceededError
+		) do
 			write_error 413, env['app.error']
 		end
 
 		on error Configuration::Thumbnail::ThumbnailingError do
-			write_error env['app.error'].remote_error.status, env['app.error']
+			status = defined?(env['app.error'].remote_error.status) ? env['app.error'].remote_error.status : 500
+			write_error status, env['app.error']
 		end
 
 		on error(

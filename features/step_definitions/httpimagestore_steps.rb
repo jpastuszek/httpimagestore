@@ -44,7 +44,7 @@ Given /httpthumbnailer log is empty/ do
 		log.truncate(0) if log.exist?
 end
 
-Given /(.*) file content as request body/ do |file|
+Given /^([^ ]*) file content as request body/ do |file|
 	@request_body = File.open(support_dir + file){|f| f.read }
 end
 

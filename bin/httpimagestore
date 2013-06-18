@@ -7,10 +7,6 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 Application.new('httpimagestore', port: 3000) do
 	cli do
 		description 'HTTP based image storage and thumbnailer'
-		option :limit_memory,
-			cast: Integer,
-			description: 'total in memory image data limit in MiB',
-			default: 128
 		argument :config,
 			cast: Pathname,
 			description: 'configuration file path'
@@ -19,14 +15,11 @@ Application.new('httpimagestore', port: 3000) do
 
 	settings do |settings|
 		Controler.settings[:config_file] = settings.config
-		Controler.settings[:limit_memory] = settings.limit_memory
 	end
 
 	main do |settings|
 		class HTTPImageStore < Controler
 			require 'httpimagestore/error_reporter'
-			require 'httpimagestore/memory_limit'
-			MemoryLimit.logger = Controler.logger_for(MemoryLimit)
 
 			self.define do
 				on error? do
@@ -45,10 +38,6 @@ Application.new('httpimagestore', port: 3000) do
 							locals[name] = URI.decode(value).force_encoding('UTF-8')
 						end
 
-						memory_limit = MemoryLimit.new(settings[:limit_memory] * 1024 ** 2)
-
-						req.body.extend MemoryLimit::IO
-						req.body.root_limit memory_limit
 						state = Configuration::RequestState.new(req.body.read, locals, memory_limit)
 
 						handler.image_sources.each do |image_source|

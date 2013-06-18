@@ -1,5 +1,4 @@
 require 'mime/types'
-require 'httpimagestore/memory_limit'
 
 module Configuration
 	class ImageNotLoadedError < ConfigurationError

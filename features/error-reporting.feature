@@ -10,6 +10,7 @@ Feature: Image list based thumbnailing and S3 storage
 
 		path "structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
 		path "missing"		"blah"
+		path "zero"		"zero"
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
@@ -27,6 +28,10 @@ Feature: Image list based thumbnailing and S3 storage
 
 		get "file" {
 			source_file "original" root="/tmp" path="missing"
+		}
+
+		get "zero" {
+			source_file "original" root="/dev" path="zero"
 		}
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
@@ -125,5 +130,15 @@ Feature: Image list based thumbnailing and S3 storage
 		And response body will be CRLF ended lines like
 		"""
 		empty body - expected image data
+		"""
+
+	@error-reporting
+	Scenario: Memory limit exceeded
+		When I do GET request http://localhost:3000/zero
+		Then response status will be 413
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		memory limit exceeded
 		"""
 
