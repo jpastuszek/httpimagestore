@@ -17,10 +17,24 @@ class CubaResponseEnv
 		def_delegators :@headers, :[]=, :[]
 	end
 
+	class Request
+		class Body
+			def read
+				''
+			end
+		end
+
+		def body
+			Body.new
+		end
+	end
+
 	def initialize
 		@res = Response.new
+		@req = Request.new
 	end
 
 	attr_reader :res
+	attr_reader :req
 end
 
