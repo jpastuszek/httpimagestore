@@ -18,12 +18,50 @@ Application.new('httpimagestore', port: 3000) do
 	end
 
 	main do |settings|
+		require 'httpimagestore/error_reporter'
+
 		class HTTPImageStore < Controler
-			require 'httpimagestore/error_reporter'
+			extend Stats
+			def_stats(
+				:total_requests, 
+				:total_errors 
+			)
+
+			raindrops_stats = Raindrops::Middleware::Stats.new
+			self.use Raindrops::Middleware, stats: raindrops_stats
+
+			StatsReporter << HTTPImageStore.stats
+			StatsReporter << raindrops_stats
 
 			self.define do
+				HTTPImageStore.stats.incr_total_requests
 				on error? do
+					HTTPImageStore.stats.incr_total_errors
 					run ErrorReporter
+				end
+
+				on 'stats' do
+					run StatsReporter
+				end
+
+				on 'health_check' do
+					log.debug "health_check"
+					if client = env['app.configuration'].thumbnailer
+						# 8x8 PNG
+						data = Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAI0lEQVQI1z3KMQoAMAyAwEv//2c7pFQQHISqssXaQWby+NsFYkkV7w+CVgAAAAAASUVORK5CYII=')
+
+						begin
+							thumbnail = client.thumbnail(data, 'fit', 4, 4, 'jpeg')
+							unless thumbnail.data.length > 300 and thumbnail.data.include? 'JFIF'
+								write_plain 502, 'bad image data returned from thumbnailer'
+								halt res.finish
+							end
+						rescue Errno::ECONNREFUSED => error
+							write_error 502, error
+							halt res.finish
+						end
+					end
+					write_plain 200, 'HTTP Image Store OK'
 				end
 
 				env['app.configuration'].handlers.each do |handler|
@@ -50,26 +88,6 @@ Application.new('httpimagestore', port: 3000) do
 
 						instance_eval &state.output_callback
 					end
-				end
-
-				on 'health_check' do
-					log.debug "health_check"
-					if client = env['app.configuration'].thumbnailer
-						# 8x8 PNG
-						data = Base64.decode64('iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAI0lEQVQI1z3KMQoAMAyAwEv//2c7pFQQHISqssXaQWby+NsFYkkV7w+CVgAAAAAASUVORK5CYII=')
-
-						begin
-							thumbnail = client.thumbnail(data, 'fit', 4, 4, 'jpeg')
-							unless thumbnail.data.length > 300 and thumbnail.data.include? 'JFIF'
-								write_plain 502, 'bad image data returned from thumbnailer'
-								halt res.finish
-							end
-						rescue Errno::ECONNREFUSED => error
-							write_error 502, error
-							halt res.finish
-						end
-					end
-					write_plain 200, 'HTTP Image Store OK'
 				end
 
 				on root do

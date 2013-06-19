@@ -3,14 +3,17 @@ Given /httpimagestore argument (.*)/ do |arg|
 end
 
 Given /httpimagestore server is running at (.*) with the following configuration/ do |url, config|
-	cfile = Tempfile.new('httpimagestore.conf')
-	cfile.write(config.replace_s3_variables)
-	cfile.close
+	$temp_dir = Pathname.new(Dir.mktmpdir) unless $temp_dir
+	
+	cfile = $temp_dir + Digest.hexencode(Digest::MD5.digest(config))
+	cfile.open('w') do |io|
+		io.write(config.replace_s3_variables)
+	end
 
 	begin
 		log = support_dir + 'server.log'
 		start_server(
-			"bundle exec #{script('httpimagestore')} -f -d -l #{log} -w 1 #{(@httpimagestore_args ||= []).join(' ')} #{cfile.path}",
+			"bundle exec #{script('httpimagestore')} -f -d -l #{log} -w 1 #{(@httpimagestore_args ||= []).join(' ')} #{cfile.to_s}",
 			'/tmp/httpimagestore.pid',
 			log,
 			url

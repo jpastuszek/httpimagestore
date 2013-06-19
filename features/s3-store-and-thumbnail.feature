@@ -46,7 +46,7 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a.jpg
 		Then response status will be 403
 
-	@s3-store-and-thumbnail
+	@s3-store-and-thumbnail @test
 	Scenario: Getting thumbnail to spec based on uploaded S3 image
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/thumbnail/v1/4006450256177f4a.jpg/pad/50/50

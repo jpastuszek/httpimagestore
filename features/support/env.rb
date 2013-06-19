@@ -18,6 +18,7 @@ require "thread"
 require 'tempfile'
 require 'RMagick'
 require 'aws-sdk'
+require 'digest'
 
 class String
 	def replace_s3_variables
@@ -45,12 +46,18 @@ def script(file)
 		gem_dir + 'bin' + file
 end
 
+def http_client
+	client = HTTPClient.new
+	#client.debug_dev = STDOUT
+	client
+end
+
 def get(url)
-	HTTPClient.new.get_content(URI.encode(url))
+	http_client.get_content(URI.encode(url))
 end
 
 def get_headers(url)
-	HTTPClient.new.get(URI.encode(url)).headers
+	http_client.get(URI.encode(url)).headers
 end
 
 @@running_cmd = {}
@@ -88,6 +95,7 @@ def stop_server(pid_file)
 	pid_file = Pathname.new(pid_file)
 	return unless pid_file.exist?
 
+	STDERR.puts http_client.get_content("http://localhost:3000/stats") if pid_file.to_s.include? 'httpimagestore'
 	pid = pid_file.read.strip.to_i
 
 	Timeout.timeout(20) do
