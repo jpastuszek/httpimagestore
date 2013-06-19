@@ -60,6 +60,14 @@ module Configuration
 	class S3SourceStoreBase < SourceStoreBase
 		include ClassLogging
 
+		extend Stats
+		def_stats(
+			:total_s3_store, 
+			:total_s3_store_bytes,
+			:total_s3_source,
+			:total_s3_source_bytes
+		)
+
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
 
@@ -133,6 +141,8 @@ module Configuration
 					data = request_state.memory_limit.get do |limit|
 						object.read range: 0..(limit + 1)
 					end
+					S3SourceStoreBase.stats.incr_total_s3_source
+					S3SourceStoreBase.stats.incr_total_s3_source_bytes(data.bytesize)
 
 					image = Image.new(data, object.head[:content_type])
 					image.source_url = url(object)
@@ -168,6 +178,8 @@ module Configuration
 					options[:cache_control] = @cache_control if @cache_control
 
 					object.write(image.data, options)
+					S3SourceStoreBase.stats.incr_total_s3_store
+					S3SourceStoreBase.stats.incr_total_s3_store_bytes(image.data.bytesize)
 
 					image.store_url = url(object)
 				end
@@ -175,5 +187,7 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser S3Store
+	StatsReporter << S3SourceStoreBase.stats
 end
+
 

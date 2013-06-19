@@ -35,6 +35,14 @@ module Configuration
 	class Thumbnail
 		include ClassLogging
 
+		extend Stats
+		def_stats(
+			:total_thumbnail_requests, 
+			:total_thumbnail_requests_bytes,
+			:total_thumbnail_thumbnails,
+			:total_thumbnail_thumbnails_bytes
+		)
+
 		class ThumbnailingError < RuntimeError
 			def initialize(input_image_name, output_image_name, remote_error)
 				@remote_error = remote_error
@@ -153,6 +161,9 @@ module Configuration
 			thumbnails = {}
 			input_mime_type = nil
 
+			Thumbnail.stats.incr_total_thumbnail_requests
+			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
+
 			if @use_multipart_api
 				log.info "thumbnailing '#{@source_image_name}' to multiple specs: #{rendered_specs}"
 
@@ -188,6 +199,9 @@ module Configuration
 				thumbnail.extend ImageMetaData
 				thumbnail.source_path = source_image.source_path
 				thumbnail.source_url = source_image.source_url
+
+				Thumbnail.stats.incr_total_thumbnail_thumbnails
+				Thumbnail.stats.incr_total_thumbnail_thumbnails_bytes thumbnail.data.bytesize
 			end
 
 			# update input image mime type from httpthumbnailer provided information
@@ -197,5 +211,6 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser Thumbnail
+	StatsReporter << Thumbnail.stats
 end
 

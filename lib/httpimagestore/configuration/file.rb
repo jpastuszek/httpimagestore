@@ -16,6 +16,14 @@ module Configuration
 	end
 
 	class FileSourceStoreBase < SourceStoreBase
+		extend Stats
+		def_stats(
+			:total_file_store, 
+			:total_file_store_bytes,
+			:total_file_source,
+			:total_file_source_bytes
+		)
+
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
 			node.required_attributes('root', 'path')
@@ -68,6 +76,9 @@ module Configuration
 						request_state.memory_limit.io io
 						io.read
 					end
+					FileSourceStoreBase.stats.incr_total_file_source
+					FileSourceStoreBase.stats.incr_total_file_source_bytes(data.bytesize)
+
 					image = Image.new(data)
 					image.source_url = "file://#{rendered_path}"
 					image
@@ -98,9 +109,12 @@ module Configuration
 
 				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
 				storage_path.open('w'){|io| io.write image.data}
+				FileSourceStoreBase.stats.incr_total_file_store
+				FileSourceStoreBase.stats.incr_total_file_store_bytes(image.data.bytesize)
 			end
 		end
 	end
 	Handler::register_node_parser FileStore
+	StatsReporter << FileSourceStoreBase.stats
 end
 

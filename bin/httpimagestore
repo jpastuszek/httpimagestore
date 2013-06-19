@@ -32,6 +32,7 @@ Application.new('httpimagestore', port: 3000) do
 
 			StatsReporter << HTTPImageStore.stats
 			StatsReporter << raindrops_stats
+			StatsReporter << Plugin::ResponseHelpers.stats
 
 			self.define do
 				HTTPImageStore.stats.incr_total_requests
