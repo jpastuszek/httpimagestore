@@ -5,26 +5,6 @@ PATH
       rmagick (~> 2)
       unicorn-cuba-base
 
-PATH
-  remote: ../httpthumbnailer-client
-  specs:
-    httpthumbnailer-client (1.0.0)
-      cli (~> 1.1.0)
-      httpclient (>= 2.2.1)
-      multipart-parser (~> 0.1.1)
-
-PATH
-  remote: ../unicorn-cuba-base
-  specs:
-    unicorn-cuba-base (0.0.0)
-      cli (~> 1.1.0)
-      cuba (~> 3.0)
-      daemon (~> 1)
-      facter (~> 1.6.11)
-      raindrops (~> 0.11)
-      ruby-ip (~> 0.9)
-      unicorn (>= 4.6.2)
-
 GEM
   remote: http://rubygems.org/
   specs:
@@ -48,6 +28,10 @@ GEM
       json (>= 1.4.6)
     git (1.2.5)
     httpclient (2.3.3)
+    httpthumbnailer-client (1.0.0)
+      cli (~> 1.1.0)
+      httpclient (>= 2.3)
+      multipart-parser (~> 0.1.1)
     jeweler (1.8.4)
       bundler (~> 1.0)
       git (>= 1.2.5)
@@ -85,6 +69,13 @@ GEM
       kgio (~> 2.6)
       rack
       raindrops (~> 0.7)
+    unicorn-cuba-base (1.0.0)
+      cli (~> 1.1.0)
+      cuba (~> 3.0)
+      facter (~> 1.6.11)
+      raindrops (~> 0.11)
+      ruby-ip (~> 0.9)
+      unicorn (>= 4.6.2)
     uuidtools (2.1.4)
 
 PLATFORMS
@@ -96,11 +87,11 @@ DEPENDENCIES
   daemon (~> 1)
   httpclient (>= 2.3)
   httpthumbnailer!
-  httpthumbnailer-client!
+  httpthumbnailer-client (~> 1.0)
   jeweler (~> 1.8.4)
   mime-types (~> 1.17)
   prawn (= 0.8.4)
   rdoc (~> 3.9)
   rspec (~> 2.13)
   sdl4r (~> 0.9)
-  unicorn-cuba-base!
+  unicorn-cuba-base (~> 1.0)
