@@ -50,11 +50,13 @@ module Configuration
 		def self.parse(configuration, node)
 			configuration.output and raise StatementCollisionError.new(node, 'output')
 			image_name = node.grab_values('image name').first
-			configuration.output = OutputImage.new(image_name)
+			cache_control = node.grab_attributes('cache-control').first
+			configuration.output = OutputImage.new(image_name, cache_control)
 		end
 
-		def initialize(name)
+		def initialize(name, cache_control)
 			@name = name
+			@cache_control = cache_control
 		end
 
 		def realize(request_state)
@@ -67,7 +69,9 @@ module Configuration
 					'application/octet-stream'
 				end
 
+			cache_control = @cache_control
 			request_state.output do
+				res['Cache-Control'] = cache_control if cache_control
 				write 200, mime_type, image.data
 			end
 		end

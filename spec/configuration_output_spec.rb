@@ -54,6 +54,23 @@ describe Configuration do
 			env.instance_eval &state.output_callback
 			env.res['Content-Type'].should == 'image/jpeg'
 		end
+
+		describe 'Cache-Control header support' do
+			subject do
+				Configuration.read(<<-EOF)
+				put "test" {
+					output_image "input" cache-control="public, max-age=999, s-maxage=666"
+				}
+				EOF
+			end
+
+			it 'should allow setting Cache-Control header' do
+				subject.handlers[0].output.realize(state)
+
+				env.instance_eval &state.output_callback
+				env.res['Cache-Control'].should == 'public, max-age=999, s-maxage=666'
+			end
+		end
 	end
 
 	describe 'output store paths and URLs' do
