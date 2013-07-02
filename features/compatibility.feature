@@ -51,7 +51,7 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
 
-	@compatibility
+	@compatibility @test
 	Scenario: Putting original and its thumbnails to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		And there is no 4006450256177f4a/small.jpg file in S3 bucket

@@ -18,6 +18,7 @@ require "thread"
 require 'tempfile'
 require 'RMagick'
 require 'aws-sdk'
+require 'httpimagestore/aws_sdk_regions_hack'
 require 'digest'
 
 class String

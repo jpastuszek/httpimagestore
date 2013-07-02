@@ -1,4 +1,5 @@
 require 'aws-sdk'
+require 'httpimagestore/aws_sdk_regions_hack'
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
 
@@ -106,7 +107,7 @@ module Configuration
 			if @public_access
 				object.public_url.to_s
 			else
-				object.url_for(:read, expires: 30749220000).to_s # expire in 999 years
+				object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20).to_s # expire in 20 years
 			end
 		end
 

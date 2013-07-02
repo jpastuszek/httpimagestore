@@ -87,7 +87,6 @@ else
 				s3_client = AWS::S3.new(use_ssl: false)
 				s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
 				s3_test_bucket.objects['test.jpg'].write(@test_data, content_type: 'image/jpeg')
-				#p s3_test_bucket.objects['test.jpg'].read.length
 			end
 
 			it 'should source image from S3 using path spec' do
@@ -107,7 +106,11 @@ else
 				subject.handlers[0].image_sources[0].realize(state)
 
 				state.images['original'].source_path.should == "test.jpg"
-				state.images['original'].source_url.should start_with "https://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test.jpg?AWSAccessKeyId=#{ENV['AWS_ACCESS_KEY_ID']}&"
+				state.images['original'].source_url.should start_with "https://"
+				state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
+				state.images['original'].source_url.should include "/test.jpg"
+				state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+				status(state.images['original'].source_url).should == 200
 			end
 
 			describe 'non encrypted connection mode' do
@@ -130,8 +133,11 @@ else
 
 				it 'should provide source HTTP url' do
 					subject.handlers[0].image_sources[0].realize(state)
-
-					state.images['original'].source_url.should start_with "http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test.jpg?AWSAccessKeyId=#{ENV['AWS_ACCESS_KEY_ID']}&"
+					state.images['original'].source_url.should start_with "http://"
+					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['original'].source_url.should include "/test.jpg"
+					state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+					status(state.images['original'].source_url).should == 200
 				end
 			end
 
@@ -310,7 +316,11 @@ else
 				subject.handlers[0].stores[0].realize(state)
 
 				state.images['input'].store_path.should == "test_out.jpg"
-				state.images['input'].store_url.should start_with "https://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg?AWSAccessKeyId=#{ENV['AWS_ACCESS_KEY_ID']}&"
+				state.images['input'].store_url.should start_with "https://"
+				state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
+				state.images['input'].store_url.should include "/test_out.jpg"
+				state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+				status(state.images['input'].store_url).should == 200
 			end
 
 			describe 'non encrypted connection mode' do
@@ -334,15 +344,18 @@ else
 				it 'should provide source HTTP url' do
 					subject.handlers[0].stores[0].realize(state)
 
-					state.images['input'].store_url.should start_with "http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg?AWSAccessKeyId=#{ENV['AWS_ACCESS_KEY_ID']}&"
+					state.images['input'].store_url.should start_with "http://"
+					state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['input'].store_url.should include "/test_out.jpg"
+					state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+					status(state.images['input'].store_url).should == 200
 				end
 			end
 
 			describe 'permission control' do
 				it 'should store images that are not accessible by public by default' do
 					subject.handlers[0].stores[0].realize(state)
-
-					status("http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg").should == 403
+					status(state.images['input'].store_url[/^[^\?]*/]).should == 403
 				end
 
 				describe 'public' do
@@ -359,13 +372,17 @@ else
 					it 'should store image accessible for public' do
 						subject.handlers[0].stores[0].realize(state)
 
-						get("http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg").should == @test_data
+						get(state.images['input'].store_url).should == @test_data
 					end
 
 					it 'should provide public source HTTPS url' do
 						subject.handlers[0].stores[0].realize(state)
 
-						state.images['input'].store_url.should == "https://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg"
+						state.images['input'].store_url.should start_with "https://"
+						state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
+						state.images['input'].store_url.should include "/test_out.jpg"
+						state.images['input'].store_url.should_not include ENV['AWS_ACCESS_KEY_ID']
+						status(state.images['input'].store_url).should == 200
 					end
 
 					describe 'non encrypted connection mode' do
@@ -382,7 +399,11 @@ else
 						it 'should provide public source HTTP url' do
 							subject.handlers[0].stores[0].realize(state)
 
-							state.images['input'].store_url.should == "http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg"
+							state.images['input'].store_url.should start_with "http://"
+							state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
+							state.images['input'].store_url.should include "/test_out.jpg"
+							state.images['input'].store_url.should_not include ENV['AWS_ACCESS_KEY_ID']
+							status(state.images['input'].store_url).should == 200
 						end
 					end
 				end
@@ -390,7 +411,8 @@ else
 
 			describe 'cache control' do
 				it 'should have no cache control set by default' do
-					headers("http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg")["Cache-Control"].should be_nil
+					subject.handlers[0].stores[0].realize(state)
+					headers(state.images['input'].store_url)["Cache-Control"].should be_nil
 				end
 
 				describe 'set' do
@@ -406,8 +428,7 @@ else
 
 					it 'should have given cahce control header set on the object' do
 						subject.handlers[0].stores[0].realize(state)
-
-						headers("http://#{ENV['AWS_S3_TEST_BUCKET']}.s3.amazonaws.com/test_out.jpg")["Cache-Control"].should == 'public, max-age=3600'
+						headers(state.images['input'].store_url)["Cache-Control"].should == 'public, max-age=3600'
 					end
 				end
 			end
