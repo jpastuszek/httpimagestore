@@ -1,47 +1,52 @@
-# httpimagestore
+# HTTP Image Store
 
 HTTP API server for image thumbnailing and storage.
+It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as image processing backend.
 
 ## Features
 
 * fully configurable image processing and storage pipeline with custom API configuration capabilities
 * thumbnailing of sourced or input image into one or more thumbnails
 * sourcing and storage of images on file system
-* sourcing and storage of images on Amazon S3
+* sourcing and storage of images on [Amazon S3](http://aws.amazon.com/s3/)
 * image output with Cache-Control header
 * S3 public or private and http:// or https:// URL list output for stored images
 * storage under custom paths including image hash, content determined extension or used URL path
-* based on Unicorn worker HTTP server with UNIX socket communication support (nginx)
+* based on [Unicorn HTTP server](http://unicorn.bogomips.org) with UNIX socket communication support
 
 ## Installing
 
-Can be installed from RubyGems with:
+HTTP Image Store is released as gem and can be installed from [RubyGems](http://rubygems.org) with:
 
 	gem install httpimagestore
 
-It is recommended to use **nginx** server in front of this application to buffer requests and responses.
+It is recommended to use [nginx](http://nginx.org) server in front of this application to buffer requests and responses.
 
-## Usage
+## Configuration
 
-### Configuration
+To start HTTP Image Store server you need to prepare API configuration first.
+Configuration is written in [SDL](http://sdl4r.rubyforge.org) format.
 
-To start **HTTP Image Store** server you need to prepare API configuration first.
-Configuration is written in **SDL** format.
+Configuration is in general consists of:
 
-Main configuration elements are:
 * thumbnailer client configuration (optional)
 * S3 client configuration (optional)
 * storage paths configuration
 * request handler (API) configuration
+  * image sourcing operations
+  * image storage operation
+  * output operations
+
+### Top level configuration elements
 
 #### thumbnailer
 
-Configures **HTTP Thumbnailer** client used to perform image operations.
+Configures [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) client. It will be used to perform image processing operations.
 
 Options:
-* `url` - URL of `httpthumbnailer` service
+* `url` - URL of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service
 
-If omitted it will use **HTTP Thumbnailer** service at http://localhost:3100.
+If omitted [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service at located `http://localhost:3100` will be used.
 
 Example:
 
@@ -51,12 +56,13 @@ thumbnailer url="http://2.2.2.2:1000"
 
 #### s3
 
-Configures **Amazon S3** client.
+Configures [Amazon S3](http://aws.amazon.com/s3/) client for S3 object storage and retrieval.
 
 Options:
+
 * `key` - API key to use
 * `secret` - API secret for given key
-* `ssl` - if `true` HTTPS connection will be used; HTTPS storage URL will also be produced; optoinal; default: `true`
+* `ssl` - if `true` SSL protected connection will be used; storage URL will begin with `http://`; default: `true`
 
 Example:
 
@@ -67,13 +73,15 @@ s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" 
 #### path
 
 This directive is used to define storage and retrieval paths that will be used when storing and sourcing file on file system or S3 service.
-There can be one path directive per path definition or multiple paths can be defined with on directive using `{}` brackets.
+You can declare one path per statement or use `{}` brackets syntax to define more than one with single statement - they are semantically equal.
 
 Arguments:
+
 1. name - name of the path used later to reference it
-1. pattern - path patter that can consists of characters and variables surrounded by `#{}`
+2. pattern - path patter that can consists of characters and variables surrounded by `#{}`
 
 Variables:
+
 * `digest` - input image digest based on it's content only; this is first 16 hex characters from SHA2 digest; ex. `2cf24dba5fb0a30e`
 * `path` - remaining (unmatched) request URL path
 * `basename` - name of the file without it's extension determined from `path`
@@ -89,7 +97,6 @@ Example:
 path "uri"						"#{path}"
 path "hash"						"#{digest}.#{extension}"
 
-# multiple paths with one statement
 path {
 	"hash-name"					"#{digest}/#{imagename}.#{extension}"
 	"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
@@ -99,14 +106,17 @@ path {
 
 #### API endpoint
 
-This statement allows to configure single API endpoint and related operations that will be performed when matching request comes.
+This statement allows to configure single API endpoint and related operations that will be performed when matching request comes in to be handled.
 Defined endpoints will be evaluated in order until one is matched.
 
+Each endpoint can have one or more operation defined that will be performed on request matching that endpoint.
+
 Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URL section matchers:
+
 * `string` - literal string will match that string in URL section
-* `:symbol` - symbols begining with `:` will match any URL section and will store matched string in local named as symbol; this local can then be used to build path or thumbnail parameters
-* `:symbol?` - symbol followed with `?` will be optionally matched; URL may not contain this section to be matched for this endpoint
-* `:symbol/regexp/` - in this format symbol will be matched only if regexp matches the URL section
+* `:symbol` - symbol beginning with `:` will match any URL section and will store matched string in variable named as symbol; this variable can then be used to build path, thumbnail parameters or any other places where variables are expanded
+* `:symbol?` - symbol beginning with `:`  and followed with `?` will be optionally matched; request URL may not contain this section to be matched for this endpoint to be evaluated
+* `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URL section
 
 Example:
 
@@ -121,28 +131,25 @@ post {
 }
 ```
 
-#### API endpoint operations
-
-Each endpoint can have one or more operation defined that will be performed on request matching that endpoint.
-This operations can be grouped in four groups:
-
-##### source
+### API endpoint image sourcing operations
 
 Sourcing will load images into memory for further processing.
 Each image is stored under predefined or user defined name.
 
-If endpoint HTTP verb is `post` or `put` `input` image will be sourced from request body.
+If endpoint HTTP verb is `post` or `put` then image data will be sourced from request body. It can be referenced using `input` name.
 
-###### file
+#### `source_file`
 
-By using `file` statement image can be sourced from file system.
+With this statements image can be sourced from file system.
 
 Arguments:
+
 1. image name - name under which the sourced image can be referenced
 
 Options:
+
 * `root` - file system path under which the images are looked up
-* `path` - name of defined path that will be used to locate the image file
+* `path` - name of predefined path that will be used to locate the image file
 
 Example:
 
@@ -154,19 +161,21 @@ get "small" {
 }
 ```
 
-Requesting `/small` will result with file `/srv/images/myimage.jpg` to be loaded into memory under `original` reference.
+Requesting `/small` URI will result with file `/srv/images/myimage.jpg` loaded into memory under `original` name.
 
-###### s3
+#### `source_s3`
 
-`s3` statement can be used to load images from S3 bucket.
-To use this bucket global `s3` statement needs to be used to configure S3 client.
+This statement can be used to load images from S3 bucket.
+To use this bucket global `s3` statement needs to be used in top level to configure S3 client.
 
 Arguments:
+
 1. image name - name under which the sourced image can be referenced
 
 Options:
+
 * `bucket` - name of bucket to source image from
-* `path` - path (key) to object to source
+* `path` - name of predefined path that will be used to generate key to object to source
 
 Example:
 
@@ -179,25 +188,27 @@ get "small" {
 }
 ```
 
-Requesting `/small` will result with image to be fetched from S3 bucket `mybucket` and key `myimage.jpg`; it will be referenced under `original`.
+Requesting `/small` URI will result with image fetched from S3 bucket `mybucket` and key `myimage.jpg` and named `original`.
 
-###### thumbnail
+#### `thumbnail`
 
-This source will provide new images based on already sourced images by processing them with thumbnailer backend.
-This statement can be used to do single thumbnail operation or use multipart output API of the *HTTP Thumbnailer* when multiple operation are defined.
-For more informations of meaning of options see *HTTP Thumbnailer* documentation.
+This source will provide new images based on already sourced images by processing them with [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend.
+This statement can be used to do single thumbnail operation or use multipart output API of the [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) when multiple operation are defined.
+For more informations of meaning of options see [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) documentation.
 
 Arguments:
-1. source image name - reference to image that will be thumbnailed
-1. thumbnail name - name under which the thumbnail image can be referenced
+
+1. source image name - thumbnailer input image of which thumbnail will be generated
+2. thumbnail name - name under which the thumbnail image can be referenced
 
 Options:
-* `operation` - backend supported operation like `pad`, `fit`, `limit`, `crop`
+
+* `operation` - backend supported thumbnailin operation like `pad`, `fit`, `limit`, `crop`
 * `width` - requested thumbnail width in pixels
 * `height` - requested thumbnail height in pixels
-* `format` - format in which the resulting image will be stored; all backend supported formats can be specified like `jpeg` or `png`; optional; default: `jpeg`
-* `options` - list of options in format `key:value[,key:value]\*` to be passed to thumbnailer; this can be any backend supported options like `background-color` or `quality`
-* backend supported options - options can also be defined defined as statement options
+* `format` - format in which the resulting image will be stored; all backend supported formats can be specified like `jpeg` or `png`; default: `jpeg`
+* `options` - list of options in format `key:value[,key:value]*` to be passed to thumbnailer; this can be a list of any backend supported options like `background-color` or `quality`
+* backend supported options - options can also be defined as statement options
 
 Note that you can use `#{variable}` expansion within all of this options.
 
@@ -213,10 +224,10 @@ put ":operation" ":width" ":height" ":options" {
 }
 ```
 
-Putting image under `/pad/128/256/backgroud-color=green` URI will result with three thumbnails generated with single *HTTP Thumbnailer* request from `input` image into `original`, `small` and `padded` references.
-`original` image will have width of 128 pixels and height of 256 pixels; the original image will be centered and padded with color green background to match this dimensions; it will be JPEG image saved with compression quality of 84.
+Putting image under `/pad/128/256/backgroud-color=green` URI will result with three thumbnails generated with single [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) request from `input` image into `original`, `small` and `padded` references.
+`original` image will have width of 128 pixels and height of 256 pixels; the image will be centered and padded with color green background to match this dimensions; it will be a JPEG image, saved with compression quality of 84.
 
-You can also use shorter form that will perform only one thumbnailing operation per statement using *HTTP Thumbnailer*'s single thumbnail API:
+You can also use shorter form that will perform only one thumbnailing operation per statement using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer)'s single thumbnail API:
 
 ```sdl
 put ":operation" ":width" ":height" ":options" {
@@ -224,21 +235,23 @@ put ":operation" ":width" ":height" ":options" {
 }
 ```
 
-##### store
+### API endpoint storage operations
 
 This statements are executed after all source statements are finished.
 They allow storing of any sourced images by specifying their references.
 
-###### file
+#### `store_file`
 
-`file` statement can store image in file system.
+This statement can store image in file system.
 
 Arguments:
+
 1. image name - image to be stored
 
 Options:
+
 * `root` - file system path under which the images are stored
-* `path` - name of defined path that will be used to store the image file under; relative to `root`
+* `path` - name of predefined path that will be used to store the image file under; relative to `root`
 
 Example:
 
@@ -254,18 +267,20 @@ put "store" ":name" {
 
 Putting image data to `/store/hello.jpg` will store two copies of the image: one under `/srv/images/hello.jpg` and second under its digest like `/srv/images/2cf24dba5fb0a30e`.
 
-###### s3
+#### `store_s3`
 
 S3 bucket can also be used for image storage.
-To use this bucket global `s3` statement needs to be used to configure S3 client.
+To use this bucket top level `s3` statement needs to be used to configure S3 client.
 
 Arguments:
+
 1. image name - image to be stored
 
 Options:
+
 * `bucket` - name of bucket to store image in
-* `path` - path (key) to store object under
-* `public` - if set to `true` the image will be readable by everybody; optional; default: `false`
+* `path` - name of predefined path that will be used to generate key to store object under
+* `public` - if set to `true` the image will be readable by everybody; this affects fromat of output URL; default: `false`
 
 Example:
 
@@ -283,22 +298,24 @@ put ":name" {
 
 Putting image data to `/store/hello.jpg` will store two copies of the image under `mybucket`: one under key `hello.jpg` and second under its digest like `2cf24dba5fb0a30e`.
 
-##### output
+### API endpoint output operations
 
 When all images are stored output statements are processed.
 They are responsible with generating HTTP response for the API endpoint.
 If not output statement is specified the server will respond with `200 OK` and `OK` in response body.
 
-###### output\_image
+#### `output_image`
 
 This statement will produce `200 OK` response containing referenced image data.
 
-It will set `Content-Type` header to mime-type of the image that was determined by the thumbnailer based on image data if image was used as input in thumbnailing or it is resulting thumbnail. If the mime-type is unknown `application/octet-stream` will be used.
+It will set `Content-Type` header to mime-type of the image that was determined by [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) based on image data if image was used as input in thumbnailing or it is resulting thumbnail. If the mime-type is unknown `application/octet-stream` will be used.
 
 Arguments:
+
 1. image name - image to be sent in response body
 
 Options:
+
 * `cache-control` - value of response `Cache-Control` header can be specified with this option
 
 Example:
@@ -311,15 +328,16 @@ put "test" {
 
 The output will contain the posted image with `Content-Type` header set to `application/octet-stream` and `Cache-Control` to `public, max-age=999, s-maxage=666`.
 
-###### output\_store\_path
+#### `output_store_path`
 
-This statement will output actual storage path of `file` or `s3` stored image.
+This statement will output actual storage path on the file system (without root) or S3 bucket stored image.
 
 The `Content-Type` of response will be `text/plain`.
 You can specify multiple image names to output multiple paths of referenced images, each ended with `\r\n`.
 
 Arguments:
-1. image names - names of images 
+
+1. image names - names of images to output storage path for in order
 
 Example:
 
@@ -359,16 +377,17 @@ put "multi" {
 
 Putting image data to `/multi` URI will result with image `original` sourced from `/srv/images/test.in` and stored under `/srv/images/out2`. The input data will also be stored under `/srv/images/test.out`. The response body will contain `\r\n` ended lines: `test.out` and `test.out2`.
 
-###### output\_store\_url
+#### `output_store_url`
 
-This is similar statement to `output\_store\_file` but it will output `file://` URL for file stored images and valid S3 access URL for S3 stored images.
+This is similar statement to `output_store_file` but it will output `file://` URL for file stored images and valid S3 access URL for S3 stored images.
 
-For S3 stored image if `ssl` is set to `true` on the S3 client statement the URL will start with `https://`. If `public` is set to `false` when storing image in S3 the URL will contain authentication tokens and expiration token set to 20 years otherwise public URL will be used.
+For S3 stored image if `ssl` is set to `true` on the S3 client statement (`s3 ssl="true"`) the URL will start with `https://`. If `public` is set to `true` when storing image in S3 (`store_s3 public="true"`) then the URL will not contain query string options, otherwise authentication tokens and expiration token (set to expire in 20 years) will be include in the query string.
 
 The `Content-Type` header of this response is `text/uri-list`.
 Each output URL is `\r\n` ended.
 
 Arguments:
+
 1. image names - names of images 
 
 Example:
@@ -405,21 +424,23 @@ http://mybucket.s3.amazonaws.com/4006450256177f4a/small.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/tiny_png.png
 ```
 
-###### output\_source\_file and output\_source\_url
+#### `output_source_file` and `output_source_url`
 
-This statements are similar to their storage variants but will output path and URL of the storage locations.
+This statements are similar to their storage variants but will output path and URL of the source locations.
 
-#### meta options
+### API endpoint meta options
 
-Meta options can be used with selected statements.
+Additional meta options can be used with selected statements.
 
-##### if-image-name-on
+#### `if-image-name-on`
 
 It can be used with all source, storage and file/url output statements.
 The argument will expand `#{variable}`.
 
 If specified on or withing given statement it will cause that statement or it's part to be ineffective unless the image name used within the statement is on the list of image names specified as value of the option.
-The list is in format `image name[,image name]\*`.
+The list is in format `image name[,image name]*`.
 
-This option is useful when building API that works on predefined set of image operations and allows to select witch operations to perform with list included in the URL.
+This option is useful when building API that works on predefined set of image operations and allows to select witch set of operations to perform with list included in the URL.
+
+## Usage
 
