@@ -138,7 +138,7 @@ Each image is stored under predefined or user defined name.
 
 If endpoint HTTP verb is `post` or `put` then image data will be sourced from request body. It can be referenced using `input` name.
 
-#### `source_file`
+#### source_file
 
 With this statements image can be sourced from file system.
 
@@ -163,7 +163,7 @@ get "small" {
 
 Requesting `/small` URI will result with file `/srv/images/myimage.jpg` loaded into memory under `original` name.
 
-#### `source_s3`
+#### source_s3
 
 This statement can be used to load images from S3 bucket.
 To use this bucket global `s3` statement needs to be used in top level to configure S3 client.
@@ -190,7 +190,7 @@ get "small" {
 
 Requesting `/small` URI will result with image fetched from S3 bucket `mybucket` and key `myimage.jpg` and named `original`.
 
-#### `thumbnail`
+#### thumbnail
 
 This source will provide new images based on already sourced images by processing them with [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend.
 This statement can be used to do single thumbnail operation or use multipart output API of the [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) when multiple operation are defined.
@@ -240,7 +240,7 @@ put ":operation" ":width" ":height" ":options" {
 This statements are executed after all source statements are finished.
 They allow storing of any sourced images by specifying their references.
 
-#### `store_file`
+#### store_file
 
 This statement can store image in file system.
 
@@ -267,7 +267,7 @@ put "store" ":name" {
 
 Putting image data to `/store/hello.jpg` will store two copies of the image: one under `/srv/images/hello.jpg` and second under its digest like `/srv/images/2cf24dba5fb0a30e`.
 
-#### `store_s3`
+#### store_s3
 
 S3 bucket can also be used for image storage.
 To use this bucket top level `s3` statement needs to be used to configure S3 client.
@@ -304,7 +304,7 @@ When all images are stored output statements are processed.
 They are responsible with generating HTTP response for the API endpoint.
 If not output statement is specified the server will respond with `200 OK` and `OK` in response body.
 
-#### `output_image`
+#### output_image
 
 This statement will produce `200 OK` response containing referenced image data.
 
@@ -328,7 +328,7 @@ put "test" {
 
 The output will contain the posted image with `Content-Type` header set to `application/octet-stream` and `Cache-Control` to `public, max-age=999, s-maxage=666`.
 
-#### `output_store_path`
+#### output_store_path
 
 This statement will output actual storage path on the file system (without root) or S3 bucket stored image.
 
@@ -377,7 +377,7 @@ put "multi" {
 
 Putting image data to `/multi` URI will result with image `original` sourced from `/srv/images/test.in` and stored under `/srv/images/out2`. The input data will also be stored under `/srv/images/test.out`. The response body will contain `\r\n` ended lines: `test.out` and `test.out2`.
 
-#### `output_store_url`
+#### output_store_url
 
 This is similar statement to `output_store_file` but it will output `file://` URL for file stored images and valid S3 access URL for S3 stored images.
 
@@ -424,7 +424,7 @@ http://mybucket.s3.amazonaws.com/4006450256177f4a/small.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/tiny_png.png
 ```
 
-#### `output_source_file` and `output_source_url`
+#### output_source_file and output_source_url
 
 This statements are similar to their storage variants but will output path and URL of the source locations.
 
@@ -432,7 +432,7 @@ This statements are similar to their storage variants but will output path and U
 
 Additional meta options can be used with selected statements.
 
-#### `if-image-name-on`
+#### if-image-name-on
 
 It can be used with all source, storage and file/url output statements.
 The argument will expand `#{variable}`.
