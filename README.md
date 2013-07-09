@@ -67,7 +67,7 @@ Options:
 Example:
 
 ```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 ```
 
 #### path
@@ -180,7 +180,7 @@ Options:
 Example:
 
 ```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 path "myimage"	"myimage.jpg"
 
 get "small" {
@@ -285,7 +285,7 @@ Options:
 Example:
 
 ```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 path "imagename"	"#{name}"
 path "hash"			"#{digest}"
@@ -354,7 +354,7 @@ put "single" {
 Putting image data to `/single` URI will result with image data stored under `/srv/images/test.out`. The response body will consist of `\r\n` ended line containing `test.out`.
 
 ```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 path {
 	"in"	"test.in"
@@ -393,7 +393,7 @@ Arguments:
 Example:
 
 ```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="T37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 path "hash"			"#{digest}.#{mimeextension}"
 path "hash-name"	"#{digest}/#{imagename}.#{mimeextension}"
@@ -441,6 +441,106 @@ If specified on or withing given statement it will cause that statement or it's 
 The list is in format `image name[,image name]*`.
 
 This option is useful when building API that works on predefined set of image operations and allows to select witch set of operations to perform with list included in the URL.
+
+### Complete example
+
+This complete API configuration presents API compatible with previous version of httpimagestore (v0.5.0) and thumbnail on demand API.
+
+```sdl
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+
+# Compatibility API
+path "comapt-hash"				"#{digest}.#{mimeextension}"
+path "comapt-hash-name"			"#{digest}/#{imagename}.#{mimeextension}"
+path "comapt-structured"		"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
+path "comapt-structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+
+put "thumbnail" ":name_list" ":path/.+/" {
+	thumbnail "input" {
+		# Make limited source image for migration to on demand API
+		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
+
+		# Backend classes
+		"original"			opration="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"search"			opration="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"brochure"			opration="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+	}
+
+	# Store migartion source image into on demand API bucket
+	store_s3 "migration"		bucket="mybucket_v1"		path="hash"
+
+	# Save input image for future reprocessing
+	store_s3 "input"			bucket="mybucket"	path="compat-structured"	public=true
+
+	# Backend classes
+	store_s3 "original"			bucket="mybucket"	path="compat-structured-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+	store_s3 "search"			bucket="mybucket"	path="compat-structured-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+	store_s3 "brochure"			bucket="mybucket"	path="compat-structured-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+
+	output_store_url {
+		"input"
+		"original"			if-image-name-on="#{name_list}"
+		"search"			if-image-name-on="#{name_list}"
+		"brochure"			if-image-name-on="#{name_list}"
+	}
+}
+
+put "thumbnail" ":name_list" {
+	thumbnail "input" {
+		# Make limited source image for migration to on demand API
+		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
+
+		# Backend classes
+		"original"			opration="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"search"			opration="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"brochure"			opration="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+	}
+
+	# Store migartion source image into on demand API bucket
+	store_s3 "migration"		bucket="mybucket_v1"		path="hash"
+
+	# Save input image for future reprocessing
+	store_s3 "input"			bucket="mybucket"	path="compat-hash"	public=true
+
+	# Backend classe 
+	store_s3 "original"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+	store_s3 "search"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+	store_s3 "brochure"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
+
+	output_store_url {
+		"input"
+		"original"			if-image-name-on="#{name_list}"
+		"search"			if-image-name-on="#{name_list}"
+		"brochure"			if-image-name-on="#{name_list}"
+	}
+}
+
+# Thumbnail on demand API 
+path "hash"	"#{digest}.#{mimeextension}"
+path "path"	"#{path}"
+
+put "v1" "original" {
+	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
+
+	store_s3 "original" bucket="mybucket_v1" path="hash"
+
+	output_store_path "original"
+}
+
+get "v1" "thumbnail" ":path" ":operation" ":width" ":height" ":options?" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+```
+
+Compatibility API works by storing input image and selected (via URL) classes of thumbnalis generated during image upload. Once the image is uploaded thumbnails can be serverd directly from S3. There are two endpoints defined for that API to handle URLs that contain optional image storage name that results in usage of different storage key.
+
+With thumbnail on demand API user uploads original image. It is converted to JPEG and if it is too large also scaled down. Than that processed version is stored in S3 under key composed from hash of it's data and it's extension. Client will receive storage key for further reference in the response body. To obtain thumbnail GET request with obtained key and thumbnail parameters encoded in the URL needs to be send to the sever. It will read parameters from the URL and source selected image from S3. That image is then thumbnailed in the backend and sent back to client with custom Cache-Control header.
+
+Note that Compatibility API will also store "migarion" image in bucket used by on demand API. This allows for migration from that API to on demand API.
 
 ## Usage
 
