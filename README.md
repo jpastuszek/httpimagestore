@@ -450,10 +450,10 @@ This complete API configuration presents API compatible with previous version of
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 # Compatibility API
-path "comapt-hash"				"#{digest}.#{mimeextension}"
-path "comapt-hash-name"			"#{digest}/#{imagename}.#{mimeextension}"
-path "comapt-structured"		"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
-path "comapt-structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+path "compat-hash"				"#{digest}.#{mimeextension}"
+path "compat-hash-name"			"#{digest}/#{imagename}.#{mimeextension}"
+path "compat-structured"		"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
+path "compat-structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
 
 put "thumbnail" ":name_list" ":path/.+/" {
 	thumbnail "input" {
@@ -461,9 +461,9 @@ put "thumbnail" ":name_list" ":path/.+/" {
 		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
 
 		# Backend classes
-		"original"			opration="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
-		"search"			opration="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
-		"brochure"			opration="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"original"			operation="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"search"			operation="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"brochure"			operation="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 	}
 
 	# Store migartion source image into on demand API bucket
@@ -491,9 +491,9 @@ put "thumbnail" ":name_list" {
 		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
 
 		# Backend classes
-		"original"			opration="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
-		"search"			opration="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
-		"brochure"			opration="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"original"			operation="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"search"			operation="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"brochure"			operation="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 	}
 
 	# Store migartion source image into on demand API bucket
