@@ -542,6 +542,71 @@ With thumbnail on demand API user uploads original image. It is converted to JPE
 
 Note that Compatibility API will also store "migarion" image in bucket used by on demand API. This allows for migration from that API to on demand API.
 
+Compatibility API example:
+
+```bash
+# Uploading image and thumbnailing to 'original' and 'brochure' classes
+$ curl -X PUT 10.1.1.24:3000/thumbnail/original,brochure -q --data-binary @Pictures/compute.jpg 
+http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a.jpg
+http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/original.jpg
+http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochure.jpg
+
+# Obtaining 'original' thumbnail
+$ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/original.jpg -v -s -o /tmp/test.jpg1
+* About to connect() to s3-eu-west-1.amazonaws.com port 80 (#0)
+*   Trying 178.236.7.32... connected
+> GET /test.my.bucket/4006450256177f4a/original.jpg HTTP/1.1
+> User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
+> Host: s3-eu-west-1.amazonaws.com
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< x-amz-id-2: ZXJSWlUBthbIoUXztc9GkSu7mhpGK5HK+sVXWPdbCX9+a3nVkr4A6pclH1kdKjM9
+< x-amz-request-id: 3DD4C96B6B55B4ED
+< Date: Thu, 11 Jul 2013 11:33:31 GMT
+< Cache-Control: public, max-age=31557600, s-maxage=0
+< Last-Modified: Thu, 11 Jul 2013 11:31:36 GMT
+< ETag: "cf060f47d557bcf9316554d34411dc51"
+< Accept-Ranges: bytes
+< Content-Type: image/jpeg
+< Content-Length: 39458
+< Server: AmazonS3
+< 
+{ [data not shown]
+* Connection #0 to host s3-eu-west-1.amazonaws.com left intact
+* Closing connection #0
+```
+
+On demand API example:
+
+```bash
+# Uploading image
+$ curl -X PUT 10.1.1.24:3000/v1/original -q --data-binary @Pictures/compute.jpg 
+4006450256177f4a.jpg
+
+# Obtainig fit method 100x1000 thumbnail to /tmp/test.jpg
+$ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /tmp/test.jpg
+* About to connect() to 10.1.1.24 port 3000 (#0)
+*   Trying 10.1.1.24... connected
+> GET /v1/thumbnail/dev%2fhttpimagestore%2fv1%2f4006450256177f4a.jpg/fit/100/1000 HTTP/1.1
+> User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
+> Host: 10.1.1.24:3000
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.2.9
+< Date: Thu, 11 Jul 2013 11:26:15 GMT
+< Content-Type: image/jpeg
+< Content-Length: 4681
+< Connection: keep-alive
+< Status: 200 OK
+< Cache-Control: public, max-age=31557600, s-maxage=0
+< 
+{ [data not shown]
+* Connection #0 to host 10.1.1.24 left intact
+* Closing connection #0
+```
+
 ## Usage
 
 To start this daemon you will need to prepar configuration as described about. Path to configuration file needs to be provided as last argument of `httpimagestore` daemon.
