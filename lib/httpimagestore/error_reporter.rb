@@ -8,14 +8,7 @@ class ErrorReporter < Controler
 			write_error 404, error
 		end
 
-		on error HTTPThumbnailerClient::UnsupportedMediaTypeError do |error|
-			write_error 415, error
-		end
-
-		on error(
-			HTTPThumbnailerClient::ImageTooLargeError,
-			MemoryLimit::MemoryLimitedExceededError
-		) do |error|
+		on error MemoryLimit::MemoryLimitedExceededError do |error|
 			write_error 413, error
 		end
 
@@ -24,10 +17,7 @@ class ErrorReporter < Controler
 			write_error status, error
 		end
 
-		on error(
-			HTTPThumbnailerClient::InvalidThumbnailSpecificationError,
-		 	Configuration::ZeroBodyLengthError
-		) do |error|
+		on error Configuration::ZeroBodyLengthError do |error|
 			write_error 400, error
 		end
 

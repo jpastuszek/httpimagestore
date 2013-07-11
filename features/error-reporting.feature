@@ -12,14 +12,24 @@ Feature: Image list based thumbnailing and S3 storage
 		path "missing"		"blah"
 		path "zero"		"zero"
 
-		put "thumbnail" ":name_list" {
+		put "multipart" ":name_list" {
 			thumbnail "input" {
-				"small"		operation="crop"	width=128	height=128			    if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0			    if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000			    if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"	    if-image-name-on="#{name_list}"
-				"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"   if-image-name-on="#{name_list}"
+				"small"		operation="crop"	width=128	height=128				if-image-name-on="#{name_list}"
+				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
+				"bad_dim"	operation="crop"	width="128x"	height=128				if-image-name-on="#{name_list}"
+				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
+				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
+				"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"	if-image-name-on="#{name_list}"
 			}
+		}
+
+		put "singlepart" ":name_list" {
+			thumbnail "input"	"small"		operation="crop"	width=128	height=128				if-image-name-on="#{name_list}"
+			thumbnail "input"	"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
+			thumbnail "input"	"bad_dim"	operation="crop"	width="128x"	height=128				if-image-name-on="#{name_list}"
+			thumbnail "input"	"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
+			thumbnail "input"	"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
+			thumbnail "input"	"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"	if-image-name-on="#{name_list}"
 		}
 
 		get "s3" {
@@ -69,18 +79,32 @@ Feature: Image list based thumbnailing and S3 storage
 	@error-reporting
 	Scenario: Reporting of unsupported media type
 		Given test.txt file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,tiny
+		When I do PUT request http://localhost:3000/multipart/small,tiny
 		Then response status will be 415
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		unsupported media type: no decode delegate for this image format
+		thumbnailing of 'input' failed: unsupported media type: no decode delegate for this image format
+		"""
+		When I do PUT request http://localhost:3000/singlepart/small,tiny
+		Then response status will be 415
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'small' failed: unsupported media type: no decode delegate for this image format
 		"""
 
 	@error-reporting
 	Scenario: Reporting and handling of thumbnailing errors
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,bad
+		When I do PUT request http://localhost:3000/multipart/small,bad
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'bad' failed: at least one image dimension is zero: 0x0
+		"""
+		When I do PUT request http://localhost:3000/singlepart/small,bad
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
@@ -91,29 +115,68 @@ Feature: Image list based thumbnailing and S3 storage
 	@error-reporting
 	Scenario: Reporting and handling of thumbnailing errors - bad options format
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small,bad_opts
+		When I do PUT request http://localhost:3000/multipart/small,bad_opts
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		missing option value for key 'foo=bar'
+		thumbnailing of 'input' into 'bad_opts' failed: missing option value for key 'foo=bar'
+		"""
+		When I do PUT request http://localhost:3000/singlepart/small,bad_opts
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		thumbnailing of 'input' into 'bad_opts' failed: missing option value for key 'foo=bar'
+		"""
+
+	@error-reporting @test
+	Scenario: Bad dimension
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/multipart/bad_dim
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'bad_dim' failed: bad dimension value: 128x
+		"""
+		When I do PUT request http://localhost:3000/singlepart/bad_dim
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'bad_dim' failed: bad dimension value: 128x
 		"""
 
 	@error-reporting
 	Scenario: Too large image - uploaded image too big to fit in memory limit
 		Given test-large.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/large_png
+		When I do PUT request http://localhost:3000/multipart/large_png
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		image too large: cache resources exhausted
+		thumbnailing of 'input' failed: image too large: cache resources exhausted
+		"""
+		When I do PUT request http://localhost:3000/singlepart/large_png
+		Then response status will be 413
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'large_png' failed: image too large: cache resources exhausted
 		"""
 
 	@error-reporting
 	Scenario: Too large image - memory exhausted when thmbnailing
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/superlarge
+		When I do PUT request http://localhost:3000/multipart/superlarge
+		Then response status will be 413
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		thumbnailing of 'input' into 'superlarge' failed: image too large: cache resources exhausted
+		"""
+		When I do PUT request http://localhost:3000/singlepart/superlarge
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
@@ -124,7 +187,7 @@ Feature: Image list based thumbnailing and S3 storage
 	@error-reporting
 	Scenario: Zero body length
 		Given test.empty file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small
+		When I do PUT request http://localhost:3000/multipart/small
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like

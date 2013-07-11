@@ -46,7 +46,11 @@ module Configuration
 		class ThumbnailingError < RuntimeError
 			def initialize(input_image_name, output_image_name, remote_error)
 				@remote_error = remote_error
-				super "thumbnailing of '#{input_image_name}' into '#{output_image_name}' failed: #{remote_error.message}"
+				if output_image_name
+					super "thumbnailing of '#{input_image_name}' into '#{output_image_name}' failed: #{remote_error.message}"
+				else
+					super "thumbnailing of '#{input_image_name}' failed: #{remote_error.message}"
+				end
 			end
 
 			attr_reader :remote_error
@@ -167,17 +171,40 @@ module Configuration
 			if @use_multipart_api
 				log.info "thumbnailing '#{@source_image_name}' to multiple specs: #{rendered_specs}"
 
-				thumbnails = client.thumbnail(source_image.data) do
-					rendered_specs.values.each do |spec|
-						thumbnail(*spec)
+				# need to reference to local so they are available within thumbnail() block context
+				source_image_name = @source_image_name
+				logger = log
+
+				begin
+					thumbnails = client.thumbnail(source_image.data) do
+						rendered_specs.each_pair do |name, spec|
+							begin
+								thumbnail(*spec)
+							rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
+								logger.warn 'got thumbnailer error while passing specs', error
+								raise ThumbnailingError.new(source_image_name, name, error)
+							end
+						end
 					end
+				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
+					logger.warn 'got thumbnailer error while sending input data', error
+					raise ThumbnailingError.new(source_image_name, nil, error)
 				end
+
 				input_mime_type = thumbnails.input_mime_type
 
+				# check each thumbnail for errors
 				thumbnails = Hash[rendered_specs.keys.zip(thumbnails)]
-
 				thumbnails.each do |name, thumbnail|
-					raise ThumbnailingError.new(@source_image_name, name, thumbnail) if thumbnail.kind_of? HTTPThumbnailerClient::ThumbnailingError
+					if thumbnail.kind_of? HTTPThumbnailerClient::HTTPThumbnailerClientError
+						error = thumbnail
+						log.warn 'got single thumbnail error', error
+						raise ThumbnailingError.new(@source_image_name, name, error) 
+					end
+				end
+
+				# borrow from memory limit - note that we might have already used too much memory
+				thumbnails.each do |name, thumbnail|
 					request_state.memory_limit.borrow thumbnail.data.bytesize
 				end
 			else
@@ -190,6 +217,7 @@ module Configuration
 					input_mime_type = thumbnail.input_mime_type
 					thumbnails[name] = thumbnail
 				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
+					log.warn 'got thumbnailer error', error
 					raise ThumbnailingError.new(@source_image_name, name, error)
 				end
 			end
