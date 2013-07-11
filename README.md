@@ -756,7 +756,7 @@ If all goes well 200 OK will be returned otherwise:
   * uploaded image is too big to fit in memory
   * request body is too long
   * too much image data is loaded in memory
-  * memory or pixel chache limit in the thumbnailer backend has been exhousted 
+  * memory or pixel cache limit in the thumbnailer backend has been exhousted 
 
 ### 415
 
