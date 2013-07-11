@@ -217,7 +217,7 @@ Example:
 ```sdl
 put ":operation" ":width" ":height" ":options" {
 	thumbnail "input" {
-		"original" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
+		"original"	operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
 		"small"		operation="crop"	width=128	height=128	format="jpeg"
 		"padded"	operation="pad"		width=128	height=128	format="png"	background-color="gray"
 	}
@@ -461,7 +461,7 @@ put "thumbnail" ":name_list" ":path/.+/" {
 		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
 
 		# Backend classes
-		"original"			operation="crop"		width="input"	height="input"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"original"			operation="crop"	width="input"	height="input"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"search"			operation="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"brochure"			operation="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 	}
