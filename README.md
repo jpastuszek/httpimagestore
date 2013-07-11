@@ -638,13 +638,19 @@ Note that in order to perform thumbnailing [HTTP Thumbnailer](https://github.com
 
 You can run `httpimagestore --help` to display all available switches, options and arguments.
 
-Log file and pid file location can be controlled with `--log-file`, `--access-log-file` and `--pid-file` options.
+PID file location can be controlled with `--pid-file` options.
+
 To change number of worker processes use `--worker-processes`.
 You can also change time out after witch worker process will be killed if it didn't provide response to request with `--worker-timeout`.
 By default `httpimagestore` will not keep more than 128MiB of image data in memory - if this is exceeded it will send appropriate response code. The limit can be changed with `--limit-memory` option.
 
 `--listener` can be used multiple times to define listening sockets; use `--listener /var/run/httpimagestore.sock` to listen on UNIX socket instead of TCP port **3000**.
 `--user` switch can be used to force worker process to drop their privileges to specified user.
+
+### Logging
+
+`httpimagestore` logs to `httpimagestore.log` file in current directory by default. You can change log file location with `--log-file` option and verbosity with `--verbose` or `--debug` switch.
+Additionally `httpimagestore` will log requests in common NCSA format to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
 
 ### Running with nginx
 
@@ -729,7 +735,7 @@ http {
 
 Now it can be (re)started via usual init.d or systemd.
 
-## Contributing to httpimagestore
+## Contributing to HTTP Image Store
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it
