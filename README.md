@@ -18,9 +18,9 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 HTTP Image Store is released as gem and can be installed from [RubyGems](http://rubygems.org) with:
 
-	gem install httpimagestore
-
-It is recommended to use [nginx](http://nginx.org) server in front of this application to buffer requests and responses.
+```bash
+gem install httpimagestore
+```
 
 ## Configuration
 
@@ -543,4 +543,118 @@ With thumbnail on demand API user uploads original image. It is converted to JPE
 Note that Compatibility API will also store "migarion" image in bucket used by on demand API. This allows for migration from that API to on demand API.
 
 ## Usage
+
+To start this daemon you will need to prepar configuration as described about. Path to configuration file needs to be provided as last argument of `httpimagestore` daemon.
+
+### Stand alone
+
+In this mode `httpimagestore` daemon is listening on TCP port directly. This is the easiest way you can stert the daemon but it is not recommended for production use.
+It is recommended to use [nginx](http://nginx.org) server in front of this daemon in porduction to buffer requests and responses.
+
+To start this daemon in foreground for testing purposes with prepared `api.conf` configuration file use:
+
+```bash
+httpimagestore --verbose --foreground api.conf
+```
+
+Hitting Ctrl-C will ask the server to shutdown.
+
+If you start it without `--foreground` switch the daemon will fork into background and write it's pid in `httpimagestore.pid` by default.
+
+Note that in order to perform thumbnailing [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) needs to be running.
+
+### Options
+
+You can run `httpimagestore --help` to display all available switches, options and arguments.
+
+Log file and pid file location can be controlled with `--log-file`, `--access-log-file` and `--pid-file` options.
+To change number of worker processes use `--worker-processes`.
+You can also change time out after witch worker process will be killed if it didn't provide response to request with `--worker-timeout`.
+By default `httpimagestore` will not keep more than 128MiB of image data in memory - if this is exceeded it will send appropriate response code. The limit can be changed with `--limit-memory` option.
+
+`--listener` can be used multiple times to define listening sockets; use `--listener /var/run/httpimagestore.sock` to listen on UNIX socket instead of TCP port **3000**.
+`--user` switch can be used to force worker process to drop their privileges to specified user.
+
+### Running with nginx
+
+[nginx](http://nginx.org) if configured properly will buffer incoming requests before sending them to the backend and server response before sending them to client.
+Since `httpimagestore` is based on [Unicorn HTTP server](http://unicorn.bogomips.org) that is based on single threaded HTTP request processing worker processes the number of processing threads is very limited. Slow clients could keep precious process busy for long time slowly sending request or reading response effectively rendering service unavailable.
+
+Starting `httpimagestore` daemon with UNIX socket listener and `/etc/httpimagestore.conf` configuration file:
+
+```bash
+httpimagestore --pid-file /var/run/httpimagestore/pidfile --log-file /var/log/httpimagestore/httpimagestore.log --access-log-file /var/log/httpimagestore/httpimagestore_access.log --listener /var/run/httpimagestore.sock --user httpimagestore /etc/httpimagestore.conf
+```
+
+Starting `httpthumbnailer` daemon:
+
+```bash
+httpthumbnailer --pid-file /var/run/httpthumbnailer/pidfile --log-file /var/log/httpthumbnailer/httpthumbnailer.log --access-log-file /var/log/httpthumbnailer/httpthumbnailer_access.log --listener 127.0.0.1:3100 --user httpthumbnailer /etc/httpthumbnailer.conf
+```
+
+To start [nginx](http://nginx.org) we need to configure it to run as reverse HTTP proxy for our UNIX socket based `httpimagestore` backend.
+Also we set it up so that it does request and response buffering.
+Here is the example `/etc/nginx/nginx.conf` file:
+
+```nginx
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log error;
+
+pid        /var/run/nginx.pid;
+
+events {
+	worker_connections  1024;
+}
+
+http {
+	include       /etc/nginx/mime.types;
+	default_type  application/octet-stream;
+
+	log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+			  '$status $body_bytes_sent "$http_referer" '
+			  '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+
+	access_log  /var/log/nginx/access.log  main;
+
+	sendfile        on;
+	tcp_nopush		on;
+	tcp_nodelay		off;
+
+	keepalive_timeout		600s;
+	client_header_timeout	10s;
+
+	upstream httpimagestore {
+		server unix:/var/run/httpimagestore.sock fail_timeout=0;
+	}
+
+	server {
+		listen		*:3000;
+		server_name	localhost;
+
+		location / {
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header X-Forwarded-Proto $scheme;
+			proxy_set_header Host $http_host;
+
+			client_body_buffer_size		16m;
+			client_max_body_size		128m;
+			
+			proxy_buffering				on;
+			proxy_buffer_size			64k;
+			proxy_buffers				256 64k;
+			proxy_busy_buffers_size		256k;
+			proxy_temp_file_write_size	128m;
+
+			proxy_read_timeout			120s;
+			proxy_connect_timeout		10s;
+
+			proxy_pass http://httpimagestore;
+		}
+	}
+}
+```
+
+Now it can be (re)started via usual init.d or systemd.
 
