@@ -735,6 +735,73 @@ http {
 
 Now it can be (re)started via usual init.d or systemd.
 
+## Status codes
+
+HTTP Image Store will respond with different status codes on different situations.
+If all goes well 200 OK will be returned otherwise:
+
+### 400
+
+  * bad thumbnail specification
+  * empty body when image data expected
+
+### 404
+
+  * no API endpoint found for given URL
+  * file not found
+  * S3 bucket key not found
+
+### 413
+
+  * uploaded image is too big to fit in memory
+  * request body is too long
+  * too much image data is loaded in memory
+  * memory or pixel chache limit in the thumbnailer backend has been exhousted 
+
+### 415
+
+  * [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend cannot decode input image - see supported formats by the backend
+
+### 500
+
+  * can happen on configuration errors
+  * unexpected error has occured - see the log file
+
+## Statistics API
+
+HTTP Image Store comes with statistics API that shows various runtime collected statistics.
+It is set up under `/stats` URL. You can also request single stat with `/stats/<stat name>` request.
+
+Example:
+
+```bash
+$ curl 10.1.1.24:3000/stats
+total_requests: 2
+total_errors: 0
+calling: 1
+writing: 0
+total_write_multipart: 0
+total_write: 1
+total_write_part: 0
+total_write_error: 0
+total_write_error_part: 0
+total_thumbnail_requests: 1
+total_thumbnail_requests_bytes: 43308
+total_thumbnail_thumbnails: 3
+total_thumbnail_thumbnails_bytes: 102914
+total_file_store: 0
+total_file_store_bytes: 0
+total_file_source: 0
+total_file_source_bytes: 0
+total_s3_store: 4
+total_s3_store_bytes: 146222
+total_s3_source: 1
+total_s3_source_bytes: 51581
+
+$ curl 10.1.1.24:3000/stats/total_s3_source
+1
+```
+
 ## Contributing to HTTP Image Store
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
