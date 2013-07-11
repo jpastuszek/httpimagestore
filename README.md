@@ -461,7 +461,7 @@ put "thumbnail" ":name_list" ":path/.+/" {
 		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
 
 		# Backend classes
-		"original"			operation="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"original"			operation="crop"		width="input"	height="input"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"search"			operation="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"brochure"			operation="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 	}
@@ -491,7 +491,7 @@ put "thumbnail" ":name_list" {
 		"migration"			operation="limit"	width=2160	height=2160	format="jpeg" quality=95
 
 		# Backend classes
-		"original"			operation="crop"		width="INPUT"	height="INPUT"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
+		"original"			operation="crop"	width="input"	height="input"	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"search"			operation="pad"		width=162	height=162	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 		"brochure"			operation="pad"		width=264	height=264	format="jpeg" options="background-color:0xF0F0F0" if-image-name-on="#{name_list}"
 	}
@@ -551,11 +551,11 @@ http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a.jpg
 http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/original.jpg
 http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochure.jpg
 
-# Obtaining 'original' thumbnail
-$ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/original.jpg -v -s -o /tmp/test.jpg1
+# Obtaining 'brochure' class thumbnail
+$ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochure.jpg -v -s -o /tmp/test.jpg
 * About to connect() to s3-eu-west-1.amazonaws.com port 80 (#0)
 *   Trying 178.236.7.32... connected
-> GET /test.my.bucket/4006450256177f4a/original.jpg HTTP/1.1
+> GET /test.my.bucket/4006450256177f4a/brochure.jpg HTTP/1.1
 > User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
 > Host: s3-eu-west-1.amazonaws.com
 > Accept: */*
@@ -575,6 +575,9 @@ $ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/origina
 { [data not shown]
 * Connection #0 to host s3-eu-west-1.amazonaws.com left intact
 * Closing connection #0
+
+$ identify /tmp/test.jpg
+/tmp/test.jpg JPEG 264x264 264x264+0+0 8-bit sRGB 11.9KB 0.000u 0:00.009
 ```
 
 On demand API example:
@@ -588,7 +591,7 @@ $ curl -X PUT 10.1.1.24:3000/v1/original -q --data-binary @Pictures/compute.jpg
 $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /tmp/test.jpg
 * About to connect() to 10.1.1.24 port 3000 (#0)
 *   Trying 10.1.1.24... connected
-> GET /v1/thumbnail/dev%2fhttpimagestore%2fv1%2f4006450256177f4a.jpg/fit/100/1000 HTTP/1.1
+> GET /v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 HTTP/1.1
 > User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
 > Host: 10.1.1.24:3000
 > Accept: */*
@@ -605,6 +608,9 @@ $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /t
 { [data not shown]
 * Connection #0 to host 10.1.1.24 left intact
 * Closing connection #0
+
+$ identify /tmp/test.jpeg
+/tmp/test.jpeg JPEG 100x141 100x141+0+0 8-bit sRGB 4.68KB 0.000u 0:00.000
 ```
 
 ## Usage
