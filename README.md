@@ -742,30 +742,30 @@ If all goes well 200 OK will be returned otherwise:
 
 ### 400
 
-  * bad thumbnail specification
-  * empty body when image data expected
+* bad thumbnail specification
+* empty body when image data expected
 
 ### 404
 
-  * no API endpoint found for given URL
-  * file not found
-  * S3 bucket key not found
+* no API endpoint found for given URL
+* file not found
+* S3 bucket key not found
 
 ### 413
 
-  * uploaded image is too big to fit in memory
-  * request body is too long
-  * too much image data is loaded in memory
-  * memory or pixel cache limit in the thumbnailer backend has been exhousted 
+* uploaded image is too big to fit in memory
+* request body is too long
+* too much image data is loaded in memory
+* memory or pixel cache limit in the thumbnailer backend has been exhausted 
 
 ### 415
 
-  * [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend cannot decode input image - see supported formats by the backend
+* [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend cannot decode input image - see supported formats by the backend
 
 ### 500
 
-  * can happen on configuration errors
-  * unexpected error has occured - see the log file
+* may be caused by configuration error
+* unexpected error has occurred - see the log file
 
 ## Statistics API
 
