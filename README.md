@@ -654,7 +654,7 @@ By default `httpimagestore` will not keep more than 128MiB of image data in memo
 
 `--listener` can be used multiple times to define listening sockets; use `--listener /var/run/httpimagestore.sock` to listen on UNIX socket instead of default TCP port **3000**.
 
-`--user` switch can be used to force worker process to drop their privileges to specified user.
+If running as root you can use `--user` option to specify user with whose privileges the worker processes will be running.
 
 ### Logging
 
