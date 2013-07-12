@@ -27,12 +27,12 @@ gem install httpimagestore
 To start HTTP Image Store server you need to prepare API configuration first.
 Configuration is written in [SDL](http://sdl4r.rubyforge.org) format.
 
-Configuration is in general consists of:
+Configuration consists of:
 
 * thumbnailer client configuration (optional)
 * S3 client configuration (optional)
-* storage paths configuration
-* request handler (API) configuration
+* storage path definitions
+* API endpoint definitions
   * image sourcing operations
   * image storage operation
   * output operations
@@ -46,7 +46,7 @@ Configures [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) cli
 Options:
 * `url` - URL of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service
 
-If omitted [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service at located `http://localhost:3100` will be used.
+If omitted [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service located at `http://localhost:3100` will be used.
 
 Example:
 
@@ -62,7 +62,7 @@ Options:
 
 * `key` - API key to use
 * `secret` - API secret for given key
-* `ssl` - if `true` SSL protected connection will be used; storage URL will begin with `http://`; default: `true`
+* `ssl` - if `true` SSL protected connection will be used; source and storage URL will begin with `http://`; default: `true`
 
 Example:
 
@@ -87,9 +87,9 @@ Variables:
 * `basename` - name of the file without it's extension determined from `path`
 * `direname` - name of the directory determined form `path`
 * `extension` - file extension determined from `path`
-* `mimeextension` - image extension based on mime type; mime type will be updated based on information from **HTTP Thumbnailer** for input image and output thumbnails - content determined
+* `mimeextension` - image extension based on mime type; mime type will be updated based on information from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) for input image and output thumbnails - content determined
 * `imagename` - name of the image that is being stored or sourced
-* URL matches - other variables can be matched from URL pattern, see API configuration
+* URL matches - other variables can be matched from URL pattern - see API configuration
 
 Example:
 
@@ -106,17 +106,19 @@ path {
 
 #### API endpoint
 
-This statement allows to configure single API endpoint and related operations that will be performed when matching request comes in to be handled.
-Defined endpoints will be evaluated in order until one is matched.
-
+This group of statements allows to configure single API endpoint.
 Each endpoint can have one or more operation defined that will be performed on request matching that endpoint.
 
-Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URL section matchers:
+Endpoints will be evaluated in order of definition until one is matched.
 
-* `string` - literal string will match that string in URL section
-* `:symbol` - symbol beginning with `:` will match any URL section and will store matched string in variable named as symbol; this variable can then be used to build path, thumbnail parameters or any other places where variables are expanded
-* `:symbol?` - symbol beginning with `:`  and followed with `?` will be optionally matched; request URL may not contain this section to be matched for this endpoint to be evaluated
-* `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URL section
+Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URI component matchers:
+
+* `string` - character string will match whole URI component in that position
+* `:symbol` - string beginning with `:` will match any URI component in that position and will store matched component string in variable named as symbol; this variable can then be used to build path, thumbnail parameters or in any other places where variables are expanded
+* `:symbol?` - string beginning with `:`  and followed with `?` will be optionally matched; request URI may not contain component in this location (usually at the end of URI) to be matched for this endpoint to be evaluated
+* `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URI section
+
+Note that any remaining URI are is stored in `path` variable.
 
 Example:
 
@@ -130,6 +132,10 @@ put "thumbnail" "v1" ":thumbnail_class/small|large/" {
 post {
 }
 ```
+
+In this example first endpoint will be matched for **GET** request with URI like `/thumbnail/v1/abc.jpg/fit/100/100` or `/thumbnail/v1/abc.jpg/pad/100/100/background-color:green`.
+Second endpoint will be matched only for **PUT** requests with URIs beginning with `/thumbnail/v1/small` and `/thumbnail/v1/large`.
+Third endpoint will match any **POST** request.
 
 ### API endpoint image sourcing operations
 
@@ -203,10 +209,10 @@ Arguments:
 
 Options:
 
-* `operation` - backend supported thumbnailin operation like `pad`, `fit`, `limit`, `crop`
+* `operation` - backend supported thumbnailing operation like `pad`, `fit`, `limit`, `crop`
 * `width` - requested thumbnail width in pixels
 * `height` - requested thumbnail height in pixels
-* `format` - format in which the resulting image will be stored; all backend supported formats can be specified like `jpeg` or `png`; default: `jpeg`
+* `format` - format in which the resulting image will be encoded; all backend supported formats can be specified like `jpeg` or `png`; default: `jpeg`
 * `options` - list of options in format `key:value[,key:value]*` to be passed to thumbnailer; this can be a list of any backend supported options like `background-color` or `quality`
 * backend supported options - options can also be defined as statement options
 
@@ -330,7 +336,7 @@ The output will contain the posted image with `Content-Type` header set to `appl
 
 #### output_store_path
 
-This statement will output actual storage path on the file system (without root) or S3 bucket stored image.
+This statement will output actual storage path on the file system (without root) or S3 key under witch the image was stored.
 
 The `Content-Type` of response will be `text/plain`.
 You can specify multiple image names to output multiple paths of referenced images, each ended with `\r\n`.
@@ -426,7 +432,7 @@ http://mybucket.s3.amazonaws.com/4006450256177f4a/tiny_png.png
 
 #### output_source_file and output_source_url
 
-This statements are similar to their storage variants but will output path and URL of the source locations.
+This statements are similar to their storage variants. The difference is that they will output path and URL of the source locations.
 
 ### API endpoint meta options
 
@@ -536,9 +542,9 @@ get "v1" "thumbnail" ":path" ":operation" ":width" ":height" ":options?" {
 }
 ```
 
-Compatibility API works by storing input image and selected (via URL) classes of thumbnalis generated during image upload. Once the image is uploaded thumbnails can be serverd directly from S3. There are two endpoints defined for that API to handle URLs that contain optional image storage name that results in usage of different storage key.
+Compatibility API works by storing input image and selected (via URI) classes of thumbnails generated during image upload. Once the image is uploaded thumbnails can be served directly from S3. There are two endpoints defined for that API to handle URIs that contain optional image storage name that results in usage of different storage key.
 
-With thumbnail on demand API user uploads original image. It is converted to JPEG and if it is too large also scaled down. Than that processed version is stored in S3 under key composed from hash of input image data and final image extension. Client will receive storage key for further reference in the response body. To obtain thumbnail GET request with obtained key and thumbnail parameters encoded in the URL needs to be send to the sever. It will read parameters from the URL and source selected image from S3. That image is then thumbnailed in the backend and sent back to client with custom Cache-Control header.
+With thumbnail on demand API user uploads original image. It is converted to JPEG and if it is too large also scaled down. Than that processed version is stored in S3 under key composed from hash of input image data and final image extension. Client will receive storage key for further reference in the response body. To obtain thumbnail **GET** request with obtained key and thumbnail parameters encoded in the URI needs to be send to the sever. It will read parameters from the URI and source selected image from S3. That image is then thumbnailed in the backend and sent back to client with custom Cache-Control header.
 
 Note that Compatibility API will also store "migarion" image in bucket used by on demand API. This allows for migration from that API to on demand API.
 
@@ -615,12 +621,13 @@ $ identify /tmp/test.jpeg
 
 ## Usage
 
-To start this daemon you will need to prepar configuration as described about. Path to configuration file needs to be provided as last argument of `httpimagestore` daemon.
+After installation of the gem the `httpimagestore` executable is installed in **PATH**. 
+This executable is used to start HTTP Image Service with given configuration file path as it's last argument.
 
 ### Stand alone
 
-In this mode `httpimagestore` daemon is listening on TCP port directly. This is the easiest way you can stert the daemon but it is not recommended for production use.
-It is recommended to use [nginx](http://nginx.org) server in front of this daemon in porduction to buffer requests and responses.
+In this mode `httpimagestore` daemon is listening on TCP port directly. This is the easiest way you can start the daemon but it is not recommended for production use.
+It is recommended to use [nginx](http://nginx.org) server in front of this daemon in production to buffer requests and responses.
 
 To start this daemon in foreground for testing purposes with prepared `api.conf` configuration file use:
 
@@ -630,7 +637,7 @@ httpimagestore --verbose --foreground api.conf
 
 Hitting Ctrl-C will ask the server to shutdown.
 
-If you start it without `--foreground` switch the daemon will fork into background and write it's pid in `httpimagestore.pid` by default.
+If you start it without `--foreground` switch the daemon will fork into background and write it's PID in `httpimagestore.pid` by default.
 
 Note that in order to perform thumbnailing [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) needs to be running.
 
@@ -641,16 +648,19 @@ You can run `httpimagestore --help` to display all available switches, options a
 PID file location can be controlled with `--pid-file` options.
 
 To change number of worker processes use `--worker-processes`.
-You can also change time out after witch worker process will be killed if it didn't provide response to request with `--worker-timeout`.
-By default `httpimagestore` will not keep more than 128MiB of image data in memory - if this is exceeded it will send appropriate response code. The limit can be changed with `--limit-memory` option.
+You can also change time after witch worker process will be killed if it didn't provide response to request with `--worker-timeout`.
 
-`--listener` can be used multiple times to define listening sockets; use `--listener /var/run/httpimagestore.sock` to listen on UNIX socket instead of TCP port **3000**.
+By default `httpimagestore` will not keep more than 128MiB of image data in memory - if this is exceeded the daemon will abort processing and send response with 413 status. The limit can be changed with `--limit-memory` option.
+
+`--listener` can be used multiple times to define listening sockets; use `--listener /var/run/httpimagestore.sock` to listen on UNIX socket instead of default TCP port **3000**.
+
 `--user` switch can be used to force worker process to drop their privileges to specified user.
 
 ### Logging
 
 `httpimagestore` logs to `httpimagestore.log` file in current directory by default. You can change log file location with `--log-file` option and verbosity with `--verbose` or `--debug` switch.
-Additionally `httpimagestore` will log requests in common NCSA format to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
+
+Additionally `httpimagestore` will log requests in [common NCSA format](http://en.wikipedia.org/wiki/Common_Log_Format) to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
 
 ### Running with nginx
 
@@ -738,7 +748,7 @@ Now it can be (re)started via usual init.d or systemd.
 ## Status codes
 
 HTTP Image Store will respond with different status codes on different situations.
-If all goes well 200 OK will be returned otherwise:
+If all goes well `200 OK` will be returned otherwise:
 
 ### 400
 
@@ -770,7 +780,7 @@ If all goes well 200 OK will be returned otherwise:
 ## Statistics API
 
 HTTP Image Store comes with statistics API that shows various runtime collected statistics.
-It is set up under `/stats` URL. You can also request single stat with `/stats/<stat name>` request.
+It is set up under `/stats` URI. You can also request single stat with `/stats/<stat name>` request.
 
 Example:
 
