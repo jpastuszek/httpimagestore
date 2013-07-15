@@ -23,9 +23,11 @@ Application.new('httpimagestore', port: 3000) do
 		class HTTPImageStore < Controler
 			extend Stats
 			def_stats(
+				:workers,
 				:total_requests, 
 				:total_errors 
 			)
+			HTTPImageStore.stats.incr_workers
 
 			raindrops_stats = Raindrops::Middleware::Stats.new
 			self.use Raindrops::Middleware, stats: raindrops_stats
