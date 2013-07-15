@@ -61,9 +61,11 @@ module Configuration
 					path = locals[:path] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :path, name)
 					Pathname.new(path).extname.delete('.')
 				when :digest
-					next @digest if @digest
+					return locals[:_digest] if locals.include? :_digest
 					data = locals[:body] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :body, name) 
-					@digest = Digest::SHA2.new.update(data).to_s[0,16]
+					digest = Digest::SHA2.new.update(data).to_s[0,16]
+					# cache digest in request locals
+					locals[:_digest] = digest
 				else
 					locals[name] or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)
 				end
