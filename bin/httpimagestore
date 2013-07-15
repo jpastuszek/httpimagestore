@@ -27,7 +27,6 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 				:total_requests, 
 				:total_errors 
 			)
-			HTTPImageStore.stats.incr_workers
 
 			raindrops_stats = Raindrops::Middleware::Stats.new
 			self.use Raindrops::Middleware, stats: raindrops_stats
@@ -126,6 +125,10 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 		HTTPImageStore.use Configurator, Configuration.from_file(settings.config)
 		HTTPImageStore
+	end
+
+	after_fork do |server, worker|
+		HTTPImageStore.stats.incr_workers
 	end
 end
 
