@@ -4,7 +4,7 @@ require 'base64'
 
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
-Application.new('httpimagestore', port: 3000) do
+Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 	cli do
 		description 'HTTP based image storage and thumbnailer'
 		argument :config,
