@@ -3,7 +3,7 @@ PATH
   specs:
     httpthumbnailer (1.0.0)
       rmagick (~> 2)
-      unicorn-cuba-base
+      unicorn-cuba-base (~> 1.0)
 
 GEM
   remote: http://rubygems.org/

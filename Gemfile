@@ -1,4 +1,5 @@
 source "http://rubygems.org"
+ruby "1.9.3"
 
 gem "unicorn-cuba-base", "~> 1.0"
 gem "httpthumbnailer-client", "~> 1.0"
