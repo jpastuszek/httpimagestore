@@ -680,7 +680,8 @@ httpthumbnailer --pid-file /var/run/httpthumbnailer/pidfile --log-file /var/log/
 ```
 
 To start [nginx](http://nginx.org) we need to configure it to run as reverse HTTP proxy for our UNIX socket based `httpimagestore` backend.
-Also we set it up so that it does request and response buffering.
+Also we set it up so that it does request and response buffering and on disk caching of GET requests.
+You may want to disable caching if your GET URL resource is not immutable.
 Here is the example `/etc/nginx/nginx.conf` file:
 
 ```nginx
@@ -716,6 +717,9 @@ http {
 		server unix:/var/run/httpimagestore.sock fail_timeout=0;
 	}
 
+	# cache GET requests up to 256MiB in RAM and 130GiB on disk for up to 30 days of no access
+	proxy_cache_path	/var/cache/nginx/httpimagestore levels=2:2 keys_zone=httpimagestore:256m max_size=130g inactive=30d;
+
 	server {
 		listen		*:3000;
 		server_name	localhost;
@@ -736,6 +740,9 @@ http {
 
 			proxy_read_timeout			120s;
 			proxy_connect_timeout		10s;
+
+			proxy_cache			httpimagestore;
+			proxy_cache_key		"$request_uri";
 
 			proxy_pass http://httpimagestore;
 		}
