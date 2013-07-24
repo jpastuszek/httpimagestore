@@ -626,9 +626,32 @@ $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /t
 
 $ identify /tmp/test.jpeg
 /tmp/test.jpeg JPEG 100x141 100x141+0+0 8-bit sRGB 4.68KB 0.000u 0:00.000
-```
 
-Also form with query string passed options can be used to retrieve thumbnails.
+# Also form with query string passed options can be used to retrieve thumbnails
+$ curl 10.1.1.24:3000/v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-color=green -v -s -o /tmp/test.jpg
+* About to connect() to 10.1.1.24 port 3000 (#0)
+*   Trying 10.1.1.24... connected
+> GET /v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-color=green HTTP/1.1
+> User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
+> Host: 10.1.1.24:3000
+> Accept: */*
+> 
+< HTTP/1.1 200 OK
+< Server: nginx/1.2.9
+< Date: Wed, 24 Jul 2013 11:38:39 GMT
+< Content-Type: image/jpeg
+< Content-Length: 3310
+< Connection: keep-alive
+< Status: 200 OK
+< Cache-Control: public, max-age=31557600, s-maxage=0
+< 
+{ [data not shown]
+* Connection #0 to host 10.1.1.24 left intact
+* Closing connection #0
+
+$ identify /tmp/test.jpg
+/tmp/test.jpg JPEG 100x100 100x100+0+0 8-bit sRGB 3.31KB 0.000u 0:00.000
+```
 
 ## Usage
 
