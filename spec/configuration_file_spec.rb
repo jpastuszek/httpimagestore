@@ -146,7 +146,7 @@ describe Configuration do
 
 		describe 'memory limit' do
 			let :state do
-				Configuration::RequestState.new('abc', {}, MemoryLimit.new(1))
+				Configuration::RequestState.new('abc', {}, '', {}, MemoryLimit.new(1))
 			end
 
 			it 'should rais MemoryLimit::MemoryLimitedExceededError error if limit exceeded runing file sourcing' do
@@ -214,7 +214,7 @@ describe Configuration do
 			end
 
 			let :state do
-				Configuration::RequestState.new('abc', list: 'input1,input3')
+				Configuration::RequestState.new('abc', {list: 'input1,input3'})
 			end
 
 			it 'should mark stores to ib included when image name match if-image-name-on list' do

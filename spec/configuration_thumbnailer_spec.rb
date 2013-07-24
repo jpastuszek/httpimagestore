@@ -136,11 +136,12 @@ describe Configuration do
 			let :state do
 				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
-					operation: 'pad',
-					width: '10',
-					height: '10',
-					options: 'background-color:green',
-					path: nil
+					{
+						operation: 'pad',
+						width: '10',
+						height: '10',
+						options: 'background-color:green'
+					}
 				)
 			end
 
@@ -187,11 +188,14 @@ describe Configuration do
 					let :state do
 						Configuration::RequestState.new(
 							(support_dir + 'compute.jpg').read,
-							{operation: 'pad',
-							width: '10',
-							height: '10',
-							options: 'background-color:green',
-							path: nil},
+							{
+								operation: 'pad',
+								width: '10',
+								height: '10',
+								options: 'background-color:green'
+							},
+							'',
+							{},
 							MemoryLimit.new(10)
 						)
 					end
@@ -207,11 +211,12 @@ describe Configuration do
 					it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
 						state = Configuration::RequestState.new(
 							(support_dir + 'compute.jpg').read,
-							operation: 'pad',
-							width: '0',
-							height: '10',
-							options: 'background-color:green',
-							path: nil
+							{
+								operation: 'pad',
+								width: '0',
+								height: '10',
+								options: 'background-color:green'
+							}
 						)
 
 						expect {
@@ -293,11 +298,14 @@ describe Configuration do
 					let :state do
 						Configuration::RequestState.new(
 							(support_dir + 'compute.jpg').read,
-							{operation: 'pad',
-							width: '10',
-							height: '10',
-							options: 'background-color:green',
-							path: nil},
+							{
+								operation: 'pad',
+								width: '10',
+								height: '10',
+								options: 'background-color:green'
+							},
+							'',
+							{},
 							MemoryLimit.new(10)
 						)
 					end
@@ -325,12 +333,13 @@ describe Configuration do
 					let :state do
 						Configuration::RequestState.new(
 							(support_dir + 'compute.jpg').read,
-							operation: 'pad',
-							width: '10',
-							height: '10',
-							options: 'background-color:green',
-							path: nil,
-							list: 'small,padded'
+							{
+								operation: 'pad',
+								width: '10',
+								height: '10',
+								options: 'background-color:green',
+								list: 'small,padded'
+							}
 						)
 					end
 
@@ -346,11 +355,12 @@ describe Configuration do
 					it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
 						state = Configuration::RequestState.new(
 							(support_dir + 'compute.jpg').read,
-							operation: 'pad',
-							width: '0',
-							height: '10',
-							options: 'background-color:green',
-							path: nil
+							{
+								operation: 'pad',
+								width: '0',
+								height: '10',
+								options: 'background-color:green'
+							}
 						)
 
 						subject.handlers[0].image_sources[0].realize(state)
@@ -378,7 +388,9 @@ describe Configuration do
 			let :state do
 				Configuration::RequestState.new(
 					(support_dir + 'compute.jpg').read,
-					list: 'thumbnail1,input4,thumbnail5,input6'
+					{
+						list: 'thumbnail1,input4,thumbnail5,input6'
+					}
 				)
 			end
 

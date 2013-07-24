@@ -47,7 +47,7 @@ describe Configuration do
 
 			it 'should free memory limit if overwritting image' do
 				limit = MemoryLimit.new(2)
-				request_state = Configuration::RequestState.new('abc', {}, limit)
+				request_state = Configuration::RequestState.new('abc', {}, '', {}, limit)
 
 				limit.borrow 1
 				request_state.images['test'] = Configuration::Image.new('x')

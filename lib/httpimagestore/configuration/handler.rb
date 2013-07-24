@@ -14,6 +14,8 @@ module Configuration
 	end
 
 	class RequestState
+		include ClassLogging
+
 		class Images < Hash
 			def initialize(memory_limit)
 				@memory_limit = memory_limit
@@ -31,10 +33,18 @@ module Configuration
 				fetch(name){|image_name| raise ImageNotLoadedError.new(image_name)}
 			end
 		end
-		
-		def initialize(body = '', locals = {}, memory_limit = MemoryLimit.new)
+
+		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new)
+			@locals = {}
+			@locals.merge! query_string
+			@locals[:path] = path
+			@locals.merge! matches
+			@locals[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
+			log.debug "processing request with body length: #{body.bytesize} bytes and locals: #{@locals} "
+
+			@locals[:body] = body
+
 			@images = Images.new(memory_limit)
-			@locals = {body: body}.merge(locals)
 			@memory_limit = memory_limit
 			@output_callback = nil
 		end
@@ -234,6 +244,8 @@ module Configuration
 			log.warn 'no handlers configured' if configuration.handlers.empty?
 		end
 	end
+	RequestState.logger = Global.logger_for(RequestState)
+
 	Global.register_node_parser Handler
 end
 

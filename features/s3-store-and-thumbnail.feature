@@ -28,6 +28,13 @@ Feature: Store limited original image in S3 and thumbnail based on request
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 
+		get "thumbnail" "v2" ":operation" ":width" ":height" {
+			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
+
+			thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{query_string_options}" quality=84 format="png"
+
+			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+		}
 		"""
 		Given httpthumbnailer server is running at http://localhost:3100/
 
@@ -58,6 +65,23 @@ Feature: Store limited original image in S3 and thumbnail based on request
 	Scenario: Getting thumbnail to spec based on uploaded S3 image - with options passed
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/thumbnail/v1/4006450256177f4a.jpg/pad/50/50/background-color:green
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 50x50
+		And that image pixel at 2x2 should be of color green
+
+	@s3-store-and-thumbnail @v2
+	Scenario: Getting thumbnail to spec based on uploaded S3 image - v2
+		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
+		When I do GET request http://localhost:3000/thumbnail/v2/pad/50/50/4006450256177f4a.jpg
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 50x50
+
+	@s3-store-and-thumbnail @v2
+	Scenario: Getting thumbnail to spec based on uploaded S3 image - with options passed
+		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
+		When I do GET request http://localhost:3000/thumbnail/v2/pad/50/50/4006450256177f4a.jpg?background-color=green
 		Then response status will be 200
 		And response content type will be image/png
 		Then response body will contain PNG image of size 50x50

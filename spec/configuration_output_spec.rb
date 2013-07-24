@@ -155,7 +155,7 @@ describe Configuration do
 
 			describe 'conditional inclusion support' do
 				let :state do
-					Configuration::RequestState.new('abc', list: 'input,image2')
+					Configuration::RequestState.new('abc', {list: 'input,image2'})
 				end
 
 				subject do

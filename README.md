@@ -89,7 +89,7 @@ Variables:
 * `extension` - file extension determined from `path`
 * `mimeextension` - image extension based on mime type; mime type will be updated based on information from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) for input image and output thumbnails - content determined
 * `imagename` - name of the image that is being stored or sourced
-* URL matches - other variables can be matched from URL pattern - see API configuration
+* URL matches and query string parameters - other variables can be matched from URL pattern and query string parameters - see API configuration
 
 Example:
 
@@ -119,6 +119,7 @@ Statement should start with one of the following HTTP verbs in lowercase: `get`,
 * `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URI section
 
 Note that any remaining URI are is stored in `path` variable.
+Also any query string parameters are available as variables. Additionally `query_string_options` is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
 
 Example:
 
@@ -540,6 +541,14 @@ get "v1" "thumbnail" ":path" ":operation" ":width" ":height" ":options?" {
 
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
+
+get "thumbnail" "v2" ":operation" ":width" ":height" {
+	source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
+
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{query_string_options}" quality=84 format="png"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
 ```
 
 Compatibility API works by storing input image and selected (via URI) classes of thumbnails generated during image upload. Once the image is uploaded thumbnails can be served directly from S3. There are two endpoints defined for that API to handle URIs that contain optional image storage name that results in usage of different storage key.
@@ -618,6 +627,8 @@ $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /t
 $ identify /tmp/test.jpeg
 /tmp/test.jpeg JPEG 100x141 100x141+0+0 8-bit sRGB 4.68KB 0.000u 0:00.000
 ```
+
+Also form with query string passed options can be used to retrieve thumbnails.
 
 ## Usage
 

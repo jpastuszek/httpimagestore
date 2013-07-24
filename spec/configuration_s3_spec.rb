@@ -68,7 +68,7 @@ else
 
 		describe Configuration::S3Source do
 			let :state do
-				Configuration::RequestState.new('abc', test_image: 'test.jpg')
+				Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 			end
 
 			subject do
@@ -259,7 +259,7 @@ else
 
 			describe 'memory limit' do
 				let :state do
-					Configuration::RequestState.new('abc', {test_image: 'test.jpg'}, MemoryLimit.new(10))
+					Configuration::RequestState.new('abc', {test_image: 'test.jpg'}, '', {}, MemoryLimit.new(10))
 				end
 
 				it 'should raise MemoryLimit::MemoryLimitedExceededError when sourcing bigger image than limit' do
@@ -272,7 +272,7 @@ else
 
 		describe Configuration::S3Store do
 			let :state do
-				Configuration::RequestState.new(@test_data, test_image: 'test_out.jpg')
+				Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg'})
 			end
 
 			subject do
@@ -435,7 +435,7 @@ else
 
 			describe 'conditional inclusion support' do
 				let :state do
-					Configuration::RequestState.new(@test_data, test_image: 'test_out.jpg', list: 'input,input2')
+					Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg', list: 'input,input2'})
 				end
 
 				subject do
