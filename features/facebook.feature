@@ -21,7 +21,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		get "?type=square" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
-			thumbnail "original" "thumbnail" operation="crop" width="50" height="50" quality=84 format="png"
+			thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -29,7 +29,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		get "?type=small" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
-			thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" quality=84 format="png"
+			thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" format="input"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -37,7 +37,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		get "?type=normall" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
-			thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" quality=84 format="png"
+			thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" format="input"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -45,7 +45,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		get "?type=large" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
-			thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" quality=84 format="png"
+			thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" format="input"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -53,7 +53,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		get "?:width" "?:height" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
-			thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" quality=84 format="png"
+			thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" format="input"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -80,38 +80,38 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/4006450256177f4a.jpg?type=square
 		Then response status will be 200
-		And response content type will be image/png
-		Then response body will contain PNG image of size 50x50
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 50x50
 
 	@facebook @type
 	Scenario: Getting small type tumbnail
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/4006450256177f4a.jpg?type=small
 		Then response status will be 200
-		And response content type will be image/png
-		Then response body will contain PNG image of size 50x71
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 50x71
 
 	@facebook @type
 	Scenario: Getting normall type tumbnail
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/4006450256177f4a.jpg?type=normall
 		Then response status will be 200
-		And response content type will be image/png
-		Then response body will contain PNG image of size 100x141
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 100x141
 
 	@facebook @type
 	Scenario: Getting large type tumbnail
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/4006450256177f4a.jpg?type=large
 		Then response status will be 200
-		And response content type will be image/png
-		Then response body will contain PNG image of size 200x283
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 200x283
 
 	@facebook @size
 	Scenario: Getting custom size tumbnail
 		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
 		When I do GET request http://localhost:3000/4006450256177f4a.jpg?width=123&height=321
 		Then response status will be 200
-		And response content type will be image/png
-		Then response body will contain PNG image of size 123x321
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 123x321
 
