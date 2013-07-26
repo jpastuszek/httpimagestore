@@ -226,6 +226,11 @@ module Configuration
 					Matcher.new(nil) do
 						->{req[name] && req[name] == value}
 					end
+				when /^\?:(.+)$/# ?:foo
+					name = $1
+					Matcher.new(name.to_sym) do
+						->{req[name] && captures.push(req[name])}
+					end
 				# String URI component matcher
 				else # foobar
 					Matcher.new(nil) do

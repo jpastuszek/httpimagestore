@@ -18,7 +18,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 			output_store_path "original"
 		}
 
-		get ":path" "?type=square" {
+		get "?type=square" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
 			thumbnail "original" "thumbnail" operation="crop" width="50" height="50" quality=84 format="png"
@@ -26,7 +26,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 
-		get ":path" "?type=small" {
+		get "?type=small" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
 			thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" quality=84 format="png"
@@ -34,7 +34,7 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 
-		get ":path" "?type=normall" {
+		get "?type=normall" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
 			thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" quality=84 format="png"
@@ -42,10 +42,18 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 
-		get ":path" "?type=large" {
+		get "?type=large" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
 			thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" quality=84 format="png"
+
+			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+		}
+
+		get "?:width" "?:height" {
+			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
+
+			thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" quality=84 format="png"
 
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
@@ -98,4 +106,12 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 		Then response status will be 200
 		And response content type will be image/png
 		Then response body will contain PNG image of size 200x283
+
+	@facebook @size
+	Scenario: Getting custom size tumbnail
+		Given test.jpg file content is stored in S3 under 4006450256177f4a.jpg
+		When I do GET request http://localhost:3000/4006450256177f4a.jpg?width=123&height=321
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 123x321
 
