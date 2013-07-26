@@ -202,24 +202,34 @@ module Configuration
 			handler_configuration.http_method = node.name
 			handler_configuration.uri_matchers = node.values.map do |matcher|
 				case matcher
-				when %r{^:[^/]+/.*/$}
-					name, regexp = *matcher.match(%r{^:([^/]+)/(.*)/$}).captures
+				# URI component matchers
+				when %r{^:([^/]+)/(.*)/$} # :foobar/.*/
+					name = $1
+					regexp = $2
 					Matcher.new(name.to_sym) do
 						Regexp.new("(#{regexp})")
 					end
-				when /^:.+\?$/
-					name = matcher.sub(/^:(.+)\?$/, '\1').to_sym
+				when /^:(.+)\?$/ # :foobar?
+					name = $1.to_sym
 					Matcher.new(name) do
 						->{match(name) || captures.push('')}
 					end
-				when /^:/
-					name = matcher.sub(/^:/, '').to_sym
+				when /^:(.+)$/ # :foobar
+					name = $1.to_sym
 					Matcher.new(name) do
 						name
 					end
-				else
+				# Query string matchers
+				when /^\?([^=]+)=(.+)$/# ?foo=bar
+					name = $1
+					value = $2
 					Matcher.new(nil) do
-						matcher
+						->{req[name] && req[name] == value}
+					end
+				# String URI component matcher
+				else # foobar
+					Matcher.new(nil) do
+						Regexp.escape(matcher)
 					end
 				end
 			end
