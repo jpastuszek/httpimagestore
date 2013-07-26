@@ -117,6 +117,8 @@ Statement should start with one of the following HTTP verbs in lowercase: `get`,
 * `:symbol` - string beginning with `:` will match any URI component in that position and will store matched component string in variable named as symbol; this variable can then be used to build path, thumbnail parameters or in any other places where variables are expanded
 * `:symbol?` - string beginning with `:`  and followed with `?` will be optionally matched; request URI may not contain component in this location (usually at the end of URI) to be matched for this endpoint to be evaluated
 * `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URI section
+* `?:key` - string beginning with `?:` will match query string key and capture it variable of same name
+* `?key=foobar` - only matched when query string contains key with given value
 
 Note that any remaining URI are is stored in `path` variable.
 Also any query string parameters are available as variables. Additionally `query_string_options` is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
@@ -651,6 +653,65 @@ $ curl 10.1.1.24:3000/v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-c
 
 $ identify /tmp/test.jpg
 /tmp/test.jpg JPEG 100x100 100x100+0+0 8-bit sRGB 3.31KB 0.000u 0:00.000
+```
+
+## Facebook like API example
+
+Based on [Facebook APIs](https://developers.facebook.com/docs/reference/api/using-pictures/#sizes).
+
+```sdl
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+
+path "hash"	"#{digest}.#{mimeextension}"
+path "path"	"#{path}"
+
+put "original" {
+	thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
+
+	store_s3 "original" bucket="mybucket_v1" path="hash"
+
+	output_store_path "original"
+}
+
+get "?type=square" {
+	source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
+
+	thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "?type=small" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "?type=normall" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "?type=large" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "?:width" "?:height" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
 ```
 
 ## Usage
