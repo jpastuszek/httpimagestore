@@ -615,7 +615,7 @@ On demand API example:
 $ curl -X PUT 10.1.1.24:3000/v1/original -q --data-binary @Pictures/compute.jpg 
 4006450256177f4a.jpg
 
-# Obtainig fit method 100x1000 thumbnail to /tmp/test.jpg
+# Getting fit operation 100x1000 thumbnail to /tmp/test.jpg
 $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /tmp/test.jpg
 * About to connect() to 10.1.1.24 port 3000 (#0)
 *   Trying 10.1.1.24... connected
@@ -716,10 +716,10 @@ get "&type=large" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "&:width" "&:height" "&:method?crop" {
+get "&:width" "&:height" "&:operation?crop" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
-	thumbnail "original" "thumbnail" operation="#{method}" width="#{width}" height="#{height}" format="input"
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" format="input"
 
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
