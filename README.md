@@ -113,15 +113,26 @@ Endpoints will be evaluated in order of definition until one is matched.
 
 Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URI component matchers:
 
-* `string` - character string will match whole URI component in that position
-* `:symbol` - string beginning with `:` will match any URI component in that position and will store matched component string in variable named as symbol; this variable can then be used to build path, thumbnail parameters or in any other places where variables are expanded
-* `:symbol?` - string beginning with `:`  and followed with `?` will be optionally matched; request URI may not contain component in this location (usually at the end of URI) to be matched for this endpoint to be evaluated
-* `:symbol/regexp/` - in this format symbol will be matched only if `/` surrounded [regular expression](http://rubular.com) matches the URI section
-* `?:key` - string beginning with `?:` will match query string key and capture it variable of same name
-* `?key=foobar` - only matched when query string contains key with given value
+* `<string>` - `<string>` literally match against URI component in that position for the endpoint to be evaluated
+* `:<symbol>` - match any URI component in that position and store matched component value in variable named `<symbol>`
+* `:<symbol>?[defalut]` - optionally match URI component in that position and store matched component value in variable named `<symbol>`; request URI may not contain component in that position (usually at the end of URI) to be matched for this endpoint to be evaluated; if `[default]` value is specified it will be used when no value was found in the URI, otherwise empty string will be used
+* `:<symbol>/<regexp>/` - match URI component using `/` surrounded [regular expression](http://rubular.com) and store matched component value in variable named `<symbol>`
+* `&<key>=<value>` - match this endpoint when query string contains key `<key>` with value of `<value>`
+* `&:<key>` - match query string parameter of key `<key>` and store it's value in variable named `<key>`
+* `&:<key>?[default]` - optionally match query string parameter of key `<key>`; when `[default]` is specified it will be used as variable value, otherwise empty string will be used
 
-Note that any remaining URI are is stored in `path` variable.
-Also any query string parameters are available as variables. Additionally `query_string_options` is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
+Note that any remaining unmatched URI is stored in `path` variable.
+All query string parameters are available as variables named by their key. 
+Additionally `query_string_options` variable is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
+
+Note that variables can get overwritten in order of evaluation:
+1. all query string parameters
+2. `path` variable value
+3. all matched URI components and query string parameters in order of specification from left to right
+4. `query_string_options` variable value
+
+Note that URI components are URI decoded after they are matched. 
+Query string parameter values are URI decoded before they are matched.
 
 Example:
 
@@ -673,7 +684,7 @@ put "original" {
 	output_store_path "original"
 }
 
-get "?type=square" {
+get "&type=square" {
 	source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
 	thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
@@ -681,7 +692,7 @@ get "?type=square" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "?type=small" {
+get "&type=small" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
 	thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" format="input"
@@ -689,7 +700,7 @@ get "?type=small" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "?type=normall" {
+get "&type=normall" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
 	thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" format="input"
@@ -697,7 +708,7 @@ get "?type=normall" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "?type=large" {
+get "&type=large" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
 	thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" format="input"
@@ -705,10 +716,10 @@ get "?type=large" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "?:width" "?:height" {
+get "&:width" "&:height" "&:method?crop" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
-	thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" format="input"
+	thumbnail "original" "thumbnail" operation="#{method}" width="#{width}" height="#{height}" format="input"
 
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }

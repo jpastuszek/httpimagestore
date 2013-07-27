@@ -42,7 +42,7 @@ module Configuration
 			@locals[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
 			log.debug "processing request with body length: #{body.bytesize} bytes and locals: #{@locals} "
 
-			@locals[:body] = body
+			@locals[:_body] = body
 
 			@images = Images.new(memory_limit)
 			@memory_limit = memory_limit
@@ -81,8 +81,8 @@ module Configuration
 
 	class InputSource
 		def realize(request_state)
-			request_state.locals[:body].empty? and raise ZeroBodyLengthError
-			request_state.images['input'] = Image.new(request_state.locals[:body])
+			request_state.locals[:_body].empty? and raise ZeroBodyLengthError
+			request_state.images['input'] = Image.new(request_state.locals[:_body])
 		end
 	end
 
@@ -209,10 +209,11 @@ module Configuration
 					Matcher.new(name.to_sym) do
 						Regexp.new("(#{regexp})")
 					end
-				when /^:(.+)\?$/ # :foobar?
+				when /^:(.+)\?(.*)$/ # :foo?bar
 					name = $1.to_sym
+					default = $2
 					Matcher.new(name) do
-						->{match(name) || captures.push('')}
+						->{match(name) || captures.push(default)}
 					end
 				when /^:(.+)$/ # :foobar
 					name = $1.to_sym
@@ -220,13 +221,19 @@ module Configuration
 						name
 					end
 				# Query string matchers
-				when /^\?([^=]+)=(.+)$/# ?foo=bar
+				when /^\&([^=]+)=(.+)$/# ?foo=bar
 					name = $1
 					value = $2
 					Matcher.new(nil) do
 						->{req[name] && req[name] == value}
 					end
-				when /^\?:(.+)$/# ?:foo
+				when /^\&:(.+)\?(.*)$/# &:foo?bar
+					name = $1
+					default = $2
+					Matcher.new(name.to_sym) do
+						->{captures.push(req[name] || default)}
+					end
+				when /^\&:(.+)$/# &:foo
 					name = $1
 					Matcher.new(name.to_sym) do
 						->{req[name] && captures.push(req[name])}

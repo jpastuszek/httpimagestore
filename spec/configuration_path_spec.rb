@@ -18,10 +18,10 @@ describe Configuration do
 			EOF
 
 			subject.paths['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
-			subject.paths['hash'].render(path: 'test/abc.jpg', body: 'hello').should == '2cf24dba5fb0a30e.jpg'
-			subject.paths['hash-name'].render(path: 'test/abc.jpg', body: 'hello', imagename: 'xbrna').should == '2cf24dba5fb0a30e/xbrna.jpg'
-			subject.paths['structured'].render(path: 'test/abc.jpg', body: 'hello').should == 'test/2cf24dba5fb0a30e/abc.jpg'
-			subject.paths['structured-name'].render(path: 'test/abc.jpg', body: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
+			subject.paths['hash'].render(path: 'test/abc.jpg', _body: 'hello').should == '2cf24dba5fb0a30e.jpg'
+			subject.paths['hash-name'].render(path: 'test/abc.jpg', _body: 'hello', imagename: 'xbrna').should == '2cf24dba5fb0a30e/xbrna.jpg'
+			subject.paths['structured'].render(path: 'test/abc.jpg', _body: 'hello').should == 'test/2cf24dba5fb0a30e/abc.jpg'
+			subject.paths['structured-name'].render(path: 'test/abc.jpg', _body: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
 		end
 
 		describe 'error handling' do
