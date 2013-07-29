@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "1.1.0"
+  s.version = "1.2.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2013-07-24"
+  s.date = "2013-07-29"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "features/cache-control.feature",
     "features/compatibility.feature",
     "features/error-reporting.feature",
+    "features/facebook.feature",
     "features/health-check.feature",
     "features/s3-store-and-thumbnail.feature",
     "features/step_definitions/httpimagestore_steps.rb",
