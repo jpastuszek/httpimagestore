@@ -75,9 +75,10 @@ module Configuration
 			node.required_attributes('bucket', 'path')
 			node.valid_attribute_values('public_access', true, false, nil)
 
-			bucket, path_spec, cache_control, public_access, if_image_name_on = 
-				*node.grab_attributes('bucket', 'path', 'cache-control', 'public', 'if-image-name-on')
+			bucket, path_spec, public_access, cache_control, prefix, if_image_name_on = 
+				*node.grab_attributes('bucket', 'path', 'public', 'cache-control', 'prefix', 'if-image-name-on')
 			public_access = false if public_access.nil?
+			prefix = '' if prefix.nil?
 
 			self.new(
 				configuration.global, 
@@ -86,16 +87,18 @@ module Configuration
 				bucket, 
 				path_spec, 
 				public_access, 
-				cache_control
+				cache_control,
+				prefix
 			)
 		end
 
-		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control)
+		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control, prefix)
 			super global, image_name, matcher
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
+			@prefix = prefix
 			local :bucket, @bucket
 		end
 
@@ -114,7 +117,7 @@ module Configuration
 		def object(path)
 			begin
 				bucket = client.buckets[@bucket]
-				yield bucket.objects[path]
+				yield bucket.objects[@prefix + path]
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket

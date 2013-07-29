@@ -87,6 +87,7 @@ else
 				s3_client = AWS::S3.new(use_ssl: false)
 				s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
 				s3_test_bucket.objects['test.jpg'].write(@test_data, content_type: 'image/jpeg')
+				s3_test_bucket.objects['test_prefix/test.jpg'].write(@test_data, content_type: 'image/jpeg')
 			end
 
 			it 'should source image from S3 using path spec' do
@@ -111,6 +112,34 @@ else
 				state.images['original'].source_url.should include "/test.jpg"
 				state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
 				status(state.images['original'].source_url).should == 200
+			end
+
+			describe 'storage prefix' do
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}"
+					get {
+						source_s3 "original" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" prefix="test_prefix/"
+					}
+					EOF
+				end
+
+				it 'should still provide valid HTTPS URL incliding prefix' do
+					subject.handlers[0].image_sources[0].realize(state)
+
+					state.images['original'].source_url.should start_with "https://"
+					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['original'].source_url.should include "/test_prefix/test.jpg"
+					state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+					status(state.images['original'].source_url).should == 200
+				end
+
+				it 'should provide source path without prefix' do
+					subject.handlers[0].image_sources[0].realize(state)
+
+					state.images['original'].source_path.should == "test.jpg"
+				end
 			end
 
 			describe 'non encrypted connection mode' do
@@ -292,6 +321,8 @@ else
 				s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
 				@test_object = s3_test_bucket.objects['test_out.jpg']
 				@test_object.delete
+				test_object = s3_test_bucket.objects['test_prefix/test_out.jpg']
+				test_object.delete
 			end
 
 			before :each do
@@ -321,6 +352,34 @@ else
 				state.images['input'].store_url.should include "/test_out.jpg"
 				state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
 				status(state.images['input'].store_url).should == 200
+			end
+
+			describe 'storage prefix' do
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}"
+					post {
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" prefix="test_prefix/"
+					}
+					EOF
+				end
+
+				it 'should still provide valid HTTPS URL incliding prefix' do
+					subject.handlers[0].stores[0].realize(state)
+
+					state.images['input'].store_url.should start_with "https://"
+					state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['input'].store_url.should include "test_prefix/test_out.jpg"
+					state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+					status(state.images['input'].store_url).should == 200
+				end
+
+				it 'should provide storage path without prefix' do
+					subject.handlers[0].stores[0].realize(state)
+
+					state.images['input'].store_path.should == "test_out.jpg"
+				end
 			end
 
 			describe 'non encrypted connection mode' do
