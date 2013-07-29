@@ -14,6 +14,20 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 * storage under custom paths including image hash, content determined extension or used URL path
 * based on [Unicorn HTTP server](http://unicorn.bogomips.org) with UNIX socket communication support
 
+## Changelog
+
+### 1.2.0
+
+* matching for query string key and value
+* getting query string key value into variable
+* optional query string matchers with default value
+* default values for optional component matchers
+* S3 storage prefix support
+
+### 1.1.0
+
+* passing thumbnailer options via query string parameters
+
 ## Installing
 
 HTTP Image Store is released as gem and can be installed from [RubyGems](http://rubygems.org) with:
