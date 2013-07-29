@@ -196,6 +196,7 @@ Options:
 
 * `bucket` - name of bucket to source image from
 * `path` - name of predefined path that will be used to generate key to object to source
+* `prefix` - prefix object key with given prefix value; this does not affect fromat of output URL; prefix will not be included in source path output; default: ``
 
 Example:
 
@@ -301,6 +302,7 @@ Options:
 * `bucket` - name of bucket to store image in
 * `path` - name of predefined path that will be used to generate key to store object under
 * `public` - if set to `true` the image will be readable by everybody; this affects fromat of output URL; default: `false`
+* `prefix` - prefix storeage key with given prefix value; this does not affect fromat of output URL; prefix will not be included in storage path output; default: ``
 
 Example:
 
