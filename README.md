@@ -673,7 +673,7 @@ Based on [Facebook APIs](https://developers.facebook.com/docs/reference/api/usin
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
-path "hash"	"#{digest}.#{mimeextension}"
+path "hash"	"#{digest}"
 path "path"	"#{path}"
 
 put "original" {
