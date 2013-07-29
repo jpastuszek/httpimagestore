@@ -684,6 +684,7 @@ put "original" {
 	output_store_path "original"
 }
 
+# type selected
 get "&type=square" {
 	source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
 
@@ -716,10 +717,29 @@ get "&type=large" {
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
-get "&:width" "&:height" "&:operation?crop" {
+# crop to specified width and height
+get "&:width" "&:height" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
-	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" format="input"
+	thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+# fit to width when no height is specified
+get "&:width" "&:height?1080" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="fit" width="#{width}" height="#{height}" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+# default to small class
+get {
+	source_s3 "original" bucket="bmybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
 
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
