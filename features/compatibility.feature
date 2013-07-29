@@ -4,7 +4,8 @@ Feature: Image list based thumbnailing and S3 storage
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
-		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
+		Given httpthumbnailer server is running at http://localhost:3100/health_check
+		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
@@ -49,7 +50,6 @@ Feature: Image list based thumbnailing and S3 storage
 			}
 		}
 		"""
-		Given httpthumbnailer server is running at http://localhost:3100/
 
 	@compatibility @test
 	Scenario: Putting original and its thumbnails to S3 bucket

@@ -3,7 +3,8 @@ Feature: S3 object Cache-Control header settings
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
-		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
+		Given httpthumbnailer server is running at http://localhost:3100/health_check
+		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
@@ -21,7 +22,6 @@ Feature: S3 object Cache-Control header settings
 			store_s3 "cache"	bucket="@AWS_S3_TEST_BUCKET@" public=true path="hash-name" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 		"""
-		Given httpthumbnailer server is running at http://localhost:3100/
 
 	@cache-control
 	Scenario: Image files get don't get Cache-Control header by default

@@ -3,15 +3,13 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
-		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
+		Given httpthumbnailer server is running at http://localhost:3100/health_check
+		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
 		path "original-hash"	"#{digest}"
 		path "path"		"#{path}"
-
-		get "" {
-		}
 
 		put "original" {
 			thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
@@ -77,7 +75,6 @@ Feature: Store limited original image in S3 and thumbnail on facebook API
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 		"""
-		Given httpthumbnailer server is running at http://localhost:3100/
 
 	@facebook @type
 	Scenario: Putting original to S3 bucket

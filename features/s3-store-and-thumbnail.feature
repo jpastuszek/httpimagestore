@@ -5,7 +5,8 @@ Feature: Store limited original image in S3 and thumbnail based on request
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
-		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
+		Given httpthumbnailer server is running at http://localhost:3100/health_check
+		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
@@ -36,7 +37,6 @@ Feature: Store limited original image in S3 and thumbnail based on request
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 		"""
-		Given httpthumbnailer server is running at http://localhost:3100/
 
 	@s3-store-and-thumbnail
 	Scenario: Putting original to S3 bucket
