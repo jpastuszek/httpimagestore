@@ -692,10 +692,20 @@ s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" 
 path "hash"	"#{digest}"
 path "path"	"#{path}"
 
-put "original" {
+# upload image under it's digest ID
+post {
 	thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
 
 	store_s3 "original" bucket="mybucket_v1" path="hash"
+
+	output_store_path "original"
+}
+
+# upload image under client provided ID/path
+put {
+	thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
+
+	store_s3 "original" bucket="mybucket_v1" path="path"
 
 	output_store_path "original"
 }
@@ -744,6 +754,15 @@ get "&:width" "&:height" {
 
 # fit to width when no height is specified
 get "&:width" "&:height?1080" {
+	source_s3 "original" bucket="mybucket_v1" path="path"
+
+	thumbnail "original" "thumbnail" operation="fit" width="#{width}" height="#{height}" format="input"
+
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+# fit to height when no width is specified
+get "&:height" "&:width?1080" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
 
 	thumbnail "original" "thumbnail" operation="fit" width="#{width}" height="#{height}" format="input"
