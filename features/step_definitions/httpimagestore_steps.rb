@@ -78,6 +78,7 @@ Then /S3 bucket will not contain (.*)/ do |key|
 end
 
 When /I do (.*) request (.*)/ do |method, uri|
+	@request_body = nil if method == 'GET'
 	@response = HTTPClient.new.request(method, URI.encode(uri.replace_s3_variables), nil, @request_body, (@request_headers or {}))
 end
 
@@ -132,6 +133,10 @@ Then /S3 object (.*) will contain (.*) image of size (.*)x(.*)/ do |key, format,
 	@image.format.should == format
 	@image.columns.should == width.to_i
 	@image.rows.should == height.to_i
+end
+
+Then /S3 object (.*) content type will be (.*)/ do |key, content_type|
+	@bucket.objects[key].content_type.should == content_type
 end
 
 Then /response body will contain (.*) image of size (.*)x(.*)/ do |format, width, height|

@@ -123,6 +123,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 		require 'httpimagestore/configuration/path'
 		require 'httpimagestore/configuration/handler'
 		require 'httpimagestore/configuration/thumbnailer'
+		require 'httpimagestore/configuration/identify'
 		require 'httpimagestore/configuration/file'
 		require 'httpimagestore/configuration/output'
 		require 'httpimagestore/configuration/s3'

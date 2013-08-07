@@ -1,4 +1,3 @@
-require 'unicorn-cuba-base'
 require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
 require 'httpimagestore/configuration/handler'
@@ -126,7 +125,7 @@ module Configuration
 					operation || 'fit',
 					width || 'input',
 					height || 'input',
-					format || 'jpeg',
+					format || 'input',
 					remaining || {},
 					matcher
 				)
@@ -232,8 +231,8 @@ module Configuration
 				Thumbnail.stats.incr_total_thumbnail_thumbnails_bytes thumbnail.data.bytesize
 			end
 
-			# update input image mime type from httpthumbnailer provided information
-			source_image.mime_type = input_mime_type unless source_image.mime_type
+			# use input image mime type from httpthumbnailer provided information
+			source_image.mime_type = input_mime_type if input_mime_type
 
 			request_state.images.merge! thumbnails
 		end
