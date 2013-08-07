@@ -91,7 +91,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		}
 		"""
 
-	@facebook @pictures @post
+	@flexi @pictures @post
 	Scenario: Posting picture to S3 bucket will store it under input data digest, limit to 2160x1260 and converted to JPEG
 		Given there is no 625d51a1820b607f.jpg file in S3 bucket
 		Given test-large.jpg file content as request body
@@ -120,7 +120,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/b0fe25319ba5909a.jpg
 		Then response status will be 403
 
-	@facebook @pictures @put
+	@flexi @pictures @put
 	Scenario: Putting picture to S3 bucket will store it under provided path, limit it to 2160x1260 and converted to JPEG
 		Given there is no hello/world file in S3 bucket
 		Given test-large.jpg file content as request body
@@ -148,7 +148,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/hello/world
 		Then response status will be 403
 
-	@facebook @images @post
+	@flexi @images @post
 	Scenario: Posting picture to S3 bucket will store it under first input data digest
 		Given there is no b0fe25319ba5909a.png file in S3 bucket
 		Given test.png file content as request body
@@ -164,7 +164,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/b0fe25319ba5909a.png
 		Then response status will be 403
 
-	@facebook @images @put
+	@flexi @images @put
 	Scenario: Putting picture to S3 bucket will store it under provided path
 		Given there is no hello/world file in S3 bucket
 		Given test.png file content as request body
@@ -180,7 +180,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/hello/world
 		Then response status will be 403
 
-	@facebook @default
+	@flexi @default
 	Scenario: Getting stored image when no query string param is present
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -195,7 +195,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 509x719
 
-	@facebook @type
+	@flexi @type
 	Scenario: Getting square type tumbnail
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -204,7 +204,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 50x50
 
-	@facebook @type
+	@flexi @type
 	Scenario: Getting small type tumbnail
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -213,7 +213,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 50x71
 
-	@facebook @type
+	@flexi @type
 	Scenario: Getting normall type tumbnail
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -222,7 +222,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 100x141
 
-	@facebook @type
+	@flexi @type
 	Scenario: Getting large type tumbnail
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -231,7 +231,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 200x283
 
-	@facebook @size
+	@flexi @size
 	Scenario: Getting custom size tumbnail
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -240,7 +240,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 123x321
 
-	@facebook @size
+	@flexi @size
 	Scenario: Getting custom size tumbnail without height
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
@@ -249,7 +249,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be image/png
 		Then response body will contain PNG image of size 123x174
 
-	@facebook @size
+	@flexi @size
 	Scenario: Getting custom size tumbnail without width
 		Given test.png file content as request body
 		When I do PUT request http://localhost:3000/images/test.png
