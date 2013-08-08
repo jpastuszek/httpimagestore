@@ -148,7 +148,7 @@ Feature: Image list based thumbnailing and S3 storage
 		thumbnailing of 'input' into 'bad_dim' failed: bad dimension value: 128x
 		"""
 
-	@error-reporting
+	@error-reporting @413 @load
 	Scenario: Too large image - uploaded image too big to fit in memory limit
 		Given test-large.jpg file content as request body
 		When I do PUT request http://localhost:3000/multipart/large_png
@@ -166,7 +166,7 @@ Feature: Image list based thumbnailing and S3 storage
 		thumbnailing of 'input' into 'large_png' failed: image too large: cache resources exhausted
 		"""
 
-	@error-reporting
+	@error-reporting @413 @thumbnail
 	Scenario: Too large image - memory exhausted when thmbnailing
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/multipart/superlarge
