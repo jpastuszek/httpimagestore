@@ -2,7 +2,9 @@ require_relative 'spec_helper'
 require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
+require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/path'
+MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe 'path rendering' do
@@ -18,10 +20,10 @@ describe Configuration do
 			EOF
 
 			subject.paths['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
-			subject.paths['hash'].render(path: 'test/abc.jpg', _body: 'hello').should == '2cf24dba5fb0a30e.jpg'
-			subject.paths['hash-name'].render(path: 'test/abc.jpg', _body: 'hello', imagename: 'xbrna').should == '2cf24dba5fb0a30e/xbrna.jpg'
-			subject.paths['structured'].render(path: 'test/abc.jpg', _body: 'hello').should == 'test/2cf24dba5fb0a30e/abc.jpg'
-			subject.paths['structured-name'].render(path: 'test/abc.jpg', _body: 'hello', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
+			subject.paths['hash'].render(digest: '2cf24dba5fb0a30e', extension: 'jpg').should == '2cf24dba5fb0a30e.jpg'
+			subject.paths['hash-name'].render(digest: '2cf24dba5fb0a30e', imagename: 'xbrna', extension: 'jpg').should == '2cf24dba5fb0a30e/xbrna.jpg'
+			subject.paths['structured'].render(dirname: 'test', digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg').should == 'test/2cf24dba5fb0a30e/abc.jpg'
+			subject.paths['structured-name'].render(dirname: 'test', digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
 		end
 
 		describe 'error handling' do
@@ -62,29 +64,74 @@ describe Configuration do
 					subject.paths['test'].render
 				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'} 
 			end
+		end
 
-			it 'should raise NoValueForPathTemplatePlaceholerError if path value is not found' do
-				subject = Configuration.read(<<-'EOF')
-				path {
-					"test"								"#{dirname}#{basename}"
-				}
-				EOF
-
-				expect {
-					subject.paths['test'].render
-				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{dirname}#{basename}': need 'path' to generate value for '#{dirname}'}
+		describe 'rendering from RequestState' do
+			let :state do
+				Configuration::RequestState.new(
+					'test',
+					{operation: 'pad'},
+					'test/abc.jpg',
+					{width: '123', height: '321'}
+				)
 			end
 
-			it 'should raise NoValueForPathTemplatePlaceholerError if body value is not found' do
-				subject = Configuration.read(<<-'EOF')
+			subject do
+				Configuration.read(<<-'EOF')
+				path "uri"						"#{path}"
+				path "hash"						"#{digest}.#{extension}"
 				path {
-					"test"								"#{digest}"
+					"hash-name"					"#{digest}/#{imagename}.#{extension}"
+					"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
+					"structured-name"		"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
 				}
+				path "name"						"#{imagename}"
+				path "base"						"#{basename}"
 				EOF
+			end
 
-				expect {
-					subject.paths['test'].render(path: '')
-				}.to raise_error Configuration::NoMetaValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{digest}': need 'body' to generate value for '#{digest}'}
+			it 'should render path using meta variables and locals' do
+
+				subject.paths['uri'].render(state).should == 'test/abc.jpg'
+				subject.paths['hash'].render(state).should == '9f86d081884c7d65.jpg'
+				subject.paths['hash-name'].render(state.with_locals(imagename: 'xbrna')).should == '9f86d081884c7d65/xbrna.jpg'
+				subject.paths['structured'].render(state).should == 'test/9f86d081884c7d65/abc.jpg'
+				subject.paths['structured-name'].render(state.with_locals(imagename: 'xbrna')).should == 'test/9f86d081884c7d65/abc-xbrna.jpg'
+			end
+
+			describe 'error handling' do
+				let :state do
+					Configuration::RequestState.new(
+						'',
+						{operation: 'pad'},
+						'test/abc.jpg',
+						{width: '123', height: '321'}
+					)
+				end
+
+				it 'should raise PathRenderingError if body was expected but not provided' do
+					expect {
+						subject.paths['hash'].render(state)
+					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'hash' from template '#{digest}.#{extension}': need not empty request body to generate value for 'digest'}
+				end
+
+				it 'should raise PathRenderingError if variable not defined' do
+					expect {
+						subject.paths['name'].render(state)
+					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'name' from template '#{imagename}': variable 'imagename' not defined}
+				end
+
+				it 'should raise PathRenderingError if meta variable dependent variable not defined' do
+					state = Configuration::RequestState.new(
+						'',
+						{operation: 'pad'},
+						nil,
+						{width: '123', height: '321'}
+					)
+					expect {
+						subject.paths['base'].render(state)
+					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'base' from template '#{basename}': need 'path' variable to generate value for 'basename'}
+				end
 			end
 		end
 	end

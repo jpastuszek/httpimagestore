@@ -39,6 +39,59 @@ describe Configuration do
 		end
 
 		describe Configuration::RequestState do
+			subject do
+				Configuration::RequestState.new(
+					'test',
+					{operation: 'pad'},
+					'/hello/world.jpg',
+					{width: '123', height: '321'}
+				)
+			end
+
+			it 'should behave like hash' do
+				subject['a'] = 'b'
+				subject['a'].should == 'b'
+			end
+
+			it 'should provide body' do
+				subject.body.should == 'test'
+			end
+
+			describe 'variables' do
+				it 'should provide path' do
+					subject[:path].should == '/hello/world.jpg'
+				end
+
+				it 'should provide query string params' do
+					subject[:width].should == '123'
+					subject[:height].should == '321'
+				end
+
+				it 'should provide matches' do
+					subject[:operation].should == 'pad'
+				end
+
+				it 'should provide query_string_options' do
+					subject[:query_string_options].should == 'height:321,width:123'
+				end
+
+				it 'should provide request body digest' do
+					subject[:digest].should == '9f86d081884c7d65'
+				end
+
+				it 'should provide extension' do
+					subject[:extension].should == 'jpg'
+				end
+
+				it 'should provide dirname' do
+					subject[:dirname].should == '/hello'
+				end
+
+				it 'should provide basename' do
+					subject[:basename].should == 'world'
+				end
+			end
+
 			it 'should raise ImageNotLoadedError if image lookup fails' do
 				expect {
 					Configuration::RequestState.new.images['test']

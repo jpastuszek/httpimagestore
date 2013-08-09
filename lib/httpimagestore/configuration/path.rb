@@ -15,14 +15,8 @@ module Configuration
 	end
 
 	class NoValueForPathTemplatePlaceholerError < PathRenderingError
-		def initialize(path_name, template, value_name)
-			super path_name, template, "no value for '\#{#{value_name}}'"
-		end
-	end
-
-	class NoMetaValueForPathTemplatePlaceholerError < PathRenderingError
-		def initialize(path_name, template, value_name, meta_value)
-			super path_name, template, "need '#{value_name}' to generate value for '\#{#{meta_value}}'"
+		def initialize(path_name, template, placeholder)
+			super path_name, template, "no value for '\#{#{placeholder}}'"
 		end
 	end
 
@@ -49,26 +43,11 @@ module Configuration
 
 		def initialize(path_name, template)
 			super(template) do |locals, name|
-				case name
-				when :basename
-					path = locals[:path] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :path, name)
-					path = Pathname.new(path)
-					path.basename(path.extname).to_s
-				when :dirname
-					path = locals[:path] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :path, name)
-					Pathname.new(path).dirname.to_s
-				when :extension
-					path = locals[:path] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :path, name)
-					Pathname.new(path).extname.delete('.')
-				when :digest
-					return locals[:_digest] if locals.include? :_digest
-					data = locals[:_body] or raise NoMetaValueForPathTemplatePlaceholerError.new(path_name, template, :body, name) 
-					digest = Digest::SHA2.new.update(data).to_s[0,16]
-					# cache digest in request locals
-					locals[:_digest] = digest
-				else
-					locals[name] or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)
-				end
+				begin
+					locals[name]
+				rescue ConfigurationError => error
+					raise PathRenderingError.new(path_name, template, error.message)
+				end or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)
 			end
 		end
 	end

@@ -1,4 +1,5 @@
 require 'mime/types'
+require 'digest/sha2'
 
 module Configuration
 	class ImageNotLoadedError < ConfigurationError
@@ -13,7 +14,25 @@ module Configuration
 		end
 	end
 
-	class RequestState
+	class VariableNotDefinedError < ConfigurationError
+		def initialize(name)
+			super "variable '#{name}' not defined"
+		end
+	end
+
+	class NoRequestBodyToGenerateMetaVariableError < ConfigurationError
+		def initialize(meta_value)
+			super "need not empty request body to generate value for '#{meta_value}'"
+		end
+	end
+
+	class NoVariableToGenerateMetaVariableError < ConfigurationError
+		def initialize(value_name, meta_value)
+			super "need '#{value_name}' variable to generate value for '#{meta_value}'"
+		end
+	end
+
+	class RequestState < Hash
 		include ClassLogging
 
 		class Images < Hash
@@ -35,23 +54,52 @@ module Configuration
 		end
 
 		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new)
-			@locals = {}
-			@locals.merge! query_string
-			@locals[:path] = path
-			@locals.merge! matches
-			@locals[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
-			log.debug "processing request with body length: #{body.bytesize} bytes and locals: #{@locals} "
+			super() do |vars, name|
+				log.debug  "generating meta variable: #{name}"
+				val = case name
+				when :basename
+					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
+					path = Pathname.new(path)
+					vars[name] = path.basename(path.extname).to_s
+				when :dirname
+					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
+					vars[name] = Pathname.new(path).dirname.to_s
+				when :extension
+					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
+					vars[name] = Pathname.new(path).extname.delete('.')
+				when :digest
+					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+					vars[name] = Digest::SHA2.new.update(@body).to_s[0,16]
+				else
+					raise VariableNotDefinedError.new(name)
+				end
+				log.debug  "meta variable '#{name}': #{val}"
+				val
+			end
 
-			@locals[:_body] = body
+			merge! query_string
+			self[:path] = path
+			merge! matches
+			self[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
 
+			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{self} "
+
+			@body = body
 			@images = Images.new(memory_limit)
 			@memory_limit = memory_limit
 			@output_callback = nil
 		end
 
+		attr_reader :body
 		attr_reader :images
-		attr_reader :locals
 		attr_reader :memory_limit
+
+		def with_locals(locals)
+			log.debug "using additional local variables: #{locals}"
+			Hash.new do |var, key|
+				self[key]
+			end.merge!(locals)
+		end
 
 		def output(&callback)
 			@output_callback = callback
@@ -81,8 +129,8 @@ module Configuration
 
 	class InputSource
 		def realize(request_state)
-			request_state.locals[:_body].empty? and raise ZeroBodyLengthError
-			request_state.images['input'] = Image.new(request_state.locals[:_body])
+			request_state.body.empty? and raise ZeroBodyLengthError
+			request_state.images['input'] = Image.new(request_state.body)
 		end
 	end
 
@@ -102,7 +150,7 @@ module Configuration
 
 		def included?(request_state)
 			return true if not @template
-			@template.render(request_state.locals).split(',').include? @value
+			@template.render(request_state).split(',').include? @value
 		end
 	end
 
@@ -143,7 +191,7 @@ module Configuration
 
 		def rendered_path(request_state)
 			path = @global.paths[@path_spec]
-			Pathname.new(path.render(@locals.merge(request_state.locals))).cleanpath.to_s
+			Pathname.new(path.render(request_state.with_locals(@locals))).cleanpath.to_s
 		end
 
 		def put_sourced_named_image(request_state)

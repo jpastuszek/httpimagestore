@@ -157,7 +157,7 @@ module Configuration
 			@specs.select do |spec|
 				spec.included?(request_state)
 			end.each do |spec|
-				rendered_specs.merge! spec.render(request_state.locals)
+				rendered_specs.merge! spec.render(request_state)
 			end
 			source_image = request_state.images[@source_image_name]
 
