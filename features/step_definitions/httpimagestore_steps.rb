@@ -51,6 +51,10 @@ Given /^([^ ]*) file content as request body/ do |file|
 	@request_body = File.open(support_dir + file){|f| f.read }
 end
 
+Given /there is no file (.*)/ do |file|
+	Pathname.new(file).exist? and Pathname.new(file).unlink
+end
+
 Given /S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables/ do
 	
 	unless ENV['AWS_ACCESS_KEY_ID'] and ENV['AWS_SECRET_ACCESS_KEY'] and ENV['AWS_S3_TEST_BUCKET']
@@ -151,7 +155,22 @@ Then /response body will contain (.*) image of size (.*)x(.*)/ do |format, width
 	@image.rows.should == height.to_i
 end
 
+Then /response body will contain UUID/ do
+	@response.body.should ~ /[0-f]{8}-[0-f]{4}-[0-f]{4}-[0-f]{4}-[0-f]{12}/
+end
+
 And /that image pixel at (.*)x(.*) should be of color (.*)/ do |x, y, color|
 	@image.pixel_color(x.to_i, y.to_i).to_color.sub(/^#/, '0x').should == color
+end
+
+Then /file (.*) will contain (.*) image of size (.*)x(.*)/ do |file, format, width, height|
+	data = Pathname.new(file).read
+	
+	@image.destroy! if @image
+	@image = Magick::Image.from_blob(data).first
+
+	@image.format.should == format
+	@image.columns.should == width.to_i
+	@image.rows.should == height.to_i
 end
 

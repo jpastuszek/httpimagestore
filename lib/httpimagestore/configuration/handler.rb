@@ -1,5 +1,6 @@
 require 'mime/types'
 require 'digest/sha2'
+require 'securerandom'
 
 module Configuration
 	class ImageNotLoadedError < ConfigurationError
@@ -67,9 +68,25 @@ module Configuration
 				when :extension
 					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
 					vars[name] = Pathname.new(path).extname.delete('.')
-				when :digest
+				when :digest # deprecated
 					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
 					vars[name] = Digest::SHA2.new.update(@body).to_s[0,16]
+				when :input_digest
+					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+					vars[name] = Digest::SHA2.new.update(@body).to_s[0,16]
+				when :input_sha256
+					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+					vars[name] = Digest::SHA2.new.update(@body).to_s
+				when :image_digest
+					image_name = vars[:imagename] or raise NoVariableToGenerateMetaVariableError.new(:imagename, name)
+					image = @images[image_name]
+					vars[name] = Digest::SHA2.new.update(image.data).to_s[0,16]
+				when :image_sha256
+					image_name = vars[:imagename] or raise NoVariableToGenerateMetaVariableError.new(:imagename, name)
+					image = @images[image_name]
+					vars[name] = Digest::SHA2.new.update(image.data).to_s
+				when :uuid
+					vars[name] = SecureRandom.uuid
 				else
 					raise VariableNotDefinedError.new(name)
 				end
@@ -96,9 +113,7 @@ module Configuration
 
 		def with_locals(locals)
 			log.debug "using additional local variables: #{locals}"
-			Hash.new do |var, key|
-				self[key]
-			end.merge!(locals)
+			self.dup.merge!(locals)
 		end
 
 		def output(&callback)

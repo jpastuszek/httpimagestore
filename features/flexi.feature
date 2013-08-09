@@ -12,7 +12,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "hash" "#{digest}.#{mimeextension}"
+		path "hash" "#{input_digest}.#{mimeextension}"
 		path "path" "#{path}"
 
 		## User uploaded content - always JPEG converted, not bigger than 2160x2160 and in hight quality compression
@@ -31,7 +31,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		## Uploaded by us for use on the website - whatever we send
 		post "images" {
 			identify "input"
-			store_s3 "input" bucket="@AWS_S3_TEST_BUCKET@" path="hash"
+			store_s3 "input" bucket="@AWS_S3_TEST_BUCKET@" path="input_digest"
 			output_store_path "input"
 		}
 
@@ -157,7 +157,7 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		b0fe25319ba5909a.png
+		b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.png
 		"""
 		Then S3 object b0fe25319ba5909a.png will contain PNG image of size 509x719
 		Then S3 object b0fe25319ba5909a.png content type will be image/png

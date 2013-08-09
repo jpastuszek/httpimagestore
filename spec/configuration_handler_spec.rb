@@ -76,7 +76,27 @@ describe Configuration do
 				end
 
 				it 'should provide request body digest' do
-					subject[:digest].should == '9f86d081884c7d65'
+					subject[:digest].should == '9f86d081884c7d65' # deprecated
+					subject[:input_digest].should == '9f86d081884c7d65'
+				end
+
+				it 'should provide request body full sha256 checsum' do
+					subject[:input_sha256].should == '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
+				end
+
+				it 'should provide image body digest' do
+					subject.images['abc'] = Struct.new(:data).new('image body')
+					subject.with_locals(imagename: 'abc')[:image_digest].should == 'f5288dd892bb007b'
+				end
+
+				it 'should provide image body full sha256 checsum' do
+					subject.images['abc'] = Struct.new(:data).new('image body')
+					subject.with_locals(imagename: 'abc')[:image_sha256].should == 'f5288dd892bb007b607304a8fb20c91ea769dcd04d82cc8ddf3239602867eb4d'
+				end
+
+				it 'should provide uuid' do
+					subject[:uuid].should_not be_empty
+					subject[:uuid].should == subject[:uuid]
 				end
 
 				it 'should provide extension' do

@@ -96,7 +96,12 @@ Arguments:
 
 Variables:
 
-* `digest` - input image digest based on it's content only; this is first 16 hex characters from SHA2 digest; ex. `2cf24dba5fb0a30e`
+* `input_digest` - input image digest based on it's content only; this is first 16 hex characters from SHA256 digest; ex. `9f86d081884c7d65`
+* `digest` - same as `input_digest`; deprecated, please use `input_digest` instead
+* `input_sha256` - input image digest based on it's content only; this is whole hex encoded SHA256 digest; ex. `9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08`
+* `image_digest` - digest of image being stored based on it's content only; this is first 16 hex characters from SHA256 digest; ex. `9f86d081884c7d65`
+* `image_sha256` - digest of image being stored based on it's content only; this is whole hex encoded SHA256 digest; ex. `9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08`
+* `uuid` - unique ID for request; ex. `1b68a767-8163-425a-a32c-db6ed7200343`
 * `path` - remaining (unmatched) request URL path
 * `basename` - name of the file without it's extension determined from `path`
 * `direname` - name of the directory determined form `path`
@@ -109,12 +114,12 @@ Example:
 
 ```sdl
 path "uri"						"#{path}"
-path "hash"						"#{digest}.#{extension}"
+path "hash"						"#{input_digest}.#{extension}"
 
 path {
-	"hash-name"					"#{digest}/#{imagename}.#{extension}"
-	"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
-	"structured-name"			"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
+	"hash-name"					"#{input_digest}/#{imagename}.#{extension}"
+	"structured"				"#{dirname}/#{input_digest}/#{basename}.#{extension}"
+	"structured-name"			"#{dirname}/#{input_digest}/#{basename}-#{imagename}.#{extension}"
 }
 ```
 
@@ -292,7 +297,7 @@ Example:
 
 ```sdl
 path "imagename"	"#{name}"
-path "hash"			"#{digest}"
+path "hash"			"#{input_digest}"
 
 put "store" ":name" {
 	store_file "input" root="/srv/images" path="imagename"
@@ -324,7 +329,7 @@ Example:
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 path "imagename"	"#{name}"
-path "hash"			"#{digest}"
+path "hash"			"#{input_digest}"
 
 put ":name" {
 	store_s3 "input" bucket="mybucket" path="imagename"
@@ -431,8 +436,8 @@ Example:
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
-path "hash"			"#{digest}.#{mimeextension}"
-path "hash-name"	"#{digest}/#{imagename}.#{mimeextension}"
+path "hash"			"#{input_digest}.#{mimeextension}"
+path "hash-name"	"#{input_digest}/#{imagename}.#{mimeextension}"
 
 put "thumbnail" {
 	thumbnail "input" {
@@ -486,10 +491,10 @@ This complete API configuration presents API compatible with previous version of
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 # Compatibility API
-path "compat-hash"				"#{digest}.#{mimeextension}"
-path "compat-hash-name"			"#{digest}/#{imagename}.#{mimeextension}"
-path "compat-structured"		"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
-path "compat-structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+path "compat-hash"				"#{input_digest}.#{mimeextension}"
+path "compat-hash-name"			"#{input_digest}/#{imagename}.#{mimeextension}"
+path "compat-structured"		"#{dirname}/#{input_digest}/#{basename}.#{mimeextension}"
+path "compat-structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{imagename}.#{mimeextension}"
 
 put "thumbnail" ":name_list" ":path/.+/" {
 	thumbnail "input" {
@@ -552,7 +557,7 @@ put "thumbnail" ":name_list" {
 }
 
 # Thumbnail on demand API 
-path "hash"	"#{digest}.#{mimeextension}"
+path "hash"	"#{input_digest}.#{mimeextension}"
 path "path"	"#{path}"
 
 put "v1" "original" {
@@ -689,7 +694,7 @@ Based on [Facebook APIs](https://developers.facebook.com/docs/reference/api/usin
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
-path "hash"	"#{digest}"
+path "hash"	"#{input_digest}"
 path "path"	"#{path}"
 
 # upload image under it's digest ID
