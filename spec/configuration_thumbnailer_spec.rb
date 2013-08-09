@@ -146,7 +146,7 @@ describe Configuration do
 			end
 
 			before :each do
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 			end
 
 			describe 'thumbnailing to single spec' do
@@ -164,23 +164,23 @@ describe Configuration do
 				end
 
 				it 'should provide thumbnail data' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].data.should_not be_nil
 				end
 
 				it 'should set thumbnail mime type' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].mime_type.should == 'image/jpeg'
 				end
 
 				it 'should use input image source path and url' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].source_path.should == 'test.in'
 					state.images['original'].source_url.should == 'file://test.in'
 				end
 
 				it 'should set input image mime type' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['input'].mime_type.should == 'image/jpeg'
 				end
 
@@ -202,7 +202,7 @@ describe Configuration do
 
 					it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
 						expect {
-							subject.handlers[0].image_sources[1].realize(state)
+							subject.handlers[0].processors[0].realize(state)
 						}.to raise_error MemoryLimit::MemoryLimitedExceededError
 					end
 				end
@@ -220,8 +220,8 @@ describe Configuration do
 						)
 
 						expect {
-							subject.handlers[0].image_sources[0].realize(state)
-							subject.handlers[0].image_sources[1].realize(state)
+							subject.handlers[0].sources[0].realize(state)
+							subject.handlers[0].processors[0].realize(state)
 							}.to raise_error Configuration::Thumbnail::ThumbnailingError # WTF?, "thumbnailing of 'input' into 'original' failed: at least one image dimension is zero: 0x10"
 					end
 
@@ -266,26 +266,26 @@ describe Configuration do
 				end
 
 				it 'should provide thumbnail data' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].data.should_not be_nil
 					state.images['small'].data.should_not be_nil
 					state.images['padded'].data.should_not be_nil
 				end
 
 				it 'should set thumbnail mime type' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].mime_type.should == 'image/jpeg'
 					state.images['small'].mime_type.should == 'image/jpeg'
 					state.images['padded'].mime_type.should == 'image/png'
 				end
 
 				it 'should set input image mime type' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['input'].mime_type.should == 'image/jpeg'
 				end
 
 				it 'should use input image source path and url' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].processors[0].realize(state)
 					state.images['original'].source_path.should == 'test.in'
 					state.images['original'].source_url.should == 'file://test.in'
 					state.images['small'].source_path.should == 'test.in'
@@ -312,7 +312,7 @@ describe Configuration do
 
 					it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
 						expect {
-							subject.handlers[0].image_sources[1].realize(state)
+							subject.handlers[0].processors[0].realize(state)
 						}.to raise_error MemoryLimit::MemoryLimitedExceededError
 					end
 				end
@@ -344,7 +344,7 @@ describe Configuration do
 					end
 
 					it 'should provide thumbnails that name match if-image-name-on list' do
-						subject.handlers[0].image_sources[1].realize(state)
+						subject.handlers[0].processors[0].realize(state)
 						state.images.should_not include 'original'
 						state.images['small'].data.should_not be_nil
 						state.images['padded'].data.should_not be_nil
@@ -363,10 +363,10 @@ describe Configuration do
 							}
 						)
 
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 
 						expect {
-							subject.handlers[0].image_sources[1].realize(state)
+							subject.handlers[0].processors[0].realize(state)
 						}.to raise_error Configuration::Thumbnail::ThumbnailingError, "thumbnailing of 'input' into 'original' failed: at least one image dimension is zero: 0x10"
 					end
 
@@ -416,12 +416,12 @@ describe Configuration do
 			end
 
 			it 'should mark source to be included when output image name in oneline and destination image name in multiline statement match if-image-name-on list' do
-				subject.handlers[0].image_sources[1].excluded?(state).should be_false
-				subject.handlers[0].image_sources[2].excluded?(state).should be_true
-				subject.handlers[0].image_sources[3].excluded?(state).should be_true
-				subject.handlers[0].image_sources[4].excluded?(state).should be_false
-				subject.handlers[0].image_sources[5].excluded?(state).should be_true
-				subject.handlers[0].image_sources[6].excluded?(state).should be_false
+				subject.handlers[0].processors[0].excluded?(state).should be_false
+				subject.handlers[0].processors[1].excluded?(state).should be_true
+				subject.handlers[0].processors[2].excluded?(state).should be_true
+				subject.handlers[0].processors[3].excluded?(state).should be_false
+				subject.handlers[0].processors[4].excluded?(state).should be_true
+				subject.handlers[0].processors[5].excluded?(state).should be_false
 			end
 		end
 	end

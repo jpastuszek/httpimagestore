@@ -91,20 +91,20 @@ else
 			end
 
 			it 'should source image from S3 using path spec' do
-				subject.handlers[0].image_sources[0].should be_a Configuration::S3Source
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].should be_a Configuration::S3Source
+				subject.handlers[0].sources[0].realize(state)
 
 				state.images['original'].data.should == @test_data
 			end
 
 			it 'should use S3 object content type for mime type' do
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 
 				state.images['original'].mime_type.should == 'image/jpeg'
 			end
 
 			it 'should provide source path and HTTPS url' do
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 
 				state.images['original'].source_path.should == "test.jpg"
 				state.images['original'].source_url.should start_with "https://"
@@ -126,7 +126,7 @@ else
 				end
 
 				it 'should still provide valid HTTPS URL incliding prefix' do
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 
 					state.images['original'].source_url.should start_with "https://"
 					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
@@ -136,7 +136,7 @@ else
 				end
 
 				it 'should provide source path without prefix' do
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 
 					state.images['original'].source_path.should == "test.jpg"
 				end
@@ -154,14 +154,14 @@ else
 				end
 
 				it 'should source image from S3 using path spec' do
-					subject.handlers[0].image_sources[0].should be_a Configuration::S3Source
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].should be_a Configuration::S3Source
+					subject.handlers[0].sources[0].realize(state)
 
 					state.images['original'].data.should == @test_data
 				end
 
 				it 'should provide source HTTP url' do
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 					state.images['original'].source_url.should start_with "http://"
 					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
 					state.images['original'].source_url.should include "/test.jpg"
@@ -191,13 +191,13 @@ else
 				end
 
 				it 'should provide image name to be used as #{imagename}' do
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 					state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
 					state.images['test-image-name'].data.should == 'hello world'
 				end
 
 				it 'should provide bucket to be used as #{bucket}' do
-					subject.handlers[0].image_sources[1].realize(state)
+					subject.handlers[0].sources[1].realize(state)
 					state.images['bucket'].source_path.should == "#{ENV['AWS_S3_TEST_BUCKET']}.jpg"
 					state.images['bucket'].data.should == 'hello bucket'
 				end
@@ -242,7 +242,7 @@ else
 					}
 					EOF
 					expect {
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error Configuration::S3NotConfiguredError, 'S3 client not configured'
 				end
 
@@ -255,7 +255,7 @@ else
 					}
 					EOF
 					expect {
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error Configuration::S3NoSuchBucketError, %{S3 bucket '#{ENV['AWS_S3_TEST_BUCKET']}X' does not exist}
 				end
 
@@ -268,7 +268,7 @@ else
 					}
 					EOF
 					expect {
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error Configuration::S3NoSuchKeyError, %{S3 bucket '#{ENV['AWS_S3_TEST_BUCKET']}' does not contain key 'blah'}
 				end
 
@@ -281,7 +281,7 @@ else
 					}
 					EOF
 					expect {
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error Configuration::S3AccessDenied, %{access to S3 bucket 'blah' or key 'test.jpg' was denied}
 				end
 			end
@@ -293,7 +293,7 @@ else
 
 				it 'should raise MemoryLimit::MemoryLimitedExceededError when sourcing bigger image than limit' do
 					expect {
-						subject.handlers[0].image_sources[0].realize(state)
+						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error MemoryLimit::MemoryLimitedExceededError
 				end
 			end
@@ -326,7 +326,7 @@ else
 			end
 
 			before :each do
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 			end
 
 			it 'should source image from S3 using path spec' do

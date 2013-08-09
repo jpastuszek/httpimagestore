@@ -84,8 +84,11 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit)
 
-						handler.image_sources.each do |image_source|
-							image_source.realize(state) unless image_source.respond_to? :excluded? and image_source.excluded?(state)
+						handler.sources.each do |source|
+							source.realize(state) unless source.respond_to? :excluded? and source.excluded?(state)
+						end
+						handler.processors.each do |processor|
+							processor.realize(state) unless processor.respond_to? :excluded? and processor.excluded?(state)
 						end
 						handler.stores.each do |store|
 							store.realize(state) unless store.respond_to? :excluded? and store.excluded?(state)

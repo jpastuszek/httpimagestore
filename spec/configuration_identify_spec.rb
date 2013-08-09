@@ -33,10 +33,10 @@ describe Configuration do
 		end
 
 		it 'should provide input image mime type' do
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].realize(state)
 			state.images['input'].mime_type.should be_nil
 
-			subject.handlers[0].image_sources[1].realize(state)
+			subject.handlers[0].processors[0].realize(state)
 			state.images['input'].mime_type.should == 'image/jpeg'
 		end
 	end

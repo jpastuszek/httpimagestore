@@ -63,7 +63,7 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			configuration.image_sources << super
+			configuration.sources << super
 		end
 
 		def realize(request_state)

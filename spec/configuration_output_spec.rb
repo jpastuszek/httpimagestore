@@ -27,7 +27,7 @@ describe Configuration do
 		end
 
 		before :each do
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].realize(state)
 		end
 
 		it 'should provide given image' do
@@ -112,7 +112,7 @@ describe Configuration do
 				}
 				EOF
 
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].output.realize(state)
 
@@ -142,8 +142,8 @@ describe Configuration do
 				}
 				EOF
 
-				subject.handlers[0].image_sources[0].realize(state)
-				subject.handlers[0].image_sources[1].realize(state)
+				subject.handlers[0].sources[0].realize(state)
+				subject.handlers[0].sources[1].realize(state)
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].stores[1].realize(state)
 				subject.handlers[0].output.realize(state)
@@ -185,9 +185,9 @@ describe Configuration do
 				end
 
 				it 'should output store path only for images that names match if-image-name-on list' do
-					subject.handlers[0].image_sources[0].realize(state)
-					subject.handlers[0].image_sources[1].realize(state)
-					subject.handlers[0].image_sources[2].realize(state)
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].sources[1].realize(state)
+					subject.handlers[0].sources[2].realize(state)
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].stores[1].realize(state)
 					subject.handlers[0].stores[2].realize(state)
@@ -207,7 +207,7 @@ describe Configuration do
 					}
 					EOF
 
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 
 					expect {
 						subject.handlers[0].output.realize(state)
@@ -230,7 +230,7 @@ describe Configuration do
 				}
 				EOF
 
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].output.realize(state)
 
@@ -260,8 +260,8 @@ describe Configuration do
 				}
 				EOF
 
-				subject.handlers[0].image_sources[0].realize(state)
-				subject.handlers[0].image_sources[1].realize(state)
+				subject.handlers[0].sources[0].realize(state)
+				subject.handlers[0].sources[1].realize(state)
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].stores[1].realize(state)
 				subject.handlers[0].output.realize(state)
@@ -303,9 +303,9 @@ describe Configuration do
 				end
 
 				it 'should output store url only for images that names match if-image-name-on list' do
-					subject.handlers[0].image_sources[0].realize(state)
-					subject.handlers[0].image_sources[1].realize(state)
-					subject.handlers[0].image_sources[2].realize(state)
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].sources[1].realize(state)
+					subject.handlers[0].sources[2].realize(state)
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].stores[1].realize(state)
 					subject.handlers[0].stores[2].realize(state)
@@ -325,7 +325,7 @@ describe Configuration do
 					}
 					EOF
 
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 
 					expect {
 						subject.handlers[0].output.realize(state)

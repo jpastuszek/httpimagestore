@@ -72,27 +72,27 @@ describe Configuration do
 
 		describe 'sources' do
 			it 'should have implicit InputSource on non get handlers' do
-				subject.handlers[0].image_sources.first.should_not be_a Configuration::InputSource
-				subject.handlers[1].image_sources.first.should be_a Configuration::InputSource
-				subject.handlers[2].image_sources.first.should be_a Configuration::InputSource
+				subject.handlers[0].sources.first.should_not be_a Configuration::InputSource
+				subject.handlers[1].sources.first.should be_a Configuration::InputSource
+				subject.handlers[2].sources.first.should be_a Configuration::InputSource
 			end
 
 			describe Configuration::InputSource do
 				it 'should copy input data to "input" image when realized' do
 					state = Configuration::RequestState.new('abc')
-					input_source = subject.handlers[1].image_sources[0].realize(state)
+					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].data.should == 'abc'
 				end
 
 				it 'should have nil mime type' do
 					state = Configuration::RequestState.new('abc')
-					input_source = subject.handlers[1].image_sources[0].realize(state)
+					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].mime_type.should be_nil
 				end
 
 				it 'should have nil source path and url' do
 					state = Configuration::RequestState.new('abc')
-					input_source = subject.handlers[1].image_sources[0].realize(state)
+					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].source_path.should be_nil
 					state.images['input'].source_url.should be_nil
 				end

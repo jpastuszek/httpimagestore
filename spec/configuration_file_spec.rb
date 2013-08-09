@@ -36,21 +36,21 @@ describe Configuration do
 		end
 
 		it 'should source image from file using path spec' do
-			subject.handlers[0].image_sources[0].should be_a Configuration::FileSource
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].should be_a Configuration::FileSource
+			subject.handlers[0].sources[0].realize(state)
 
 			state.images["original"].should_not be_nil
 			state.images["original"].data.should == 'abc'
 		end
 
 		it 'should have nil mime type' do
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].realize(state)
 
 			state.images["original"].mime_type.should be_nil
 		end
 
 		it 'should have source path and url' do
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].realize(state)
 
 			state.images['original'].source_path.should == "test.in"
 			state.images['original'].source_url.should == "file://test.in"
@@ -74,7 +74,7 @@ describe Configuration do
 			end
 
 			it 'should provide image name to be used as #{imagename}' do
-				subject.handlers[0].image_sources[0].realize(state)
+				subject.handlers[0].sources[0].realize(state)
 				state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
 				state.images['test-image-name'].data.should == 'hello world'
 			end
@@ -93,7 +93,7 @@ describe Configuration do
 				EOF
 
 				expect {
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 				}.to raise_error Configuration::FileStorageOutsideOfRootDirError, %{error while processing image 'original': file storage path '../test.in' outside of root direcotry}
 			end
 
@@ -109,7 +109,7 @@ describe Configuration do
 				EOF
 
 				expect {
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 				}.to raise_error Configuration::NoSuchFileError, %{error while processing image 'original': file 'blah' not found}
 			end
 
@@ -151,7 +151,7 @@ describe Configuration do
 
 			it 'should rais MemoryLimit::MemoryLimitedExceededError error if limit exceeded runing file sourcing' do
 				expect {
-					subject.handlers[0].image_sources[0].realize(state)
+					subject.handlers[0].sources[0].realize(state)
 				}.to raise_error MemoryLimit::MemoryLimitedExceededError, 'memory limit exceeded'
 			end
 		end
@@ -176,7 +176,7 @@ describe Configuration do
 
 		before :each do
 			out_file.unlink if out_file.exist?
-			subject.handlers[0].image_sources[0].realize(state)
+			subject.handlers[0].sources[0].realize(state)
 		end
 
 		after :each do

@@ -24,7 +24,7 @@ module Configuration
 
 			matcher = InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
 
-			configuration.image_sources << self.new(configuration.global, image_name, matcher)
+			configuration.processors << self.new(configuration.global, image_name, matcher)
 		end
 
 		def initialize(global, image_name, matcher = nil)

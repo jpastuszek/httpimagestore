@@ -193,7 +193,8 @@ module Configuration
 					:global,
 					:http_method,
 					:uri_matchers,
-					:image_sources,
+					:sources,
+					:processors,
 					:stores,
 					:output
 				).new
@@ -245,14 +246,15 @@ module Configuration
 					end
 				end
 			end
-			handler_configuration.image_sources = []
+			handler_configuration.sources = []
+			handler_configuration.processors = []
 			handler_configuration.stores = []
 			handler_configuration.output = nil
 
 			node.grab_attributes
 
 			if handler_configuration.http_method != 'get'
-				handler_configuration.image_sources << InputSource.new
+				handler_configuration.sources << InputSource.new
 			end
 
 			configuration.handlers << handler_configuration

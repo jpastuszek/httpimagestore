@@ -133,7 +133,7 @@ module Configuration
 
 			matcher = InclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
 
-			configuration.image_sources << self.new(
+			configuration.processors << self.new(
 				configuration.global, 
 				source_image_name, 
 				specs, 
