@@ -250,10 +250,10 @@ describe Configuration do
 				state.images['input'].store_path.should == 'test-store-file.jpg'
 			end
 
-			it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{image_mime_extension}' do
+			it 'should raise PathRenderingError if there is on mime type for image defined and path contains #{image_mime_extension}' do
 				expect {
 					subject.handlers[0].stores[1].realize(state)
-				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'image_mime_extension' from template 'test-store-file.#{image_mime_extension}': no value for '#{image_mime_extension}'}
+				}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'image_mime_extension' from template 'test-store-file.#{image_mime_extension}': image 'input' does not have data for variable 'image_mime_extension'}
 			end
 		end
 

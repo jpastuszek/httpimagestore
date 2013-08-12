@@ -44,6 +44,21 @@ Feature: Image list based thumbnailing and S3 storage
 		get "zero" {
 			source_file "original" root="/dev" path="zero"
 		}
+
+		path "not_defined" "#{bogous}"
+		get "not_defined" {
+			source_file "original" root="/tmp" path="not_defined"
+		}
+
+		path "body" "#{input_digest}"
+		get "body" {
+			source_file "original" root="/tmp" path="body"
+		}
+
+		path "no_image_meta" "#{image_mime_extension}"
+		put "no_image_meta" {
+			store_file "input" root="/tmp" path="no_image_meta"
+		}
 		"""
 
 	@error-reporting
@@ -203,5 +218,36 @@ Feature: Image list based thumbnailing and S3 storage
 		And response body will be CRLF ended lines like
 		"""
 		memory limit exceeded
+		"""
+
+	@error-reporting @variables
+	Scenario: Bad variable use - not defined
+		When I do GET request http://localhost:3000/not_defined
+		Then response status will be 500
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		cannot generate path 'not_defined' from template '\#{bogous}': variable 'bogous' not defined
+		"""
+
+	@error-reporting @variables
+	Scenario: Bad variable use - no body
+		When I do GET request http://localhost:3000/body
+		Then response status will be 500
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		cannot generate path 'body' from template '#{input_digest}': need not empty request body to generate value for 'input_digest'
+		"""
+
+	@error-reporting @variables
+	Scenario: Bad variable use - no image meta
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/no_image_meta
+		Then response status will be 500
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		cannot generate path 'no_image_meta' from template '#{image_mime_extension}': image 'input' does not have data for variable 'image_mime_extension'
 		"""
 

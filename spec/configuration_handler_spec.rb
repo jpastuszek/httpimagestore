@@ -117,6 +117,64 @@ describe Configuration do
 					subject.with_locals(image_name: 'abc')[:mimeextension].should == 'jpg' # deprecated
 					subject.with_locals(image_name: 'abc')[:image_mime_extension].should == 'jpg'
 				end
+
+				it 'should provide image width and height' do
+					subject.images['abc'] = Struct.new(:data, :width, :height).new('image body', 128, 256)
+					subject.with_locals(image_name: 'abc')[:image_width].should == 128
+					subject.with_locals(image_name: 'abc')[:image_height].should == 256
+				end
+
+				describe "error handling" do
+					it 'should raise NoRequestBodyToGenerateMetaVariableError when empty body was provided and body needed for variable calculation' do
+						subject = Configuration::RequestState.new(
+							'',
+							{operation: 'pad'},
+							'/hello/world.jpg',
+							{width: '123', height: '321'}
+						)
+
+						expect {
+							subject[:input_digest]
+						}.to raise_error Configuration::NoRequestBodyToGenerateMetaVariableError, %q{need not empty request body to generate value for 'input_digest'}
+					end
+					
+					it 'should raise ImageNotLoadedError when asking for image related variable of not loaded image' do
+						expect {
+							subject.with_locals(image_name: 'abc')[:image_mime_extension]
+						}.to raise_error Configuration::ImageNotLoadedError, %q{image 'abc' not loaded}
+					end
+
+					it 'should raise NoVariableToGenerateMetaVariableError when no image_name was defined' do
+						expect {
+							subject.with_locals({})[:image_mime_extension]
+						}.to raise_error Configuration::NoVariableToGenerateMetaVariableError, %q{need 'image_name' variable to generate value for 'image_mime_extension'}
+					end
+
+					it 'should raise NoVariableToGenerateMetaVariableError when no path was defined' do
+						expect {
+							subject.delete(:path)
+							subject[:basename]
+						}.to raise_error Configuration::NoVariableToGenerateMetaVariableError, %q{need 'path' variable to generate value for 'basename'}
+					end
+
+					it 'should raise NoImageDataForVariableError when image has no mime type' do
+						subject.images['abc'] = Struct.new(:data, :mime_type).new('image body', nil)
+						subject.images['abc'].extend Configuration::ImageMetaData
+						expect {
+							subject.with_locals(image_name: 'abc')[:image_mime_extension]
+						}.to raise_error Configuration::NoImageDataForVariableError, %q{image 'abc' does not have data for variable 'image_mime_extension'}
+					end
+
+					it 'should raise NoImageDataForVariableError when image has no known width or height' do
+						subject.images['abc'] = Struct.new(:data, :width, :height).new('image body', nil, nil)
+						expect {
+							subject.with_locals(image_name: 'abc')[:image_width]
+						}.to raise_error Configuration::NoImageDataForVariableError, %q{image 'abc' does not have data for variable 'image_width'}
+						expect {
+							subject.with_locals(image_name: 'abc')[:image_height]
+						}.to raise_error Configuration::NoImageDataForVariableError, %q{image 'abc' does not have data for variable 'image_height'}
+					end
+				end
 			end
 
 			it 'should raise ImageNotLoadedError if image lookup fails' do

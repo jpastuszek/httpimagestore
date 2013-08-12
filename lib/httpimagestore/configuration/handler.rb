@@ -33,6 +33,12 @@ module Configuration
 		end
 	end
 
+	class NoImageDataForVariableError < ConfigurationError
+		def initialize(image_name, meta_value)
+			super "image '#{image_name}' does not have data for variable '#{meta_value}'"
+		end
+	end
+
 	class RequestState < Hash
 		include ClassLogging
 
@@ -55,51 +61,9 @@ module Configuration
 		end
 
 		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new)
-			super() do |vars, name|
-				log.debug  "generating meta variable: #{name}"
-				val = case name
-				when :basename
-					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
-					path = Pathname.new(path)
-					vars[name] = path.basename(path.extname).to_s
-				when :dirname
-					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
-					vars[name] = Pathname.new(path).dirname.to_s
-				when :extension
-					path = vars[:path] or raise NoVariableToGenerateMetaVariableError.new(:path, name)
-					vars[name] = Pathname.new(path).extname.delete('.')
-				when :digest # deprecated
-					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
-					vars[name] = Digest::SHA2.new.update(@body).to_s[0,16]
-				when :input_digest
-					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
-					vars[name] = Digest::SHA2.new.update(@body).to_s[0,16]
-				when :input_sha256
-					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
-					vars[name] = Digest::SHA2.new.update(@body).to_s
-				when :image_digest
-					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
-					image = @images[image_name]
-					vars[name] = Digest::SHA2.new.update(image.data).to_s[0,16]
-				when :image_sha256
-					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
-					image = @images[image_name]
-					vars[name] = Digest::SHA2.new.update(image.data).to_s
-				when :mimeextension # deprecated
-					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
-					image = @images[image_name]
-					vars[name] = image.mime_extension
-				when :image_mime_extension
-					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
-					image = @images[image_name]
-					vars[name] = image.mime_extension
-				when :uuid
-					vars[name] = SecureRandom.uuid
-				else
-					raise VariableNotDefinedError.new(name)
-				end
-				log.debug  "meta variable '#{name}': #{val}"
-				val
+			super() do |request_state, name|
+				# note that request_state may be different object when useing with_locals that creates duplicate
+				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
 			end
 
 			merge! query_string
@@ -130,6 +94,56 @@ module Configuration
 
 		def output_callback
 			@output_callback or fail 'no output callback'
+		end
+
+		def fetch_base_variable(name, base_name)
+			fetch(base_name, nil) or generate_meta_variable(base_name) or raise NoVariableToGenerateMetaVariableError.new(base_name, name)
+		end
+
+		def generate_meta_variable(name)
+			log.debug  "generating meta variable: #{name}"
+			val = case name
+			when :basename
+				path = Pathname.new(fetch_base_variable(name, :path))
+				path.basename(path.extname).to_s
+			when :dirname
+				Pathname.new(fetch_base_variable(name, :path)).dirname.to_s
+			when :extension
+				Pathname.new(fetch_base_variable(name, :path)).extname.delete('.')
+			when :digest # deprecated
+				@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+				Digest::SHA2.new.update(@body).to_s[0,16]
+			when :input_digest
+				@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+				Digest::SHA2.new.update(@body).to_s[0,16]
+			when :input_sha256
+				@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
+				Digest::SHA2.new.update(@body).to_s
+			when :image_digest
+				Digest::SHA2.new.update(@images[fetch_base_variable(name, :image_name)].data).to_s[0,16]
+			when :image_sha256
+				Digest::SHA2.new.update(@images[fetch_base_variable(name, :image_name)].data).to_s
+			when :mimeextension # deprecated
+				image_name = fetch_base_variable(name, :image_name)
+				@images[image_name].mime_extension or raise NoImageDataForVariableError.new(image_name, name)
+			when :image_mime_extension
+				image_name = fetch_base_variable(name, :image_name)
+				@images[image_name].mime_extension or raise NoImageDataForVariableError.new(image_name, name)
+			when :image_width
+				image_name = fetch_base_variable(name, :image_name)
+				@images[image_name].width or raise NoImageDataForVariableError.new(image_name, name)
+			when :image_height
+				image_name = fetch_base_variable(name, :image_name)
+				@images[image_name].height or raise NoImageDataForVariableError.new(image_name, name)
+			when :uuid
+				SecureRandom.uuid
+			end
+			if val
+				log.debug  "generated meta variable '#{name}': #{val}"
+			else
+				log.debug  "could not generated meta variable '#{name}'"
+			end
+			val
 		end
 	end
 
