@@ -163,6 +163,8 @@ module Configuration
 
 			thumbnails = {}
 			input_mime_type = nil
+			input_width = nil
+			input_height = nil
 
 			Thumbnail.stats.incr_total_thumbnail_requests
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
@@ -191,6 +193,8 @@ module Configuration
 				end
 
 				input_mime_type = thumbnails.input_mime_type
+				input_width = thumbnails.input_width
+				input_height = thumbnails.input_height
 
 				# check each thumbnail for errors
 				thumbnails = Hash[rendered_specs.keys.zip(thumbnails)]
@@ -213,7 +217,11 @@ module Configuration
 				begin
 					thumbnail = client.thumbnail(source_image.data, *rendered_spec)
 					request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
+
 					input_mime_type = thumbnail.input_mime_type
+					input_width = thumbnail.input_width
+					input_height = thumbnail.input_height
+
 					thumbnails[name] = thumbnail
 				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 					log.warn 'got thumbnailer error', error
@@ -231,8 +239,10 @@ module Configuration
 				Thumbnail.stats.incr_total_thumbnail_thumbnails_bytes thumbnail.data.bytesize
 			end
 
-			# use input image mime type from httpthumbnailer provided information
+			# use httpthumbnailer provided information on input image mime type and size
 			source_image.mime_type = input_mime_type if input_mime_type
+			source_image.width = input_width if input_width
+			source_image.height = input_height if input_height
 
 			request_state.images.merge! thumbnails
 		end

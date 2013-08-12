@@ -106,11 +106,17 @@ Variables:
 * `basename` - name of the file without it's extension determined from `path`
 * `direname` - name of the directory determined form `path`
 * `extension` - file extension determined from `path`
-* `image_mime_extension` - image extension based on mime type; mime type will be updated based on information from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) for input image and output thumbnails - content determined
-* `mimeextension` - dame as `image_mime_extension`; deprecated, please use `image_mime_extension` instead
 * `image_name` - name of the image that is being stored or sourced
 * `imagename` - same as `image_name`; deprecated, please use `image_name` instead
+* `image_mime_extension` - extension of image being stored determined from image mime type
+* `mimeextension` - same as `image_mime_extension`; deprecated, please use `image_mime_extension` instead
+* `image_width` - width in pixels of the image that is being stored
+* `image_height` - height in pixels of the image that is being stored
 * URL matches and query string parameters - other variables can be matched from URL pattern and query string parameters - see API configuration
+
+Notes:
+* Input based variables can only be calculated for non GET requests where body is not empty.
+* Image mime type, width and height will only be know if that image was sent to or received from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) during thumbnailing or via `identify` statement.
 
 Example:
 
@@ -232,6 +238,8 @@ get "small" {
 
 Requesting `/small` URI will result with image fetched from S3 bucket `mybucket` and key `myimage.jpg` and named `original`.
 
+### API endpoint processing operations
+
 #### thumbnail
 
 This source will provide new images based on already sourced images by processing them with [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) backend.
@@ -276,6 +284,25 @@ put ":operation" ":width" ":height" ":options" {
 	thumbnail "input" "original" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
 }
 ```
+
+#### identify
+
+This statement allows for image mime type, width and height identification based on image content with use of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
+This is usefull when image is not taking part in thumbnailing process but variables that are based on meta data needs to be used for storage.
+
+Example:
+
+```sdl
+path "size" "#{image_width}x#{image_height}.#{image_mime_extension}"
+
+put "images" {
+		identify "input"
+		store_s3 "input" bucket="mybucket" path="size"
+		output_store_path "input"
+}
+```
+
+In this example input image is indentified by [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer). Received information is used to populate `image_width`, `image_height` and `image_mime_extension` variables used to generate S3 storage key.
 
 ### API endpoint storage operations
 

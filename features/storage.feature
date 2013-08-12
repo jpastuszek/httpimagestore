@@ -11,6 +11,7 @@ Feature: Storing images under different names
 		path "image_digest" "#{image_digest}"
 		path "image_sha256" "#{image_sha256}"
 		path "uuid"					"#{uuid}"
+		path "image_meta"		"#{image_width}x#{image_height}.#{image_mime_extension}"
 
 		post "images" "input_digest" {
 			thumbnail "input" "thumbnail" operation="crop" width="50" height="50"
@@ -39,6 +40,42 @@ Feature: Storing images under different names
 		post "images" "uuid" {
 			store_file "input" root="/tmp" path="uuid"
 			output_store_path "input"
+		}
+
+		post "images" "image_meta" "identify" {
+			identify "input"
+			store_file "input" root="/tmp" path="image_meta"
+			output_store_path "input"
+		}
+
+		post "images" "image_meta" "thumbnail" "input" {
+			thumbnail "input" "thumbnail" operation="crop" width="50" height="100"
+			store_file "input" root="/tmp" path="image_meta"
+			output_store_path "input"
+		}
+
+		post "images" "image_meta" "thumbnails" "input" {
+			thumbnail "input" {
+				"thumbnail" operation="crop" width="50" height="100"
+			}
+
+			store_file "input" root="/tmp" path="image_meta"
+			output_store_path "input"
+		}
+
+		post "images" "image_meta" "thumbnail" {
+			thumbnail "input" "thumbnail" operation="crop" width="50" height="100"
+			store_file "thumbnail" root="/tmp" path="image_meta"
+			output_store_path "thumbnail"
+		}
+
+		post "images" "image_meta" "thumbnails" {
+			thumbnail "input" {
+				"thumbnail" operation="crop" width="50" height="100"
+			}
+
+			store_file "thumbnail" root="/tmp" path="image_meta"
+			output_store_path "thumbnail"
 		}
 		"""
 
@@ -101,4 +138,43 @@ Feature: Storing images under different names
 			Then response status will be 200
 			And response content type will be text/plain
 			And response body will contain UUID
+
+		@storage @image_meta @identify
+		Scenario: Posting picture to file system under input data digest
+			Given there is no file /tmp/509x719.png
+			Given test.png file content as request body
+			When I do POST request http://localhost:3000/images/image_meta/identify
+			Then response status will be 200
+			And response content type will be text/plain
+			And response body will be CRLF ended lines
+			"""
+			509x719.png
+			"""
+			Then file /tmp/509x719.png will contain PNG image of size 509x719
+
+		@storage @image_meta @thumbnail
+		Scenario: Posting picture to file system under input data digest
+			Given test.png file content as request body
+			Given there is no file /tmp/50x100.png
+			When I do POST request http://localhost:3000/images/image_meta/thumbnail
+			Then response status will be 200
+			And response content type will be text/plain
+			And response body will be CRLF ended lines
+			"""
+			50x100.png
+			"""
+			Then file /tmp/50x100.png will contain PNG image of size 50x100
+
+		@storage @image_meta @thumbnails
+		Scenario: Posting picture to file system under input data digest
+			Given test.png file content as request body
+			Given there is no file /tmp/50x100.png
+			When I do POST request http://localhost:3000/images/image_meta/thumbnails
+			Then response status will be 200
+			And response content type will be text/plain
+			And response body will be CRLF ended lines
+			"""
+			50x100.png
+			"""
+			Then file /tmp/50x100.png will contain PNG image of size 50x100
 

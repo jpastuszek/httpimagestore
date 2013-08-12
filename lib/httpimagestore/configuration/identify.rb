@@ -45,7 +45,9 @@ module Configuration
 			id = client.identify(image.data)
 
 			image.mime_type = id.mime_type if id.mime_type
-			log.info "image '#{@image_name}' identified as '#{id.mime_type}'"
+			image.width = id.width if id.width
+			image.height = id.height if id.height
+			log.info "image '#{@image_name}' identified as '#{id.mime_type}' #{image.width}x#{image.height}"
 		end
 	end
 	Handler::register_node_parser Identify
