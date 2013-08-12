@@ -78,13 +78,21 @@ module Configuration
 					@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
 					vars[name] = Digest::SHA2.new.update(@body).to_s
 				when :image_digest
-					image_name = vars[:imagename] or raise NoVariableToGenerateMetaVariableError.new(:imagename, name)
+					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
 					image = @images[image_name]
 					vars[name] = Digest::SHA2.new.update(image.data).to_s[0,16]
 				when :image_sha256
-					image_name = vars[:imagename] or raise NoVariableToGenerateMetaVariableError.new(:imagename, name)
+					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
 					image = @images[image_name]
 					vars[name] = Digest::SHA2.new.update(image.data).to_s
+				when :mimeextension # deprecated
+					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
+					image = @images[image_name]
+					vars[name] = image.mime_extension
+				when :image_mime_extension
+					image_name = vars[:image_name] or raise NoVariableToGenerateMetaVariableError.new(:image_name, name)
+					image = @images[image_name]
+					vars[name] = image.mime_extension
 				when :uuid
 					vars[name] = SecureRandom.uuid
 				else
@@ -138,7 +146,7 @@ module Configuration
 		end
 	end
 
-	class Image < Struct.new(:data, :mime_type)
+	class Image < Struct.new(:data, :mime_type, :width, :height)
 		include ImageMetaData
 	end
 
@@ -192,8 +200,11 @@ module Configuration
 		def initialize(global, image_name, matcher)
 			@global = global
 			@image_name = image_name
-			@locals = {imagename: @image_name}
+			@locals = {}
+
 			inclusion_matcher matcher
+			local :imagename, @image_name # deprecated
+			local :image_name, @image_name
 		end
 
 		private
@@ -220,8 +231,6 @@ module Configuration
 
 		def get_named_image_for_storage(request_state)
 			image = request_state.images[@image_name]
-			local :mimeextension, image.mime_extension
-
 			rendered_path = rendered_path(request_state)
 			image.store_path = rendered_path
 

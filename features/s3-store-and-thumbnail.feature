@@ -10,7 +10,7 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "original-hash"	"#{digest}.#{mimeextension}"
+		path "original-hash"	"#{input_digest}.#{image_mime_extension}"
 		path "path"		"#{path}"
 
 		put "original" {

@@ -181,16 +181,16 @@ else
 				subject do
 					Configuration.read(<<-EOF)
 					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}" ssl=false
-					path "imagename" "\#{imagename}.jpg"
+					path "image_name" "\#{image_name}.jpg"
 					path "bucket" "\#{bucket}.jpg"
 					get {
-						source_s3 "test-image-name" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="imagename"
+						source_s3 "test-image-name" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="image_name"
 						source_s3 "bucket" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="bucket"
 					}
 					EOF
 				end
 
-				it 'should provide image name to be used as #{imagename}' do
+				it 'should provide image name to be used as #{image_name}' do
 					subject.handlers[0].sources[0].realize(state)
 					state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
 					state.images['test-image-name'].data.should == 'hello world'
@@ -518,18 +518,18 @@ else
 				subject do
 					Configuration.read(<<-EOF)
 					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}" ssl=false
-					path "imagename" "\#{imagename}"
+					path "image_name" "\#{image_name}"
 					path "bucket" "\#{bucket}"
-					path "mimeextension" "\#{mimeextension}"
+					path "image_mime_extension" "\#{image_mime_extension}"
 					post {
-						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="imagename"
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="image_name"
 						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="bucket"
-						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="mimeextension"
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="image_mime_extension"
 					}
 					EOF
 				end
 
-				it 'should provide image name to be used as #{imagename}' do
+				it 'should provide image name to be used as #{image_name}' do
 					subject.handlers[0].stores[0].realize(state)
 
 					state.images['input'].store_path.should == 'input'
@@ -541,17 +541,17 @@ else
 					state.images['input'].store_path.should == ENV['AWS_S3_TEST_BUCKET']
 				end
 
-				it 'should provide image mime type based file extension to be used as #{mimeextension}' do
+				it 'should provide image mime type based file extension to be used as #{image_mime_extension}' do
 					state.images['input'].mime_type = 'image/jpeg'
 					subject.handlers[0].stores[2].realize(state)
 
 					state.images['input'].store_path.should == 'jpg'
 				end
 
-				it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{mimeextension}' do
+				it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{image_mime_extension}' do
 					expect {
 						subject.handlers[0].stores[2].realize(state)
-					}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'mimeextension' from template '#{mimeextension}': no value for '#{mimeextension}'}
+					}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'image_mime_extension' from template '#{image_mime_extension}': no value for '#{image_mime_extension}'}
 				end
 			end
 

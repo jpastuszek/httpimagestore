@@ -106,8 +106,10 @@ Variables:
 * `basename` - name of the file without it's extension determined from `path`
 * `direname` - name of the directory determined form `path`
 * `extension` - file extension determined from `path`
-* `mimeextension` - image extension based on mime type; mime type will be updated based on information from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) for input image and output thumbnails - content determined
-* `imagename` - name of the image that is being stored or sourced
+* `image_mime_extension` - image extension based on mime type; mime type will be updated based on information from [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) for input image and output thumbnails - content determined
+* `mimeextension` - dame as `image_mime_extension`; deprecated, please use `image_mime_extension` instead
+* `image_name` - name of the image that is being stored or sourced
+* `imagename` - same as `image_name`; deprecated, please use `image_name` instead
 * URL matches and query string parameters - other variables can be matched from URL pattern and query string parameters - see API configuration
 
 Example:
@@ -117,9 +119,9 @@ path "uri"						"#{path}"
 path "hash"						"#{input_digest}.#{extension}"
 
 path {
-	"hash-name"					"#{input_digest}/#{imagename}.#{extension}"
+	"hash-name"					"#{input_digest}/#{image_name}.#{extension}"
 	"structured"				"#{dirname}/#{input_digest}/#{basename}.#{extension}"
-	"structured-name"			"#{dirname}/#{input_digest}/#{basename}-#{imagename}.#{extension}"
+	"structured-name"			"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{extension}"
 }
 ```
 
@@ -296,7 +298,7 @@ Options:
 Example:
 
 ```sdl
-path "imagename"	"#{name}"
+path "imagename"	"#{image_name}"
 path "hash"			"#{input_digest}"
 
 put "store" ":name" {
@@ -328,7 +330,7 @@ Example:
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
-path "imagename"	"#{name}"
+path "imagename"	"#{image_name}"
 path "hash"			"#{input_digest}"
 
 put ":name" {
@@ -436,8 +438,8 @@ Example:
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
-path "hash"			"#{input_digest}.#{mimeextension}"
-path "hash-name"	"#{input_digest}/#{imagename}.#{mimeextension}"
+path "hash"			"#{input_digest}.#{image_mime_extension}"
+path "hash-name"	"#{input_digest}/#{image_name}.#{image_mime_extension}"
 
 put "thumbnail" {
 	thumbnail "input" {
@@ -491,10 +493,10 @@ This complete API configuration presents API compatible with previous version of
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
 
 # Compatibility API
-path "compat-hash"				"#{input_digest}.#{mimeextension}"
-path "compat-hash-name"			"#{input_digest}/#{imagename}.#{mimeextension}"
-path "compat-structured"		"#{dirname}/#{input_digest}/#{basename}.#{mimeextension}"
-path "compat-structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{imagename}.#{mimeextension}"
+path "compat-hash"				"#{input_digest}.#{image_mime_extension}"
+path "compat-hash-name"			"#{input_digest}/#{image_name}.#{image_mime_extension}"
+path "compat-structured"		"#{dirname}/#{input_digest}/#{basename}.#{image_mime_extension}"
+path "compat-structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
 
 put "thumbnail" ":name_list" ":path/.+/" {
 	thumbnail "input" {
@@ -557,7 +559,7 @@ put "thumbnail" ":name_list" {
 }
 
 # Thumbnail on demand API 
-path "hash"	"#{input_digest}.#{mimeextension}"
+path "hash"	"#{input_digest}.#{image_mime_extension}"
 path "path"	"#{path}"
 
 put "v1" "original" {

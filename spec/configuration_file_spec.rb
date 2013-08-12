@@ -65,15 +65,15 @@ describe Configuration do
 			
 			subject do
 				Configuration.read(<<-EOF)
-				path "imagename" "\#{imagename}.jpg"
+				path "image_name" "\#{image_name}.jpg"
 
 				get "small" {
-					source_file "test-image-name" root="/tmp" path="imagename"
+					source_file "test-image-name" root="/tmp" path="image_name"
 				}
 				EOF
 			end
 
-			it 'should provide image name to be used as #{imagename}' do
+			it 'should provide image name to be used as #{image_name}' do
 				subject.handlers[0].sources[0].realize(state)
 				state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
 				state.images['test-image-name'].data.should == 'hello world'
@@ -227,33 +227,33 @@ describe Configuration do
 		describe 'context locals' do
 			subject do
 				Configuration.read(<<-'EOF')
-				path "imagename" "#{imagename}.jpg"
-				path "mimeextension" "test-store-file.#{mimeextension}"
+				path "image_name" "#{image_name}.jpg"
+				path "image_mime_extension" "test-store-file.#{image_mime_extension}"
 
 				post "small" {
-					store_file "input" root="/tmp" path="imagename"
-					store_file "input" root="/tmp" path="mimeextension"
+					store_file "input" root="/tmp" path="image_name"
+					store_file "input" root="/tmp" path="image_mime_extension"
 				}
 				EOF
 			end
 
-			it 'should provide image name to be used as #{imagename}' do
+			it 'should provide image name to be used as #{image_name}' do
 				subject.handlers[0].stores[0].realize(state)
 
 				state.images['input'].store_path.should == 'input.jpg'
 			end
 			
-			it 'should provide image mime type based file extension to be used as #{mimeextension}' do
+			it 'should provide image mime type based file extension to be used as #{image_mime_extension}' do
 				state.images['input'].mime_type = 'image/jpeg'
 				subject.handlers[0].stores[1].realize(state)
 
 				state.images['input'].store_path.should == 'test-store-file.jpg'
 			end
 
-			it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{mimeextension}' do
+			it 'should raise NoValueForPathTemplatePlaceholerError if there is on mime type for image defined and path contains #{image_mime_extension}' do
 				expect {
 					subject.handlers[0].stores[1].realize(state)
-				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'mimeextension' from template 'test-store-file.#{mimeextension}': no value for '#{mimeextension}'}
+				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'image_mime_extension' from template 'test-store-file.#{image_mime_extension}': no value for '#{image_mime_extension}'}
 			end
 		end
 

@@ -11,19 +11,19 @@ describe Configuration do
 		it 'should load paths form single line and multi line declarations and render spec templates' do
 			subject = Configuration.read(<<-'EOF')
 			path "uri"						"#{path}"
-			path "hash"						"#{digest}.#{extension}"
+			path "hash"						"#{input_digest}.#{extension}"
 			path {
-				"hash-name"					"#{digest}/#{imagename}.#{extension}"
-				"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
-				"structured-name"		"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
+				"hash-name"					"#{input_digest}/#{image_name}.#{extension}"
+				"structured"				"#{dirname}/#{input_digest}/#{basename}.#{extension}"
+				"structured-name"		"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{extension}"
 			}
 			EOF
 
 			subject.paths['uri'].render(path: 'test/abc.jpg').should == 'test/abc.jpg'
-			subject.paths['hash'].render(digest: '2cf24dba5fb0a30e', extension: 'jpg').should == '2cf24dba5fb0a30e.jpg'
-			subject.paths['hash-name'].render(digest: '2cf24dba5fb0a30e', imagename: 'xbrna', extension: 'jpg').should == '2cf24dba5fb0a30e/xbrna.jpg'
-			subject.paths['structured'].render(dirname: 'test', digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg').should == 'test/2cf24dba5fb0a30e/abc.jpg'
-			subject.paths['structured-name'].render(dirname: 'test', digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg', imagename: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
+			subject.paths['hash'].render(input_digest: '2cf24dba5fb0a30e', extension: 'jpg').should == '2cf24dba5fb0a30e.jpg'
+			subject.paths['hash-name'].render(input_digest: '2cf24dba5fb0a30e', image_name: 'xbrna', extension: 'jpg').should == '2cf24dba5fb0a30e/xbrna.jpg'
+			subject.paths['structured'].render(dirname: 'test', input_digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg').should == 'test/2cf24dba5fb0a30e/abc.jpg'
+			subject.paths['structured-name'].render(dirname: 'test', input_digest: '2cf24dba5fb0a30e', basename: 'abc', extension: 'jpg', image_name: 'xbrna').should == 'test/2cf24dba5fb0a30e/abc-xbrna.jpg'
 		end
 
 		describe 'error handling' do
@@ -79,13 +79,13 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				path "uri"						"#{path}"
-				path "hash"						"#{digest}.#{extension}"
+				path "hash"						"#{input_digest}.#{extension}"
 				path {
-					"hash-name"					"#{digest}/#{imagename}.#{extension}"
-					"structured"				"#{dirname}/#{digest}/#{basename}.#{extension}"
-					"structured-name"		"#{dirname}/#{digest}/#{basename}-#{imagename}.#{extension}"
+					"hash-name"					"#{input_digest}/#{image_name}.#{extension}"
+					"structured"				"#{dirname}/#{input_digest}/#{basename}.#{extension}"
+					"structured-name"		"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{extension}"
 				}
-				path "name"						"#{imagename}"
+				path "name"						"#{image_name}"
 				path "base"						"#{basename}"
 				EOF
 			end
@@ -94,9 +94,9 @@ describe Configuration do
 
 				subject.paths['uri'].render(state).should == 'test/abc.jpg'
 				subject.paths['hash'].render(state).should == '9f86d081884c7d65.jpg'
-				subject.paths['hash-name'].render(state.with_locals(imagename: 'xbrna')).should == '9f86d081884c7d65/xbrna.jpg'
+				subject.paths['hash-name'].render(state.with_locals(image_name: 'xbrna')).should == '9f86d081884c7d65/xbrna.jpg'
 				subject.paths['structured'].render(state).should == 'test/9f86d081884c7d65/abc.jpg'
-				subject.paths['structured-name'].render(state.with_locals(imagename: 'xbrna')).should == 'test/9f86d081884c7d65/abc-xbrna.jpg'
+				subject.paths['structured-name'].render(state.with_locals(image_name: 'xbrna')).should == 'test/9f86d081884c7d65/abc-xbrna.jpg'
 			end
 
 			describe 'error handling' do
@@ -112,13 +112,13 @@ describe Configuration do
 				it 'should raise PathRenderingError if body was expected but not provided' do
 					expect {
 						subject.paths['hash'].render(state)
-					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'hash' from template '#{digest}.#{extension}': need not empty request body to generate value for 'digest'}
+					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'hash' from template '#{input_digest}.#{extension}': need not empty request body to generate value for 'input_digest'}
 				end
 
 				it 'should raise PathRenderingError if variable not defined' do
 					expect {
 						subject.paths['name'].render(state)
-					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'name' from template '#{imagename}': variable 'imagename' not defined}
+					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'name' from template '#{image_name}': variable 'image_name' not defined}
 				end
 
 				it 'should raise PathRenderingError if meta variable dependent variable not defined' do

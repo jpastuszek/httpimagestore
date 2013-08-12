@@ -77,9 +77,9 @@ Feature: Storing images under different names
 			And response content type will be text/plain
 			And response body will be CRLF ended lines
 			"""
-			b8940040c29f0b27
+			091000e2c0aee836
 			"""
-			Then file /tmp/b8940040c29f0b27 will contain PNG image of size 50x50
+			Then file /tmp/091000e2c0aee836 will contain PNG image of size 50x50
 
 		@storage @image_sha256
 		Scenario: Posting picture to file system under input data digest
@@ -90,9 +90,9 @@ Feature: Storing images under different names
 			And response content type will be text/plain
 			And response body will be CRLF ended lines
 			"""
-			b8940040c29f0b2714870bae9d04d39f0c623faf41fed7965f46b990e3696d03
+			091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f
 			"""
-			Then file /tmp/b8940040c29f0b2714870bae9d04d39f0c623faf41fed7965f46b990e3696d03 will contain PNG image of size 50x50
+			Then file /tmp/091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f will contain PNG image of size 50x50
 
 		@storage @uuid
 		Scenario: Posting picture to file system under input data digest

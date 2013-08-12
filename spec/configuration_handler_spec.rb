@@ -86,12 +86,12 @@ describe Configuration do
 
 				it 'should provide image body digest' do
 					subject.images['abc'] = Struct.new(:data).new('image body')
-					subject.with_locals(imagename: 'abc')[:image_digest].should == 'f5288dd892bb007b'
+					subject.with_locals(image_name: 'abc')[:image_digest].should == 'f5288dd892bb007b'
 				end
 
 				it 'should provide image body full sha256 checsum' do
 					subject.images['abc'] = Struct.new(:data).new('image body')
-					subject.with_locals(imagename: 'abc')[:image_sha256].should == 'f5288dd892bb007b607304a8fb20c91ea769dcd04d82cc8ddf3239602867eb4d'
+					subject.with_locals(image_name: 'abc')[:image_sha256].should == 'f5288dd892bb007b607304a8fb20c91ea769dcd04d82cc8ddf3239602867eb4d'
 				end
 
 				it 'should provide uuid' do
@@ -109,6 +109,13 @@ describe Configuration do
 
 				it 'should provide basename' do
 					subject[:basename].should == 'world'
+				end
+
+				it 'should provide image mime extension' do
+					subject.images['abc'] = Struct.new(:data, :mime_type).new('image body', 'image/jpeg')
+					subject.images['abc'].extend Configuration::ImageMetaData
+					subject.with_locals(image_name: 'abc')[:mimeextension].should == 'jpg' # deprecated
+					subject.with_locals(image_name: 'abc')[:image_mime_extension].should == 'jpg'
 				end
 			end
 

@@ -9,10 +9,10 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "hash"		"#{digest}.#{mimeextension}"
-		path "hash-name"	"#{digest}/#{imagename}.#{mimeextension}"
-		path "structured"	"#{dirname}/#{digest}/#{basename}.#{mimeextension}"
-		path "structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+		path "hash"		"#{input_digest}.#{image_mime_extension}"
+		path "hash-name"	"#{input_digest}/#{image_name}.#{image_mime_extension}"
+		path "structured"	"#{dirname}/#{input_digest}/#{basename}.#{image_mime_extension}"
+		path "structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
 
 		put "thumbnail" ":name_list" ":path/.+/" {
 			thumbnail "input" {

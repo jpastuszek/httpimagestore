@@ -9,7 +9,7 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "structured-name"	"#{dirname}/#{digest}/#{basename}-#{imagename}.#{mimeextension}"
+		path "structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
 		path "missing"		"blah"
 		path "zero"		"zero"
 

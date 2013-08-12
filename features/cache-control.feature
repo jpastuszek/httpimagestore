@@ -8,8 +8,8 @@ Feature: S3 object Cache-Control header settings
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "hash"			"#{digest}.#{mimeextension}"
-		path "hash-name"		"#{digest}-#{imagename}.#{mimeextension}"
+		path "hash"			"#{input_digest}.#{image_mime_extension}"
+		path "hash-name"		"#{input_digest}-#{image_name}.#{image_mime_extension}"
 
 		put "thumbnail" {
 			thumbnail "input" {
