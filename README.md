@@ -16,6 +16,13 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.3.0
+
+* `identify` statement support (requires [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) v1.1.0 or higher)
+* changed variable names: `imagename` to `image_name`, `mimeextension` to `image_mime_extension`, `digest` to `input_digest` (old names can still be used)
+* added support for new variables: `uuid`, `input_sha256`, `image_digest`, `image_sha256`, `image_width`, `image_height`
+* improved variable processing and logging
+
 ### 1.2.0
 
 * matching for query string key and value
