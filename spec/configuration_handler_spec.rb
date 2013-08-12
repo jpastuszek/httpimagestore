@@ -84,6 +84,18 @@ describe Configuration do
 					subject[:input_sha256].should == '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
 				end
 
+				it 'should provide input image mime extension' do
+					subject.images['input'] = Struct.new(:data, :mime_type).new('image body', 'image/jpeg')
+					subject.images['input'].extend Configuration::ImageMetaData
+					subject[:input_image_mime_extension].should == 'jpg'
+				end
+
+				it 'should provide input image width and height' do
+					subject.images['input'] = Struct.new(:data, :width, :height).new('image body', 128, 256)
+					subject[:input_image_width].should == 128
+					subject[:input_image_height].should == 256
+				end
+
 				it 'should provide image body digest' do
 					subject.images['abc'] = Struct.new(:data).new('image body')
 					subject.with_locals(image_name: 'abc')[:image_digest].should == 'f5288dd892bb007b'

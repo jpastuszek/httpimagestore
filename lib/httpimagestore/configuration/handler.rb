@@ -119,6 +119,12 @@ module Configuration
 			when :input_sha256
 				@body.empty? and raise NoRequestBodyToGenerateMetaVariableError.new(name)
 				Digest::SHA2.new.update(@body).to_s
+			when :input_image_width
+				@images['input'].width or raise NoImageDataForVariableError.new('input', name)
+			when :input_image_height
+				@images['input'].height or raise NoImageDataForVariableError.new('input', name)
+			when :input_image_mime_extension
+				@images['input'].mime_extension or raise NoImageDataForVariableError.new('input', name)
 			when :image_digest
 				Digest::SHA2.new.update(@images[fetch_base_variable(name, :image_name)].data).to_s[0,16]
 			when :image_sha256

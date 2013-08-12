@@ -20,7 +20,7 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 * `identify` statement support (requires [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) v1.1.0 or higher)
 * changed variable names: `imagename` to `image_name`, `mimeextension` to `image_mime_extension`, `digest` to `input_digest` (old names can still be used)
-* added support for new variables: `uuid`, `input_sha256`, `image_digest`, `image_sha256`, `image_width`, `image_height`
+* added support for new variables: `uuid`, `input_sha256`, `image_digest`, `image_sha256`, `image_width`, `image_height`, `input_image_mime_extension`, `input_image_width`, `input_image_height`
 * improved variable processing and logging
 
 ### 1.2.0
@@ -106,19 +106,22 @@ Variables:
 * `input_digest` - input image digest based on it's content only; this is first 16 hex characters from SHA256 digest; ex. `9f86d081884c7d65`
 * `digest` - same as `input_digest`; deprecated, please use `input_digest` instead
 * `input_sha256` - input image digest based on it's content only; this is whole hex encoded SHA256 digest; ex. `9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08`
+* `input_image_mime_extension` - extension of input image determined from image mime type
+* `input_image_width` - width in pixels of the input image
+* `input_image_height` - height in pixels of the input image
 * `image_digest` - digest of image being stored based on it's content only; this is first 16 hex characters from SHA256 digest; ex. `9f86d081884c7d65`
 * `image_sha256` - digest of image being stored based on it's content only; this is whole hex encoded SHA256 digest; ex. `9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08`
-* `uuid` - unique ID for request; ex. `1b68a767-8163-425a-a32c-db6ed7200343`
-* `path` - remaining (unmatched) request URL path
-* `basename` - name of the file without it's extension determined from `path`
-* `direname` - name of the directory determined form `path`
-* `extension` - file extension determined from `path`
 * `image_name` - name of the image that is being stored or sourced
 * `imagename` - same as `image_name`; deprecated, please use `image_name` instead
 * `image_mime_extension` - extension of image being stored determined from image mime type
 * `mimeextension` - same as `image_mime_extension`; deprecated, please use `image_mime_extension` instead
 * `image_width` - width in pixels of the image that is being stored
 * `image_height` - height in pixels of the image that is being stored
+* `path` - remaining (unmatched) request URL path
+* `basename` - name of the file without it's extension determined from `path`
+* `direname` - name of the directory determined form `path`
+* `extension` - file extension determined from `path`
+* `uuid` - unique ID for request; ex. `1b68a767-8163-425a-a32c-db6ed7200343`
 * URL matches and query string parameters - other variables can be matched from URL pattern and query string parameters - see API configuration
 
 Notes:
