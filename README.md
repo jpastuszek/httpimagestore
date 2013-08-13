@@ -522,9 +522,106 @@ The list is in format `image name[,image name]*`.
 
 This option is useful when building API that works on predefined set of image operations and allows to select witch set of operations to perform with list included in the URL.
 
-### Complete example
+## Configuration examples
 
-This complete API configuration presents API compatible with previous version of httpimagestore (v0.5.0) and thumbnail on demand API.
+### Flexible API example
+
+Features two storage apporaches: with JPEG conversion and limiting in size - for user provided content - and storing literaly.
+POST requests will end up with server side generated storage key based on input data digest.
+PUT requsts can be used to store image under provided storage key.
+Thumbnail GET API is similart to described in [Facebook APIs](https://developers.facebook.com/docs/reference/api/using-pictures/#sizes) for thumbnailing.
+Stored object extension and content type is determined from image data.
+
+```sdl
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+
+path "hash" "#{input_digest}.#{image_mime_extension}"
+path "path" "#{path}"
+
+## User uploaded content - always JPEG converted, not bigger than 2160x2160 and in hight quality compression
+post "pictures" {
+	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
+	store_s3 "original" bucket="mybucket" path="hash"
+	output_store_path "original"
+}
+
+put "pictures" {
+	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
+	store_s3 "original" bucket="mybucket" path="path"
+	output_store_path "original"
+}
+
+## Uploaded by admin for use on the website for example - store whatever was send
+post "images" {
+	identify "input"
+	store_s3 "input" bucket="mybucket" path="hash"
+	output_store_path "input"
+}
+
+put "images" {
+	identify "input"
+	store_s3 "input" bucket="mybucket" path="path"
+	output_store_path "input"
+}
+
+## Thumbailing - keep input format; default JPEG quality is 85
+### Thumbnail specification from query string paramaters
+get "pictures" "&:width" "&:height" "&:operation?crop" "&:background-color?white" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "pictures" "&:width" "&:height?1080" "&:operation?fit" "&:background-color?white" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "pictures" "&:height" "&:width?1080" "&:operation?fit" "&:background-color?white" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+### Predefined thumbnailing specification
+get "pictures" "&type=square" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="crop" width="50" height="50"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "pictures" "&type=small" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="fit" width="50" height="2000"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "pictures" "&type=normall" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="fit" width="100" height="2000"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+get "pictures" "&type=large" {
+	source_s3 "original" bucket="mybucket" path="path"
+	thumbnail "original" "thumbnail" operation="fit" width="200" height="2000"
+	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+}
+
+## By default serve original image as is - JPEG for user content and what was send for admin uploaded images
+get "pictures" {
+	source_s3 "original" bucket="mybucket" path="path"
+	output_image "original" cache-control="public, max-age=31557600, s-maxage=0"
+}
+```
+
+For more information see [flexi feature test](https://github.com/jpastuszek/httpimagestore/blob/master/features/flexi.feature).
+
+### Compatible and on demand API examples
+
+This example can be used to create new API and migration between old and new approach.
+It presents API compatible with previous version of httpimagestore (v0.5.0) and one possible thumbnail on demand approach API.
 
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
@@ -724,104 +821,6 @@ $ curl 10.1.1.24:3000/v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-c
 
 $ identify /tmp/test.jpg
 /tmp/test.jpg JPEG 100x100 100x100+0+0 8-bit sRGB 3.31KB 0.000u 0:00.000
-```
-
-## Facebook like API example
-
-Based on [Facebook APIs](https://developers.facebook.com/docs/reference/api/using-pictures/#sizes).
-
-```sdl
-s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
-
-path "hash"	"#{input_digest}"
-path "path"	"#{path}"
-
-# upload image under it's digest ID
-post {
-	thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
-
-	store_s3 "original" bucket="mybucket_v1" path="hash"
-
-	output_store_path "original"
-}
-
-# upload image under client provided ID/path
-put {
-	thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
-
-	store_s3 "original" bucket="mybucket_v1" path="path"
-
-	output_store_path "original"
-}
-
-# type selected
-get "&type=square" {
-	source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
-
-	thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-get "&type=small" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="fit" width="50" height="2000" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-get "&type=normall" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="fit" width="100" height="2000" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-get "&type=large" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="fit" width="200" height="2000" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-# crop to specified width and height
-get "&:width" "&:height" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="crop" width="#{width}" height="#{height}" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-# fit to width when no height is specified
-get "&:width" "&:height?1080" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="fit" width="#{width}" height="#{height}" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-# fit to height when no width is specified
-get "&:height" "&:width?1080" {
-	source_s3 "original" bucket="mybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="fit" width="#{width}" height="#{height}" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
-
-# default to small class
-get {
-	source_s3 "original" bucket="bmybucket_v1" path="path"
-
-	thumbnail "original" "thumbnail" operation="crop" width="50" height="50" format="input"
-
-	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
-}
 ```
 
 ## Usage
