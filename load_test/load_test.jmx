@@ -42,7 +42,7 @@
         <stringProp name="HTTPSampler.concurrentPool">4</stringProp>
       </ConfigTestElement>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Compatibility API" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Compatibility API" enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">false</boolProp>
@@ -78,7 +78,7 @@
           <stringProp name="HTTPSampler.response_timeout"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/thumbnail/original,search,search_thumb,brochure,brochure_thumb,admin,dmin_thumb,treatment_thumb,staff_member_thumb,consultation,clinic_google_map_thumb</stringProp>
+          <stringProp name="HTTPSampler.path">/thumbnail/original,search,search_thumb,brochure,brochure_thumb,admin,dmin_thumb,treatment_thumb,staff_member_thumb,consultation,clinic_google_map_thumb/randwick.jpg</stringProp>
           <stringProp name="HTTPSampler.method">PUT</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -108,7 +108,7 @@
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="API v1" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Flexi API" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <boolProp name="LoopController.continue_forever">false</boolProp>
@@ -144,8 +144,8 @@
           <stringProp name="HTTPSampler.response_timeout"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/v1/original</stringProp>
-          <stringProp name="HTTPSampler.method">PUT</stringProp>
+          <stringProp name="HTTPSampler.path">/iss/v2/pictures</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">false</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">false</boolProp>
@@ -172,9 +172,9 @@
             <stringProp name="RegexExtractor.match_number">1</stringProp>
           </RegexExtractor>
           <hashTree/>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="contains path" enabled="true">
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="contains .jpg file path" enabled="true">
             <collectionProp name="Asserion.test_strings">
-              <stringProp name="1768443330">dev/httpimagestore/v1</stringProp>
+              <stringProp name="1475827">.jpg</stringProp>
             </collectionProp>
             <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
@@ -195,7 +195,7 @@
             <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="thumbnail specs" enabled="true">
               <stringProp name="filename">thumbnail_specs.csv</stringProp>
               <stringProp name="fileEncoding"></stringProp>
-              <stringProp name="variableNames">method,width,height,options</stringProp>
+              <stringProp name="variableNames">type,method,width,height,options</stringProp>
               <stringProp name="delimiter">,</stringProp>
               <boolProp name="quotedData">true</boolProp>
               <boolProp name="recycle">true</boolProp>
@@ -213,7 +213,7 @@
               <stringProp name="HTTPSampler.response_timeout"></stringProp>
               <stringProp name="HTTPSampler.protocol"></stringProp>
               <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-              <stringProp name="HTTPSampler.path">/v1/thumbnail/${__BeanShell(vars.get(&quot;store_path&quot;).replace(&quot;/&quot;\, &quot;%2f&quot;))}/${method}/${width}/${height}/${options}</stringProp>
+              <stringProp name="HTTPSampler.path">/iss/v2/pictures/${__BeanShell(vars.get(&quot;store_path&quot;).replace(&quot;/:&quot;\, &quot;%2f&quot;))}?type=${type}</stringProp>
               <stringProp name="HTTPSampler.method">GET</stringProp>
               <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
               <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -238,13 +238,13 @@
         <DebugPostProcessor guiclass="TestBeanGUI" testclass="DebugPostProcessor" testname="Debug PostProcessor" enabled="false">
           <boolProp name="displayJMeterProperties">false</boolProp>
           <boolProp name="displayJMeterVariables">true</boolProp>
-          <boolProp name="displaySamplerProperties">false</boolProp>
+          <boolProp name="displaySamplerProperties">true</boolProp>
           <boolProp name="displaySystemProperties">false</boolProp>
         </DebugPostProcessor>
         <hashTree/>
       </hashTree>
       <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
-        <boolProp name="ResultCollector.error_logging">true</boolProp>
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
           <value class="SampleSaveConfiguration">
