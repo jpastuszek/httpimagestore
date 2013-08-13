@@ -698,25 +698,19 @@ path "path"	"#{path}"
 
 put "v1" "original" {
 	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
-
 	store_s3 "original" bucket="mybucket_v1" path="hash"
-
 	output_store_path "original"
 }
 
 get "v1" "thumbnail" ":path" ":operation" ":width" ":height" ":options?" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
-
 	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
-
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "v2" "thumbnail" ":operation" ":width" ":height" {
 	source_s3 "original" bucket="mybucket_v1" path="path"
-
 	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{query_string_options}" quality=84 format="png"
-
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 ```
