@@ -5,6 +5,25 @@ PATH
       rmagick (~> 2)
       unicorn-cuba-base (~> 1.0)
 
+PATH
+  remote: ../httpthumbnailer-client
+  specs:
+    httpthumbnailer-client (1.0.0)
+      cli (~> 1.1.0)
+      httpclient (>= 2.3)
+      multipart-parser (~> 0.1.1)
+
+PATH
+  remote: ../unicorn-cuba-base
+  specs:
+    unicorn-cuba-base (1.0.0)
+      cli (~> 1.1.0)
+      cuba (~> 3.0)
+      facter (~> 1.6.11)
+      raindrops (~> 0.11)
+      ruby-ip (~> 0.9)
+      unicorn (>= 4.6.2)
+
 GEM
   remote: http://rubygems.org/
   specs:
@@ -28,10 +47,6 @@ GEM
       json (>= 1.4.6)
     git (1.2.5)
     httpclient (2.3.3)
-    httpthumbnailer-client (1.0.0)
-      cli (~> 1.1.0)
-      httpclient (>= 2.3)
-      multipart-parser (~> 0.1.1)
     jeweler (1.8.4)
       bundler (~> 1.0)
       git (>= 1.2.5)
@@ -40,6 +55,7 @@ GEM
     json (1.7.5)
     kgio (2.8.0)
     mime-types (1.17.2)
+    msgpack (0.5.5)
     multipart-parser (0.1.1)
     nokogiri (1.5.9)
     prawn (0.8.4)
@@ -65,17 +81,10 @@ GEM
     rspec-mocks (2.13.1)
     ruby-ip (0.9.1)
     sdl4r (0.9.11)
-    unicorn (4.6.2)
+    unicorn (4.6.3)
       kgio (~> 2.6)
       rack
       raindrops (~> 0.7)
-    unicorn-cuba-base (1.0.0)
-      cli (~> 1.1.0)
-      cuba (~> 3.0)
-      facter (~> 1.6.11)
-      raindrops (~> 0.11)
-      ruby-ip (~> 0.9)
-      unicorn (>= 4.6.2)
     uuidtools (2.1.4)
 
 PLATFORMS
@@ -87,11 +96,12 @@ DEPENDENCIES
   daemon (~> 1)
   httpclient (>= 2.3)
   httpthumbnailer!
-  httpthumbnailer-client (~> 1.0)
+  httpthumbnailer-client!
   jeweler (~> 1.8.4)
   mime-types (~> 1.17)
+  msgpack (~> 0.5)
   prawn (= 0.8.4)
   rdoc (~> 3.9)
   rspec (~> 2.13)
   sdl4r (~> 0.9)
-  unicorn-cuba-base (~> 1.0)
+  unicorn-cuba-base!

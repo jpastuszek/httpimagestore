@@ -1,4 +1,6 @@
 require 'aws-sdk'
+require 'digest/sha2'
+require 'msgpack'
 require 'httpimagestore/aws_sdk_regions_hack'
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
@@ -61,6 +63,93 @@ module Configuration
 	class S3SourceStoreBase < SourceStoreBase
 		include ClassLogging
 
+		class CacheRoot
+			CacheRootError = Class.new ArgumentError
+			class CacheRootNotDirError < CacheRootError
+				def initialize(root_dir)
+					super "S3 object cache directory '#{root_dir}' does not exist or not a directory"
+				end
+			end
+
+			class CacheRootNotWritableError < CacheRootError
+				def initialize(root_dir)
+					super "S3 object cache directory '#{root_dir}' is not writable"
+				end
+			end
+
+			class CacheRootNotAccessibleError < CacheRootError
+				def initialize(root_dir)
+					super "S3 object cache directory '#{root_dir}' is not readable"
+				end
+			end
+
+			def initialize(root_dir, write_mode = false)
+				@root = Pathname.new(root_dir)
+				@root.directory? or raise CacheRootNotDirError.new(root_dir)
+				@write_mode = write_mode
+				if @write_mode
+					@root.writable? or raise CacheRootNotWritableError.new(root_dir)
+				end
+				@root.executable? or raise CacheRootNotAccessibleError.new(root_dir)
+			end
+
+			def cache_file(bucket, key)
+				File.join(Digest::SHA2.new.update("#{bucket}/#{key}").to_s[0,32].match(/(..)(..)(.*)/).captures)
+			end
+
+			def try_open(bucket, key)
+				file = @root + cache_file(bucket, key)
+
+				if @write_mode
+					file.dirname.directory? or file.dirname.mkpath
+				else
+					return false unless file.readable?
+				end
+
+				file.open(@write_mode ? 'w' : 'r') do |io|
+					yield io
+				end
+				return true
+			end
+		end
+
+		class CachedObject
+			def initialize(io)
+				@io = io
+				head_length = @io.read(4).unpack('L').first
+				@header = MessagePack.unpack(@io.read(head_length))
+				@header['headers'].default_proc = proc do |hash, key|
+					# MessagePack does not support symbols
+					hash[key.to_s]
+				end
+			end
+
+			def read(options = {})
+				if range = options[:range]
+					@io.seek(range.first, IO::SEEK_CUR)
+					@io.read(range.last - range.first)
+				else
+					@io.read
+				end
+			end
+
+			def write(data, options = {})
+				@io.write(data)
+			end
+
+			def url_for(*args)
+				@header['url_for']
+			end
+
+			def public_url(*args)
+				@header['public_url']
+			end
+
+			def head
+				@header['headers']
+			end
+		end
+
 		extend Stats
 		def_stats(
 			:total_s3_store, 
@@ -75,8 +164,8 @@ module Configuration
 			node.required_attributes('bucket', 'path')
 			node.valid_attribute_values('public_access', true, false, nil)
 
-			bucket, path_spec, public_access, cache_control, prefix, if_image_name_on = 
-				*node.grab_attributes('bucket', 'path', 'public', 'cache-control', 'prefix', 'if-image-name-on')
+			bucket, path_spec, public_access, cache_control, prefix, cache_root, if_image_name_on = 
+				*node.grab_attributes('bucket', 'path', 'public', 'cache-control', 'prefix', 'cache-root', 'if-image-name-on')
 			public_access = false if public_access.nil?
 			prefix = '' if prefix.nil?
 
@@ -88,17 +177,31 @@ module Configuration
 				path_spec, 
 				public_access, 
 				cache_control,
-				prefix
+				prefix,
+				cache_root
 			)
 		end
 
-		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control, prefix)
+		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control, prefix, cache_root)
 			super global, image_name, matcher
 			@bucket = bucket
 			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
 			@prefix = prefix
+
+			@cache_root = nil
+			begin
+				if cache_root
+					@cache_root = CacheRoot.new(cache_root)
+					log.info "using S3 object cache directory: #{cache_root}"
+				else
+					log.info "S3 object cache not configured (no cache-root)"
+				end
+			rescue CacheRoot::CacheRootNotDirError => error
+				log.warn "not using S3 object cache: #{error}"
+			end
+
 			local :bucket, @bucket
 		end
 
@@ -116,8 +219,17 @@ module Configuration
 
 		def object(path)
 			begin
-				bucket = client.buckets[@bucket]
-				yield bucket.objects[@prefix + path]
+				key = @prefix + path
+				begin
+					@cache_root.try_open(@bucket, key) do |io|
+						log.debug{"S3 object cache hit '#{@bucket}/#{key}' [#{@cache_root.cache_file(@bucket, key)}]"}
+						return yield CachedObject.new(io)
+					end
+					log.debug{"S3 object cache miss '#{@bucket}/#{key}' [#{@cache_root.cache_file(@bucket, key)}]"}
+				rescue IOError => error
+					log.warn "cannot use cached S3 object '#{@cache_root.cache_file(@bucket, key)}': #{error}"
+				end if @cache_root
+				return yield client.buckets[@bucket].objects[key]
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket

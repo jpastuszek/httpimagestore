@@ -1,11 +1,14 @@
 source "http://rubygems.org"
 ruby "1.9.3"
 
-gem "unicorn-cuba-base", "~> 1.0"
-gem "httpthumbnailer-client", "~> 1.0"
+#gem "unicorn-cuba-base", "~> 1.0"
+gem "unicorn-cuba-base", path: '../unicorn-cuba-base'
+#gem "httpthumbnailer-client", "~> 1.0"
+gem "httpthumbnailer-client", path: '../httpthumbnailer-client'
 gem "aws-sdk", "~> 1.10"
 gem "mime-types", "~> 1.17"
 gem "sdl4r", "~> 0.9"
+gem "msgpack", "~> 0.5"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

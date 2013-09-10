@@ -1,7 +1,7 @@
 require_relative 'spec_helper'
 require 'aws-sdk'
 require 'httpimagestore/configuration'
-Configuration::Scope.logger = Logger.new('/dev/null')
+#Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/s3'
 MemoryLimit.logger = Logger.new('/dev/null')
@@ -63,6 +63,37 @@ else
 						EOF
 					}.to raise_error Configuration::NoAttributeError, %{syntax error while parsing 's3 key="#{ENV['AWS_ACCESS_KEY_ID']}"': expected 'secret' attribute to be set}
 				end
+			end
+		end
+
+		describe Configuration::S3SourceStoreBase::CacheRoot do
+			subject do
+				Configuration::S3SourceStoreBase::CacheRoot.new('/tmp')
+			end
+
+			before do
+				@cached_object = Pathname.new('/tmp/0d/bf/50c256d6b6efe55d11d0b6b50600')
+				@cached_object.dirname.mkpath
+				@cached_object.open('w') do |io|
+					io.write 'abc'
+				end
+			end
+
+			it 'should build cache file location for storage location from bucket and key' do
+				subject.cache_file('mybucket', 'hello/world.jpg').should == "0d/bf/50c256d6b6efe55d11d0b6b50600"
+			end
+
+			it 'should look up objects stored on disk by bucket and key' do
+				subject.try_open('mybucket', 'hello/world.jpg') do |io|
+					io.read.should == 'abc'
+				end
+			end
+
+			it 'should return false if file was not found in the cache othervise true' do
+				subject.try_open('mybucket', 'hello/world.jpg') do |io|
+				end.should == true
+				subject.try_open('mybucket', 'hello/world2.jpg') do |io|
+				end.should == false
 			end
 		end
 
@@ -139,6 +170,71 @@ else
 					subject.handlers[0].sources[0].realize(state)
 
 					state.images['original'].source_path.should == "test.jpg"
+				end
+			end
+
+			describe 'object cache' do
+				let :state do
+					Configuration::RequestState.new('abc', {test_image: 'test/ghost.jpg'})
+				end
+
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}"
+					get {
+						source_s3 "original" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp"
+					}
+					EOF
+				end
+
+				before do
+					@cached_object = Pathname.new('/tmp/ce/26/b196585e28aa99f55b1260b629e2')
+					@cached_object.dirname.mkpath
+					@cached_object.open('w') do |io|
+						header = MessagePack.pack(
+							'url_for' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID'],
+							'public_url' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg',
+							'headers' => {
+								'content_type' => 'image/jpeg'
+							}
+						)
+						io.write [header.length].pack('L') # header length
+						io.write header
+						io.write 'abc'
+					end
+				end
+
+				it 'should use cache when configured' do
+					subject.handlers[0].sources[0].should be_a Configuration::S3Source
+					subject.handlers[0].sources[0].realize(state)
+
+					state.images['original'].data.should == 'abc'
+				end
+
+				it 'should keep mime type' do
+					subject.handlers[0].sources[0].realize(state)
+
+					state.images['original'].mime_type.should == 'image/jpeg'
+				end
+
+				it 'should keep private source URL' do
+					subject.handlers[0].sources[0].realize(state)
+
+					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID']
+				end
+
+				it 'should keep public source URL' do
+					subject = Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}"
+					get {
+						source_s3 "original" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp" public=true
+					}
+					EOF
+					subject.handlers[0].sources[0].realize(state)
+
+					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
 				end
 			end
 
