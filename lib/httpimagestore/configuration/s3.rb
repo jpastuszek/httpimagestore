@@ -111,14 +111,47 @@ module Configuration
 			end
 		end
 
-		class CacheObject
+		class S3Object
+			def initialize(client, bucket, key)
+				@client = client
+				@bucket = bucket
+				@key = key
+			end
+
+			def s3_object
+				return @s3_object if @s3_object
+				@s3_object = @client.buckets[@bucket].objects[@key]
+			end
+
+			def read(max_bytes = nil)
+				options = {}
+				options[:range] = 0..max_bytes if max_bytes
+				s3_object.read(options)
+			end
+
+			def write(data, options = {})
+				s3_object.write(data, options)
+			end
+
+			def private_url
+				s3_object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20).to_s # expire in 20 years
+			end
+
+			def public_url
+				s3_object.public_url.to_s
+			end
+
+			def content_type
+				s3_object.head[:content_type]
+			end
+		end
+
+		class CacheObject < S3Object
 			include ClassLogging
 
 			def initialize(io, client, bucket, key)
 				@io = io
-				@client = client
-				@bucket = bucket
-				@key = key
+				super(client, bucket, key)
 
 				@header = {}
 				@have_cache = false
@@ -130,75 +163,87 @@ module Configuration
 					if head_length and head_length.length == 4
 						head_length = head_length.unpack('L').first
 						@header = MessagePack.unpack(@io.read(head_length))
-						@header['headers'].default_proc = proc do |hash, key|
-							# MessagePack does not support symbols
-							hash[key.to_s]
-						end
 						@have_cache = true
+
+						log.debug{"S3 object cache hit; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: header: #{@header}"}
+					else
+						log.debug{"S3 object cache miss; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
 					end
 				rescue => error
-					log.warn "cannot use cached S3 object '#{@cache_root.cache_file(@bucket, key)}': #{error}"
+					log.warn "cannot use cached S3 object; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
 					# not usable
 					io.seek 0
-					io.truncate
+					io.truncate 0
 				end
 
 				yield self
 
+				# save object as was used if no error happened and there were changes
 				write_cache if dirty?
 			end
 
-			def read(options = {})
+			def read(max_bytes = nil)
 				if @have_cache
-					log.debug{"S3 object cache hit (read) bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
-					if range = options[:range]
-						@io.seek(range.first, IO::SEEK_CUR)
-						@io.read(range.last - range.first)
-					else
-						@io.read
+					data_location = @io.seek(0, IO::SEEK_CUR)
+					begin
+						return @data = @io.read(max_bytes)
+					ensure
+						@io.seek(data_location, IO::SEEK_SET)
 					end
 				else
-					log.debug{"S3 object cache miss (read) bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
-					dirty
-					@data = s3_object.read(options)
+					dirty! :read
+					return @data = super
 				end
 			end
 
 			def write(data, options = {})
-				s3_object.write(data, options)
+				out = super
 				@data = data
-				dirty
+				dirty! :write
+				out
 			end
 
-			def url_for(*args)
-				@header['url_for']
+			def private_url
+				@header['private_url'] ||= (dirty! :private_url; super)
 			end
 
-			def public_url(*args)
-				@header['public_url']
+			def public_url
+				@header['public_url'] ||= (dirty! :public_url; super)
 			end
 
-			def head
-				@header['headers']
+			def content_type
+				@header['content_type'] ||= (dirty! :content_type; super)
 			end
 
 			private
 
 			def write_cache
-				log.warn "cannot store S3 object in cache: bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
+				begin
+					log.debug{"S3 object is dirty, wirting cache file; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]; header: #{@header}"}
+
+					raise 'nil data!' unless @data
+					# rewrite
+					@io.seek(0, IO::SEEK_SET)
+					@io.truncate 0
+
+					header = MessagePack.pack(@header)
+					@io.write [header.length].pack('L') # header length
+					@io.write header
+					@io.write @data
+				rescue => error
+					log.warn "cannot store S3 object in cache: bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
+				ensure
+					@dirty = false
+				end
 			end
 
-			def dirty
+			def dirty!(reason = :unknown)
+				log.debug{"marking cache dirty for reason: #{reason}"}
 				@dirty = true
 			end
 
 			def dirty?
 				@dirty
-			end
-
-			def s3_object
-				return @s3_object if @s3_object
-				@s3_object = @client.buckets[@bucket].objects[@key]
 			end
 		end
 
@@ -246,12 +291,12 @@ module Configuration
 			begin
 				if cache_root
 					@cache_root = CacheRoot.new(cache_root)
-					log.info "using S3 object cache directory: #{cache_root}"
+					log.info "using S3 object cache directory '#{cache_root}' for image '#{image_name}'"
 				else
-					log.info "S3 object cache not configured (no cache-root)"
+					log.info "S3 object cache not configured (no cache-root) for image '#{image_name}'"
 				end
 			rescue CacheRoot::CacheRootNotDirError => error
-				log.warn "not using S3 object cache: #{error}"
+				log.warn "not using S3 object cache for image '#{image_name}': #{error}"
 			end
 
 			local :bucket, @bucket
@@ -263,29 +308,30 @@ module Configuration
 
 		def url(object)
 			if @public_access
-				object.public_url.to_s
+				object.public_url
 			else
-				object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20).to_s # expire in 20 years
+				object.private_url
 			end
 		end
 
 		def object(path)
 			begin
 				key = @prefix + path
+				image = nil
 
 				if @cache_root
 					begin
 						@cache_root.open(@bucket, key) do |cahce_file_io|
 							CacheObject.new(cahce_file_io, client, @bucket, key) do |obj|
-								return yield obj
+								image = yield obj
 							end
 						end
 					rescue IOError => error
 						log.warn "cannot use S3 object cache '#{@cache_root.cache_file(@bucket, key)}': #{error}"
-						return yield obj
+						image = yield obj
 					end
 				else
-					return yield obj
+					image = yield S3Object.new(client, @bucket, key)
 				end
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
@@ -294,7 +340,11 @@ module Configuration
 			rescue AWS::S3::Errors::NoSuchKey
 				 raise S3NoSuchKeyError.new(@bucket, path)
 			end
+			image
 		end
+
+		S3SourceStoreBase.logger = Handler.logger_for(S3SourceStoreBase)
+		CacheObject.logger = S3SourceStoreBase.logger_for(CacheObject)
 	end
 
 	class S3Source < S3SourceStoreBase
@@ -312,12 +362,12 @@ module Configuration
 
 				object(rendered_path) do |object|
 					data = request_state.memory_limit.get do |limit|
-						object.read range: 0..(limit + 1)
+						object.read(limit + 1)
 					end
 					S3SourceStoreBase.stats.incr_total_s3_source
 					S3SourceStoreBase.stats.incr_total_s3_source_bytes(data.bytesize)
 
-					image = Image.new(data, object.head[:content_type])
+					image = Image.new(data, object.content_type)
 					image.source_url = url(object)
 					image
 				end
@@ -362,5 +412,4 @@ module Configuration
 	Handler::register_node_parser S3Store
 	StatsReporter << S3SourceStoreBase.stats
 end
-
 

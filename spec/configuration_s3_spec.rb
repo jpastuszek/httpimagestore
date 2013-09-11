@@ -1,7 +1,7 @@
 require_relative 'spec_helper'
 require 'aws-sdk'
 require 'httpimagestore/configuration'
-#Configuration::Scope.logger = Logger.new('/dev/null')
+Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/s3'
 MemoryLimit.logger = Logger.new('/dev/null')
@@ -186,6 +186,9 @@ else
 					path "hash" "\#{test_image}"
 					get {
 						source_s3 "original" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp"
+						source_s3 "original_cached" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp"
+						source_s3 "original_cached_public" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp" public="true"
+						source_s3 "original_cached_public2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp" public="true"
 					}
 					EOF
 				end
@@ -195,11 +198,9 @@ else
 					@cached_object.dirname.mkpath
 					@cached_object.open('w') do |io|
 						header = MessagePack.pack(
-							'url_for' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID'],
+							'private_url' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID'],
 							'public_url' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg',
-							'headers' => {
-								'content_type' => 'image/jpeg'
-							}
+							'content_type' => 'image/jpeg'
 						)
 						io.write [header.length].pack('L') # header length
 						io.write header
@@ -237,6 +238,66 @@ else
 					subject.handlers[0].sources[0].realize(state)
 
 					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
+				end
+
+				it 'shluld use object stored in S3 when not found in the cache' do
+					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+					cache_file.unlink if cache_file.exist?
+
+					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+					subject.handlers[0].sources[0].realize(state)
+
+					cache_file.should exist
+				end
+
+				it 'should use cached object writen when it was initialy read' do
+					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+					cache_file.unlink if cache_file.exist?
+
+					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+					subject.handlers[0].sources[0].realize(state)
+
+					cache_file.should exist
+
+					subject.handlers[0].sources[1].realize(state)
+
+					state.images['original'].data.should == @test_data
+					state.images['original'].mime_type.should == 'image/jpeg'
+
+					state.images['original_cached'].data.should == @test_data
+					state.images['original_cached'].mime_type.should == 'image/jpeg'
+				end
+
+				it 'should use update cached object when new properties are read from S3' do
+					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+					cache_file.unlink if cache_file.exist?
+
+					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+
+					## cache with private URL
+					subject.handlers[0].sources[0].realize(state)
+
+					cache_file.should exist
+					sum = Digest::SHA2.new.update(cache_file.read).to_s
+
+					## read from cache with private URL
+					subject.handlers[0].sources[1].realize(state)
+
+					# no change
+					Digest::SHA2.new.update(cache_file.read).to_s.should == sum
+
+					## read from cache; add public URL
+					subject.handlers[0].sources[2].realize(state)
+
+					# should get updated
+					Digest::SHA2.new.update(cache_file.read).to_s.should_not == sum
+					
+					sum = Digest::SHA2.new.update(cache_file.read).to_s
+					## read from cahce
+					subject.handlers[0].sources[3].realize(state)
+
+					# no change
+					Digest::SHA2.new.update(cache_file.read).to_s.should == sum
 				end
 			end
 
