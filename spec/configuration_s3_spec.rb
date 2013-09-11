@@ -77,23 +77,25 @@ else
 				@cached_object.open('w') do |io|
 					io.write 'abc'
 				end
+
+				test2 = Pathname.new('/tmp/46/b9/7a454d831d7570abbb833330d9fb')
+				test2.unlink if test2.exist?
 			end
 
 			it 'should build cache file location for storage location from bucket and key' do
 				subject.cache_file('mybucket', 'hello/world.jpg').should == "0d/bf/50c256d6b6efe55d11d0b6b50600"
 			end
 
-			it 'should look up objects stored on disk by bucket and key' do
-				subject.try_open('mybucket', 'hello/world.jpg') do |io|
+			it 'should look up object stored on disk by bucket and key' do
+				subject.open('mybucket', 'hello/world.jpg') do |io|
 					io.read.should == 'abc'
 				end
 			end
 
-			it 'should return false if file was not found in the cache othervise true' do
-				subject.try_open('mybucket', 'hello/world.jpg') do |io|
-				end.should == true
-				subject.try_open('mybucket', 'hello/world2.jpg') do |io|
-				end.should == false
+			it 'should create cache object for bucket and key if it does not exist' do
+				subject.open('mybucket', 'hello/world2.jpg') do |io|
+					io.read.should == ''
+				end
 			end
 		end
 

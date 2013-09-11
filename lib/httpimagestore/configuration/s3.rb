@@ -83,58 +83,91 @@ module Configuration
 				end
 			end
 
-			def initialize(root_dir, write_mode = false)
+			def initialize(root_dir)
 				@root = Pathname.new(root_dir)
 				@root.directory? or raise CacheRootNotDirError.new(root_dir)
-				@write_mode = write_mode
-				if @write_mode
-					@root.writable? or raise CacheRootNotWritableError.new(root_dir)
-				end
 				@root.executable? or raise CacheRootNotAccessibleError.new(root_dir)
+				@root.writable? or raise CacheRootNotWritableError.new(root_dir)
 			end
 
 			def cache_file(bucket, key)
 				File.join(Digest::SHA2.new.update("#{bucket}/#{key}").to_s[0,32].match(/(..)(..)(.*)/).captures)
 			end
 
-			def try_open(bucket, key)
+			def open(bucket, key)
+				# TODO: locking
 				file = @root + cache_file(bucket, key)
 
-				if @write_mode
-					file.dirname.directory? or file.dirname.mkpath
+				file.dirname.directory? or file.dirname.mkpath
+				if file.exist?
+					file.open('r+') do |io|
+						yield io
+					end
 				else
-					return false unless file.readable?
+					file.open('w+') do |io|
+						yield io
+					end
 				end
-
-				file.open(@write_mode ? 'w' : 'r') do |io|
-					yield io
-				end
-				return true
 			end
 		end
 
-		class CachedObject
-			def initialize(io)
+		class CacheObject
+			include ClassLogging
+
+			def initialize(io, client, bucket, key)
 				@io = io
-				head_length = @io.read(4).unpack('L').first
-				@header = MessagePack.unpack(@io.read(head_length))
-				@header['headers'].default_proc = proc do |hash, key|
-					# MessagePack does not support symbols
-					hash[key.to_s]
+				@client = client
+				@bucket = bucket
+				@key = key
+
+				@header = {}
+				@have_cache = false
+				@dirty = false
+
+				begin
+					head_length = @io.read(4)
+
+					if head_length and head_length.length == 4
+						head_length = head_length.unpack('L').first
+						@header = MessagePack.unpack(@io.read(head_length))
+						@header['headers'].default_proc = proc do |hash, key|
+							# MessagePack does not support symbols
+							hash[key.to_s]
+						end
+						@have_cache = true
+					end
+				rescue => error
+					log.warn "cannot use cached S3 object '#{@cache_root.cache_file(@bucket, key)}': #{error}"
+					# not usable
+					io.seek 0
+					io.truncate
 				end
+
+				yield self
+
+				write_cache if dirty?
 			end
 
 			def read(options = {})
-				if range = options[:range]
-					@io.seek(range.first, IO::SEEK_CUR)
-					@io.read(range.last - range.first)
+				if @have_cache
+					log.debug{"S3 object cache hit (read) bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
+					if range = options[:range]
+						@io.seek(range.first, IO::SEEK_CUR)
+						@io.read(range.last - range.first)
+					else
+						@io.read
+					end
 				else
-					@io.read
+					log.debug{"S3 object cache miss (read) bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
+					dirty
+					@data = s3_object.read(options)
 				end
 			end
 
 			def write(data, options = {})
-				@io.write(data)
+				s3_object.write(data, options)
+				@data = data
+				dirty
 			end
 
 			def url_for(*args)
@@ -147,6 +180,25 @@ module Configuration
 
 			def head
 				@header['headers']
+			end
+
+			private
+
+			def write_cache
+				log.warn "cannot store S3 object in cache: bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
+			end
+
+			def dirty
+				@dirty = true
+			end
+
+			def dirty?
+				@dirty
+			end
+
+			def s3_object
+				return @s3_object if @s3_object
+				@s3_object = @client.buckets[@bucket].objects[@key]
 			end
 		end
 
@@ -220,16 +272,21 @@ module Configuration
 		def object(path)
 			begin
 				key = @prefix + path
-				begin
-					@cache_root.try_open(@bucket, key) do |io|
-						log.debug{"S3 object cache hit '#{@bucket}/#{key}' [#{@cache_root.cache_file(@bucket, key)}]"}
-						return yield CachedObject.new(io)
+
+				if @cache_root
+					begin
+						@cache_root.open(@bucket, key) do |cahce_file_io|
+							CacheObject.new(cahce_file_io, client, @bucket, key) do |obj|
+								return yield obj
+							end
+						end
+					rescue IOError => error
+						log.warn "cannot use S3 object cache '#{@cache_root.cache_file(@bucket, key)}': #{error}"
+						return yield obj
 					end
-					log.debug{"S3 object cache miss '#{@bucket}/#{key}' [#{@cache_root.cache_file(@bucket, key)}]"}
-				rescue IOError => error
-					log.warn "cannot use cached S3 object '#{@cache_root.cache_file(@bucket, key)}': #{error}"
-				end if @cache_root
-				return yield client.buckets[@bucket].objects[key]
+				else
+					return yield obj
+				end
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket
