@@ -189,6 +189,13 @@ module Configuration
 		end
 
 		class CacheObject < S3Object
+			extend Stats
+			def_stats(
+				:total_s3_cache_hits, 
+				:total_s3_cache_misses,
+				:total_s3_cache_errors,
+			)
+
 			include ClassLogging
 
 			def initialize(cache_file, client, bucket, key)
@@ -206,11 +213,14 @@ module Configuration
 			def read(max_bytes = nil)
 				begin
 					@data = @cache_file.read(max_bytes)
+					CacheObject.stats.incr_total_s3_cache_hits
 					log.debug{"S3 object cache hit for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]: header: #{@cache_file.header}"}
 					return @data
 				rescue Errno::ENOENT
+					CacheObject.stats.incr_total_s3_cache_misses
 					log.debug{"S3 object cache miss for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]"}
 				rescue => error
+					CacheObject.stats.incr_total_s3_cache_errors
 					log.warn "cannot use cached S3 object for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]", error
 				end
 				@data = super
@@ -423,5 +433,6 @@ module Configuration
 	end
 	Handler::register_node_parser S3Store
 	StatsReporter << S3SourceStoreBase.stats
+	StatsReporter << S3SourceStoreBase::CacheObject.stats
 end
 
