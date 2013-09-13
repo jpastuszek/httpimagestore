@@ -83,19 +83,9 @@ else
 			end
 
 			it 'should build cache file location for storage location from bucket and key' do
-				subject.cache_file('mybucket', 'hello/world.jpg').should == "0d/bf/50c256d6b6efe55d11d0b6b50600"
-			end
-
-			it 'should look up object stored on disk by bucket and key' do
-				subject.open('mybucket', 'hello/world.jpg') do |io|
-					io.read.should == 'abc'
-				end
-			end
-
-			it 'should create cache object for bucket and key if it does not exist' do
-				subject.open('mybucket', 'hello/world2.jpg') do |io|
-					io.read.should == ''
-				end
+				cache_file = subject.cache_file('mybucket', 'hello/world.jpg')
+				cache_file.should be_a Configuration::S3SourceStoreBase::CacheRoot::CacheFile
+				cache_file.to_s.should == "/tmp/0d/bf/50c256d6b6efe55d11d0b6b50600"
 			end
 		end
 

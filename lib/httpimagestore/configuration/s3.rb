@@ -83,6 +83,56 @@ module Configuration
 				end
 			end
 
+			class CacheFile < Pathname
+				def initialize(path)
+					super
+					@header = nil
+				end
+
+				def header
+					begin
+						read(0)
+					rescue
+						@header = {}
+					end unless @header
+					@header or fail 'no header data'
+				end
+
+				def read(max_bytes = nil)
+					open('rb') do |io|
+						@header = read_header(io)
+						return io.read(max_bytes)
+					end
+				end
+
+				def write(data)
+					dirname.directory? or dirname.mkpath
+					open('wb') do |io|
+						begin
+							header = MessagePack.pack(@header)
+							io.write [header.length].pack('L') # header length
+							io.write header
+							io.write data
+						rescue => error
+							unlink # remove broken cache file
+							raise
+						end
+					end
+				end
+
+				private
+
+				def read_header_length(io)
+					head_length = io.read(4)
+					fail 'no header length' unless head_length and head_length.length == 4
+					head_length.unpack('L').first
+				end
+
+				def read_header(io)
+					MessagePack.unpack(io.read(read_header_length(io)))
+				end
+			end
+
 			def initialize(root_dir)
 				@root = Pathname.new(root_dir)
 				@root.directory? or raise CacheRootNotDirError.new(root_dir)
@@ -91,29 +141,7 @@ module Configuration
 			end
 
 			def cache_file(bucket, key)
-				File.join(Digest::SHA2.new.update("#{bucket}/#{key}").to_s[0,32].match(/(..)(..)(.*)/).captures)
-			end
-
-			def open(bucket, key)
-				# TODO: locking
-				file = @root + cache_file(bucket, key)
-
-				file.dirname.directory? or file.dirname.mkpath
-				begin
-					if file.exist?
-						file.open('r+b') do |io|
-							yield io
-						end
-					else
-						file.open('w+b') do |io|
-							yield io
-						end
-					end
-				rescue AWS::Errors::Base
-					# no S3 object or othere error -> remove cache object
-					file.unlink
-					raise
-				end
+				CacheFile.new(File.join(@root.to_s, *Digest::SHA2.new.update("#{bucket}/#{key}").to_s[0,32].match(/(..)(..)(.*)/).captures))
 			end
 		end
 
@@ -155,89 +183,61 @@ module Configuration
 		class CacheObject < S3Object
 			include ClassLogging
 
-			def initialize(io, client, bucket, key)
-				@io = io
+			def initialize(cache_file, client, bucket, key)
 				super(client, bucket, key)
 
-				@header = {}
-				@have_cache = false
+				@cache_file = cache_file
 				@dirty = false
-
-				begin
-					head_length = @io.read(4)
-
-					if head_length and head_length.length == 4
-						head_length = head_length.unpack('L').first
-						@header = MessagePack.unpack(@io.read(head_length))
-						@have_cache = true
-
-						log.debug{"S3 object cache hit; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: header: #{@header}"}
-					else
-						log.debug{"S3 object cache miss; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]"}
-					end
-				rescue => error
-					log.warn "cannot use cached S3 object; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
-					# not usable
-					io.seek 0
-					io.truncate 0
-				end
 
 				yield self
 
-				# save object as was used if no error happened and there were changes
+				# save object if new data was read/written to/from S3 and no error happened
 				write_cache if dirty?
 			end
 
 			def read(max_bytes = nil)
-				if @have_cache
-					data_location = @io.seek(0, IO::SEEK_CUR)
-					begin
-						return @data = @io.read(max_bytes)
-					ensure
-						@io.seek(data_location, IO::SEEK_SET)
-					end
-				else
-					dirty! :read
-					return @data = super
+				begin
+					@data = @cache_file.read(max_bytes)
+					log.debug{"S3 object cache hit for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]: header: #{@cache_file.header}"}
+					return @data
+				rescue Errno::ENOENT
+					log.debug{"S3 object cache miss for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]"}
+				rescue => error
+					log.warn "cannot use cached S3 object for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]", error
 				end
+				@data = super
+				dirty! :read
+				return @data
 			end
 
 			def write(data, options = {})
-				out = super
+				super
 				@data = data
 				dirty! :write
-				out
 			end
 
 			def private_url
-				@header['private_url'] ||= (dirty! :private_url; super)
+				@cache_file.header['private_url'] ||= (dirty! :private_url; super)
 			end
 
 			def public_url
-				@header['public_url'] ||= (dirty! :public_url; super)
+				@cache_file.header['public_url'] ||= (dirty! :public_url; super)
 			end
 
 			def content_type
-				@header['content_type'] ||= (dirty! :content_type; super)
+				@cache_file.header['content_type'] ||= (dirty! :content_type; super)
 			end
 
 			private
 
 			def write_cache
 				begin
-					log.debug{"S3 object is dirty, wirting cache file; bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]; header: #{@header}"}
+					log.debug{"S3 object is dirty, wirting cache file for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]; header: #{@cache_file.header}"}
 
 					raise 'nil data!' unless @data
-					# rewrite
-					@io.seek(0, IO::SEEK_SET)
-					@io.truncate 0
-
-					header = MessagePack.pack(@header)
-					@io.write [header.length].pack('L') # header length
-					@io.write header
-					@io.write @data
+					@cache_file.write(@data)
 				rescue => error
-					log.warn "cannot store S3 object in cache: bucket: '#{@bucket}' key: '#{@key}' [#{@io.path}]: #{error}"
+					log.warn "cannot store S3 object in cache for bucket: '#{@bucket}' key: '#{@key}' [#{@cache_file}]", error
 				ensure
 					@dirty = false
 				end
@@ -302,7 +302,7 @@ module Configuration
 					log.info "S3 object cache not configured (no cache-root) for image '#{image_name}'"
 				end
 			rescue CacheRoot::CacheRootNotDirError => error
-				log.warn "not using S3 object cache for image '#{image_name}': #{error}"
+				log.warn "not using S3 object cache for image '#{image_name}'", error
 			end
 
 			local :bucket, @bucket
@@ -327,14 +327,13 @@ module Configuration
 
 				if @cache_root
 					begin
-						@cache_root.open(@bucket, key) do |cahce_file_io|
-							CacheObject.new(cahce_file_io, client, @bucket, key) do |obj|
-								image = yield obj
-							end
+						cache_file = @cache_root.cache_file(@bucket, key)
+						CacheObject.new(cache_file, client, @bucket, key) do |obj|
+							image = yield obj
 						end
 						return image
 					rescue Errno::EACCES, IOError => error
-						log.warn "cannot use S3 object cache for bucket: '#{@bucket}' key: '#{key}' [#{@cache_root.cache_file(@bucket, key)}]: #{error}"
+						log.warn "cannot use S3 object cache for bucket: '#{@bucket}' key: '#{key}' [#{cache_file}]", error
 					end
 				end
 				return yield S3Object.new(client, @bucket, key)
