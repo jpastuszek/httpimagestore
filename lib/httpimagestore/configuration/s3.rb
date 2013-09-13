@@ -221,6 +221,7 @@ module Configuration
 			def write(data, options = {})
 				super
 				@data = data
+				@cache_file.header['content_type'] = options[:content_type] if options[:content_type]
 				dirty! :write
 			end
 
@@ -407,7 +408,7 @@ module Configuration
 
 					options = {}
 					options[:single_request] = true
-					options[:content_type] = image.mime_type
+					options[:content_type] = image.mime_type if image.mime_type
 					options[:acl] = acl
 					options[:cache_control] = @cache_control if @cache_control
 

@@ -180,6 +180,10 @@ else
 						source_s3 "original_cached_public" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp" public="true"
 						source_s3 "original_cached_public2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp" public="true"
 					}
+
+					post {
+						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" cache-root="/tmp"
+					}
 					EOF
 				end
 
@@ -356,6 +360,38 @@ else
 
 							cache_file.should_not exist
 						end
+					end
+				end
+
+				describe 'write-through' do
+					let :state do
+						Configuration::RequestState.new(@test_data, {test_image: 'test_cache.jpg'})
+					end
+
+					before :each do
+					end
+
+					it 'should cache S3 object during write' do
+						cache_file = Pathname.new('/tmp/31/f6/d48147b9981bb880fb1861539e3f')
+						cache_file.unlink if cache_file.exist?
+
+						subject.handlers[1].sources[0].realize(state)
+						state.images['input'].mime_type = 'image/jpeg'
+						subject.handlers[1].stores[0].realize(state)
+
+						# we have cache
+						cache_file.should exist
+
+						# but delete S3 so it will fail if cache was not used fully
+						s3_client = AWS::S3.new(use_ssl: false)
+						s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
+						s3_test_bucket.objects['test_cache.jpg'].delete
+
+						state = Configuration::RequestState.new('', {test_image: 'test_cache.jpg'})
+						expect {
+							subject.handlers[0].sources[0].realize(state)
+						}.not_to raise_error
+							state.images['original'].data.should == @test_data
 					end
 				end
 			end
