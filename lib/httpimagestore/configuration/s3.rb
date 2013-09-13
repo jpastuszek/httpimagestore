@@ -100,6 +100,7 @@ module Configuration
 
 				def read(max_bytes = nil)
 					open('rb') do |io|
+						io.flock(File::LOCK_SH)
 						@header = read_header(io)
 						return io.read(max_bytes)
 					end
@@ -107,7 +108,14 @@ module Configuration
 
 				def write(data)
 					dirname.directory? or dirname.mkpath
-					open('wb') do |io|
+					open('ab') do |io|
+						# opened but not truncated before lock can be obtained
+						io.flock(File::LOCK_EX)
+
+						# now get rid of the old content if any
+						io.seek 0, IO::SEEK_SET
+						io.truncate 0
+
 						begin
 							header = MessagePack.pack(@header)
 							io.write [header.length].pack('L') # header length
