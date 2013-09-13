@@ -72,9 +72,9 @@ else
 			end
 
 			before do
-				@cached_object = Pathname.new('/tmp/0d/bf/50c256d6b6efe55d11d0b6b50600')
-				@cached_object.dirname.mkpath
-				@cached_object.open('w') do |io|
+				@cache_file = Pathname.new('/tmp/0d/bf/50c256d6b6efe55d11d0b6b50600')
+				@cache_file.dirname.mkpath
+				@cache_file.open('w') do |io|
 					io.write 'abc'
 				end
 
@@ -194,9 +194,9 @@ else
 				end
 
 				before do
-					@cached_object = Pathname.new('/tmp/ce/26/b196585e28aa99f55b1260b629e2')
-					@cached_object.dirname.mkpath
-					@cached_object.open('w') do |io|
+					@cache_file = Pathname.new('/tmp/ce/26/b196585e28aa99f55b1260b629e2')
+					@cache_file.dirname.mkpath
+					@cache_file.open('wb') do |io|
 						header = MessagePack.pack(
 							'private_url' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID'],
 							'public_url' => 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg',
@@ -208,7 +208,7 @@ else
 					end
 				end
 
-				it 'should use cache when configured' do
+				it 'should use cache when configured and object in cache' do
 					subject.handlers[0].sources[0].should be_a Configuration::S3Source
 					subject.handlers[0].sources[0].realize(state)
 
@@ -240,64 +240,133 @@ else
 					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
 				end
 
-				it 'shluld use object stored in S3 when not found in the cache' do
-					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
-					cache_file.unlink if cache_file.exist?
+				describe 'read-through' do
+					it 'shluld use object stored in S3 when not found in the cache' do
+						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+						cache_file.unlink if cache_file.exist?
 
-					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
-					subject.handlers[0].sources[0].realize(state)
+						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+						subject.handlers[0].sources[0].realize(state)
 
-					cache_file.should exist
-				end
+						cache_file.should exist
+					end
 
-				it 'should use cached object writen when it was initialy read' do
-					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
-					cache_file.unlink if cache_file.exist?
+					it 'should write cache on read and be able to use it on next read' do
+						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+						cache_file.unlink if cache_file.exist?
 
-					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
-					subject.handlers[0].sources[0].realize(state)
+						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+						subject.handlers[0].sources[0].realize(state)
 
-					cache_file.should exist
+						cache_file.should exist
 
-					subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[1].realize(state)
 
-					state.images['original'].data.should == @test_data
-					state.images['original'].mime_type.should == 'image/jpeg'
+						state.images['original'].data.should == @test_data
+						state.images['original'].mime_type.should == 'image/jpeg'
 
-					state.images['original_cached'].data.should == @test_data
-					state.images['original_cached'].mime_type.should == 'image/jpeg'
-				end
+						state.images['original_cached'].data.should == @test_data
+						state.images['original_cached'].mime_type.should == 'image/jpeg'
+					end
 
-				it 'should use update cached object when new properties are read from S3' do
-					cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
-					cache_file.unlink if cache_file.exist?
+					it 'should update cached object with new properties read from S3' do
+						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+						cache_file.unlink if cache_file.exist?
 
-					state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 
-					## cache with private URL
-					subject.handlers[0].sources[0].realize(state)
+						## cache with private URL
+						subject.handlers[0].sources[0].realize(state)
 
-					cache_file.should exist
-					sum = Digest::SHA2.new.update(cache_file.read).to_s
+						cache_file.should exist
+						sum = Digest::SHA2.new.update(cache_file.read).to_s
 
-					## read from cache with private URL
-					subject.handlers[0].sources[1].realize(state)
+						## read from cache with private URL
+						subject.handlers[0].sources[1].realize(state)
 
-					# no change
-					Digest::SHA2.new.update(cache_file.read).to_s.should == sum
+						# no change
+						Digest::SHA2.new.update(cache_file.read).to_s.should == sum
 
-					## read from cache; add public URL
-					subject.handlers[0].sources[2].realize(state)
+						## read from cache; add public URL
+						subject.handlers[0].sources[2].realize(state)
 
-					# should get updated
-					Digest::SHA2.new.update(cache_file.read).to_s.should_not == sum
-					
-					sum = Digest::SHA2.new.update(cache_file.read).to_s
-					## read from cahce
-					subject.handlers[0].sources[3].realize(state)
+						# should get updated
+						Digest::SHA2.new.update(cache_file.read).to_s.should_not == sum
+						
+						sum = Digest::SHA2.new.update(cache_file.read).to_s
+						## read from cahce
+						subject.handlers[0].sources[3].realize(state)
 
-					# no change
-					Digest::SHA2.new.update(cache_file.read).to_s.should == sum
+						# no change
+						Digest::SHA2.new.update(cache_file.read).to_s.should == sum
+					end
+
+					describe 'error handling' do
+						let :state do
+							Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+						end
+						
+						before :each do
+							@cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
+							@cache_file.dirname.mkpath
+							@cache_file.open('wb') do |io|
+								header = 'xyz'
+								io.write [header.length].pack('L') # header length
+								io.write header
+								io.write 'abc'
+							end
+						end
+
+						it 'should rewrite cached object when corrupted' do
+							subject.handlers[0].sources[0].realize(state)
+							state.images['original'].data.should == @test_data
+
+							cache = @cache_file.read.force_encoding('ASCII-8BIT')
+							cache.should_not include 'xyz'
+							cache.should include @test_data
+						end
+
+						it 'should use S3 object when cache file is not accessible' do
+							@cache_file.chmod(0000)
+							begin
+								subject.handlers[0].sources[0].realize(state)
+								state.images['original'].data.should == @test_data
+							ensure
+								@cache_file.chmod(0644)
+
+								cache = @cache_file.read.force_encoding('ASCII-8BIT')
+								cache.should include 'xyz'
+								cache.should_not include @test_data
+							end
+						end
+
+						it 'should use S3 object when cache direcotry is not accessible' do
+							@cache_file.dirname.chmod(0000)
+							begin
+								subject.handlers[0].sources[0].realize(state)
+								state.images['original'].data.should == @test_data
+							ensure
+								@cache_file.dirname.chmod(0755)
+
+								cache = @cache_file.read.force_encoding('ASCII-8BIT')
+								cache.should include 'xyz'
+								cache.should_not include @test_data
+							end
+						end
+
+						it 'should not store cache file for S3 objects that does not exist' do
+							cache_file = Pathname.new('/tmp/a2/fd/4261e9a7586ed772d0c78bb51c9d')
+							cache_file.unlink if cache_file.exist?
+
+							state = Configuration::RequestState.new('abc', {test_image: 'bogous.jpg'})
+
+							expect {
+								subject.handlers[0].sources[0].realize(state)
+							}.to raise_error Configuration::S3NoSuchKeyError
+
+							cache_file.should_not exist
+						end
+					end
 				end
 			end
 

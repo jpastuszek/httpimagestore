@@ -99,14 +99,20 @@ module Configuration
 				file = @root + cache_file(bucket, key)
 
 				file.dirname.directory? or file.dirname.mkpath
-				if file.exist?
-					file.open('r+b') do |io|
-						yield io
+				begin
+					if file.exist?
+						file.open('r+b') do |io|
+							yield io
+						end
+					else
+						file.open('w+b') do |io|
+							yield io
+						end
 					end
-				else
-					file.open('w+b') do |io|
-						yield io
-					end
+				rescue AWS::Errors::Base
+					# no S3 object or othere error -> remove cache object
+					file.unlink
+					raise
 				end
 			end
 		end
@@ -326,13 +332,12 @@ module Configuration
 								image = yield obj
 							end
 						end
-					rescue IOError => error
-						log.warn "cannot use S3 object cache '#{@cache_root.cache_file(@bucket, key)}': #{error}"
-						image = yield obj
+						return image
+					rescue Errno::EACCES, IOError => error
+						log.warn "cannot use S3 object cache for bucket: '#{@bucket}' key: '#{key}' [#{@cache_root.cache_file(@bucket, key)}]: #{error}"
 					end
-				else
-					image = yield S3Object.new(client, @bucket, key)
 				end
+				return yield S3Object.new(client, @bucket, key)
 			rescue AWS::S3::Errors::AccessDenied
 				raise S3AccessDenied.new(@bucket, path)
 			rescue AWS::S3::Errors::NoSuchBucket
@@ -340,7 +345,6 @@ module Configuration
 			rescue AWS::S3::Errors::NoSuchKey
 				 raise S3NoSuchKeyError.new(@bucket, path)
 			end
-			image
 		end
 
 		S3SourceStoreBase.logger = Handler.logger_for(S3SourceStoreBase)
