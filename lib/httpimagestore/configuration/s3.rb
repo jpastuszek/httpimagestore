@@ -100,11 +100,11 @@ module Configuration
 
 				file.dirname.directory? or file.dirname.mkpath
 				if file.exist?
-					file.open('r+') do |io|
+					file.open('r+b') do |io|
 						yield io
 					end
 				else
-					file.open('w+') do |io|
+					file.open('w+b') do |io|
 						yield io
 					end
 				end

@@ -72,7 +72,7 @@ module Configuration
 
 				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
 				begin
-					data = storage_path.open('r') do |io|
+					data = storage_path.open('rb') do |io|
 						request_state.memory_limit.io io
 						io.read
 					end
@@ -108,7 +108,7 @@ module Configuration
 				image.store_url = "file://#{rendered_path.to_s}"
 
 				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
-				storage_path.open('w'){|io| io.write image.data}
+				storage_path.open('wb'){|io| io.write image.data}
 				FileSourceStoreBase.stats.incr_total_file_store
 				FileSourceStoreBase.stats.incr_total_file_store_bytes(image.data.bytesize)
 			end
