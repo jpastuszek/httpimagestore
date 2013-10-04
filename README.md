@@ -11,10 +11,14 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 * sourcing and storage of images on [Amazon S3](http://aws.amazon.com/s3/)
 * image output with Cache-Control header
 * S3 public or private and http:// or https:// URL list output for stored images
+* S3 read-through and write-through object cache
 * storage under custom paths including image hash, content determined extension or used URL path
 * based on [Unicorn HTTP server](http://unicorn.bogomips.org) with UNIX socket communication support
 
 ## Changelog
+
+### 1.4.0
+* read-through and write-through S3 object cache support
 
 ### 1.3.0
 
@@ -233,7 +237,8 @@ Options:
 
 * `bucket` - name of bucket to source image from
 * `path` - name of predefined path that will be used to generate key to object to source
-* `prefix` - prefix object key with given prefix value; this does not affect fromat of output URL; prefix will not be included in source path output; default: ``
+* `prefix` - prefix object key with given prefix value; this does not affect format of output URL; prefix will not be included in source path output; default: ``
+* `cache-root` - path to directory where S3 objects and meta-data will be cached when sourced from S3; read-through mode; if required information was found in cache object no S3 requests will be made; same directory can be used with different buckets since cache key consists of S3 bucket name and object key
 
 Example:
 
@@ -361,6 +366,7 @@ Options:
 * `path` - name of predefined path that will be used to generate key to store object under
 * `public` - if set to `true` the image will be readable by everybody; this affects fromat of output URL; default: `false`
 * `prefix` - prefix storeage key with given prefix value; this does not affect fromat of output URL; prefix will not be included in storage path output; default: ``
+* `cache-root` - path to directory where stored S3 objects and meta-data will be cached for future sourcing with `source_s3`; write-through mode; note that same directory needs to be configured with corresponding `source_s3` statement
 
 Example:
 
@@ -526,11 +532,12 @@ This option is useful when building API that works on predefined set of image op
 
 ### Flexible API example
 
-Features two storage apporaches: with JPEG conversion and limiting in size - for user provided content - and storing literaly.
+Features two storage approaches: with JPEG conversion and limiting in size - for user provided content - and storing literally.
 POST requests will end up with server side generated storage key based on input data digest.
-PUT requsts can be used to store image under provided storage key.
-Thumbnail GET API is similart to described in [Facebook APIs](https://developers.facebook.com/docs/reference/api/using-pictures/#sizes) for thumbnailing.
+PUT requests can be used to store image under provided storage key.
+Thumbnail GET API is similar to described in [Facebook APIs](https://developers.facebook.com/docs/reference/api/using-pictures/#sizes) for thumbnailing.
 Stored object extension and content type is determined from image data.
+S3 objects are cached on storage and on read if not cached already (read-through/write-through cache).
 
 ```sdl
 s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
@@ -541,77 +548,77 @@ path "path" "#{path}"
 ## User uploaded content - always JPEG converted, not bigger than 2160x2160 and in hight quality compression
 post "pictures" {
 	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
-	store_s3 "original" bucket="mybucket" path="hash"
+	store_s3 "original" bucket="mybucket" path="hash" cache-root="/var/cache/httpimagestore"
 	output_store_path "original"
 }
 
 put "pictures" {
 	thumbnail "input" "original" operation="limit" width=2160 height=2160 format="jpeg" quality=95
-	store_s3 "original" bucket="mybucket" path="path"
+	store_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	output_store_path "original"
 }
 
 ## Uploaded by admin for use on the website for example - store whatever was send
 post "images" {
 	identify "input"
-	store_s3 "input" bucket="mybucket" path="hash"
+	store_s3 "input" bucket="mybucket" path="hash" cache-root="/var/cache/httpimagestore"
 	output_store_path "input"
 }
 
 put "images" {
 	identify "input"
-	store_s3 "input" bucket="mybucket" path="path"
+	store_s3 "input" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	output_store_path "input"
 }
 
 ## Thumbailing - keep input format; default JPEG quality is 85
 ### Thumbnail specification from query string paramaters
 get "pictures" "&:width" "&:height" "&:operation?crop" "&:background-color?white" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "pictures" "&:width" "&:height?1080" "&:operation?fit" "&:background-color?white" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "pictures" "&:height" "&:width?1080" "&:operation?fit" "&:background-color?white" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="background-color:#{background-color}"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 ### Predefined thumbnailing specification
 get "pictures" "&type=square" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="crop" width="50" height="50"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "pictures" "&type=small" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="fit" width="50" height="2000"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "pictures" "&type=normall" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="fit" width="100" height="2000"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 get "pictures" "&type=large" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	thumbnail "original" "thumbnail" operation="fit" width="200" height="2000"
 	output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 }
 
 ## By default serve original image as is - JPEG for user content and what was send for admin uploaded images
 get "pictures" {
-	source_s3 "original" bucket="mybucket" path="path"
+	source_s3 "original" bucket="mybucket" path="path" cache-root="/var/cache/httpimagestore"
 	output_image "original" cache-control="public, max-age=31557600, s-maxage=0"
 }
 ```
@@ -719,7 +726,7 @@ Compatibility API works by storing input image and selected (via URI) classes of
 
 With thumbnail on demand API user uploads original image. It is converted to JPEG and if it is too large also scaled down. Than that processed version is stored in S3 under key composed from hash of input image data and final image extension. Client will receive storage key for further reference in the response body. To obtain thumbnail **GET** request with obtained key and thumbnail parameters encoded in the URI needs to be send to the sever. It will read parameters from the URI and source selected image from S3. That image is then thumbnailed in the backend and sent back to client with custom Cache-Control header.
 
-Note that Compatibility API will also store "migarion" image in bucket used by on demand API. This allows for migration from that API to on demand API.
+Note that Compatibility API will also store "migration" image in bucket used by on demand API. This allows for migration from that API to on demand API.
 
 Compatibility API example:
 
