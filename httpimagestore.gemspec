@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2013-10-04"
+  s.date = "2013-10-07"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -81,8 +81,8 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.1"])
-      s.add_runtime_dependency(%q<httpthumbnailer-client>, ["~> 1.1"])
+      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+      s.add_runtime_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
       s.add_runtime_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_runtime_dependency(%q<mime-types>, ["~> 1.17"])
       s.add_runtime_dependency(%q<sdl4r>, ["~> 0.9"])
@@ -96,8 +96,8 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<prawn>, ["= 0.8.4"])
       s.add_development_dependency(%q<httpthumbnailer>, [">= 0"])
     else
-      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1"])
-      s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1"])
+      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+      s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
       s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_dependency(%q<mime-types>, ["~> 1.17"])
       s.add_dependency(%q<sdl4r>, ["~> 0.9"])
@@ -112,8 +112,8 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<httpthumbnailer>, [">= 0"])
     end
   else
-    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1"])
-    s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1"])
+    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+    s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
     s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
     s.add_dependency(%q<mime-types>, ["~> 1.17"])
     s.add_dependency(%q<sdl4r>, ["~> 0.9"])

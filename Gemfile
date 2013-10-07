@@ -1,8 +1,10 @@
 source "http://rubygems.org"
 ruby "1.9.3"
 
-gem "unicorn-cuba-base", "~> 1.1"
-gem "httpthumbnailer-client", "~> 1.1"
+gem "unicorn-cuba-base", "~> 1.1.1"
+#gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
+gem "httpthumbnailer-client", "~> 1.1.1"
+#gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
 gem "aws-sdk", "~> 1.10"
 gem "mime-types", "~> 1.17"
 gem "sdl4r", "~> 0.9"
