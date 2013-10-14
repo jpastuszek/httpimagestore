@@ -21,9 +21,9 @@ Feature: Image list based thumbnailing and S3 storage
 				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured"	public=true
-			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured"	public=true
+			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured-name"	public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
@@ -38,9 +38,9 @@ Feature: Image list based thumbnailing and S3 storage
 				"tiny_png"	operation="crop"	width=32	height=32	format="png"	if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash"	 public=true
-			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"		path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash"	 public=true
+			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash-name" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"

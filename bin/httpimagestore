@@ -68,7 +68,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 				env['app.configuration'].handlers.each do |handler|
 					on eval(handler.http_method), *handler.uri_matchers.map{|m| instance_eval(&m.matcher)} do |*args|
-						# map and decode matched URI componetns
+						# map and decode matched URI segments
 						matches = {}
 						Hash[handler.uri_matchers.select{|m| m.name}.map{|m| m.name}.zip(args)].each do |name, value|
 							matches[name] = URI.decode(value).force_encoding('UTF-8')
@@ -79,7 +79,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 							URI.decode(part).force_encoding('UTF-8')
 						end.join('/')
 
-						# query string already doceded by Rack
+						# query string already decoded by Rack
 						query_string = req.GET
 
 						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit)

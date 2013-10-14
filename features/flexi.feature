@@ -1,8 +1,8 @@
 Feature: Flexible API with two storage options and Facebook like thumbnailing URL format
-	Features two storage apporaches: with JPEG conversion and limiting in size - for user provided content - and storing literaly.
+	Features two storage approaches: with JPEG conversion and limiting in size - for user provided content - and storing as is.
 	POST requests will end up with server side generated storage key based on input data digest.
-	PUT requsts can be used to store image under provided storage key.
-	Thumbnail GET API is similart to described in https://developers.facebook.com/docs/reference/api/using-pictures/#sizes.
+	PUT requests can be used to store image under provided storage key.
+	Thumbnail GET API is similar to described in https://developers.facebook.com/docs/reference/api/using-pictures/#sizes.
 	Stored object extension and content type is determined from image data.
 
 	Background:

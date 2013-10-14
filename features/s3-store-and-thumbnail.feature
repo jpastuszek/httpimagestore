@@ -15,25 +15,19 @@ Feature: Store limited original image in S3 and thumbnail based on request
 
 		put "original" {
 			thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
-
 			store_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="original-hash" cache-root="/tmp"
-
 			output_store_path "original"
 		}
 
 		get "thumbnail" "v1" ":path" ":operation" ":width" ":height" ":options?" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path"
-
 			thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="png"
-
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 
 		get "thumbnail" "v2" ":operation" ":width" ":height" {
 			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="path" cache-root="/tmp"
-
 			thumbnail "original" "thumbnail" operation="#{operation}" width="#{width}" height="#{height}" options="#{query_string_options}" quality=84 format="png"
-
 			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
 		}
 		"""
