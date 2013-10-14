@@ -259,13 +259,20 @@ module Configuration
 	end
 
 	class Matcher
-		def initialize(name, &matcher)
+		def initialize(name, debug_type = '', debug_name = '', debug_value = '', &matcher)
 			@name = name
 			@matcher = matcher
+			@debug_type = debug_type
+			@debug_name = debug_name
+			@debug_value = debug_value
 		end
 
 		attr_reader :name
 		attr_reader :matcher
+
+		def to_s
+			"Matcher#{@debug_type}(#{@debug_name.inspect})[#{@debug_value.inspect}]"
+		end
 	end
 
 	class Handler < Scope
@@ -299,41 +306,41 @@ module Configuration
 				when %r{^:([^/]+)/(.*)/$} # :foobar/.*/
 					name = $1
 					regexp = $2
-					Matcher.new(name.to_sym) do
+					Matcher.new(name.to_sym, 'Regexp', name, regexp) do
 						Regexp.new("(#{regexp})")
 					end
 				when /^:(.+)\?(.*)$/ # :foo?bar
 					name = $1.to_sym
 					default = $2
-					Matcher.new(name) do
+					Matcher.new(name, 'SymbolDefault', name, default) do
 						->{match(name) || captures.push(default)}
 					end
 				when /^:(.+)$/ # :foobar
 					name = $1.to_sym
-					Matcher.new(name) do
+					Matcher.new(name, 'Symbol', name) do
 						name
 					end
 				# Query string matchers
 				when /^\&([^=]+)=(.+)$/# ?foo=bar
 					name = $1
 					value = $2
-					Matcher.new(nil) do
+					Matcher.new(nil, 'QueryValueTest', name, value) do
 						->{req[name] && req[name] == value}
 					end
 				when /^\&:(.+)\?(.*)$/# &:foo?bar
 					name = $1
 					default = $2
-					Matcher.new(name.to_sym) do
+					Matcher.new(name.to_sym, 'QueryDefault', name, value) do
 						->{captures.push(req[name] || default)}
 					end
 				when /^\&:(.+)$/# &:foo
 					name = $1
-					Matcher.new(name.to_sym) do
+					Matcher.new(name.to_sym, 'Query', name) do
 						->{req[name] && captures.push(req[name])}
 					end
 				# String URI segment matcher
 				else # foobar
-					Matcher.new(nil) do
+					Matcher.new(nil, "String", '', matcher) do
 						Regexp.escape(matcher)
 					end
 				end

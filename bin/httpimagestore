@@ -66,8 +66,11 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 					write_plain 200, 'HTTP Image Store OK'
 				end
 
+				log.debug{"got request: #{env["REQUEST_METHOD"]} #{env["REQUEST_URI"]}"}
 				env['app.configuration'].handlers.each do |handler|
+					log.debug{"trying handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
 					on eval(handler.http_method), *handler.uri_matchers.map{|m| instance_eval(&m.matcher)} do |*args|
+						log.debug{"matched handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
 						# map and decode matched URI segments
 						matches = {}
 						Hash[handler.uri_matchers.select{|m| m.name}.map{|m| m.name}.zip(args)].each do |name, value|

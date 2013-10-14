@@ -13,6 +13,7 @@ Feature: Image list based thumbnailing and S3 storage
 		path "hash-name"	"#{input_digest}/#{image_name}.#{image_mime_extension}"
 		path "structured"	"#{dirname}/#{input_digest}/#{basename}.#{image_mime_extension}"
 		path "structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
+		path "flexi-original" 	"#{hash}.jpg"
 
 		put "thumbnail" ":name_list" ":path/.+/" {
 			thumbnail "input" {
@@ -49,9 +50,22 @@ Feature: Image list based thumbnailing and S3 storage
 				"bad"		if-image-name-on="#{name_list}"
 			}
 		}
+
+		# Forward compatible getting of thumbnails
+		get "thumbnail" ":hash/[0-f]{16}/" ":type/.*-square.jpg/" {
+			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="flexi-original"
+			thumbnail "original" "thumbnail" operation="crop" width="50" height="50"
+			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+		}
+
+		get "thumbnail" ":hash/[0-f]{16}/" ":type/.*-normal.jpg/" {
+			source_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="flexi-original"
+			thumbnail "original" "thumbnail" operation="fit" width="100" height="2000"
+			output_image "thumbnail" cache-control="public, max-age=31557600, s-maxage=0"
+		}
 		"""
 
-	@compatibility @test
+	@compatibility
 	Scenario: Putting original and its thumbnails to S3 bucket
 		Given there is no 4006450256177f4a.jpg file in S3 bucket
 		And there is no 4006450256177f4a/small.jpg file in S3 bucket
@@ -126,4 +140,16 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
 		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
+
+	@compatibility @forward @test
+	Scenario: Getting thumbanils requested with compatibility API from flexi bucket
+    		Given test.jpg file content is stored in S3 under 1234567890123456.jpg
+		When I do GET request http://localhost:3000/thumbnail/1234567890123456/foobar-blah-square.jpg
+		Then response status will be 200
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 50x50
+		When I do GET request http://localhost:3000/thumbnail/1234567890123456/foobar-blah-normal.jpg
+		Then response status will be 200
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 100x141
 
