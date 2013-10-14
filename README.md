@@ -32,7 +32,7 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 * matching for query string key and value
 * getting query string key value into variable
 * optional query string matchers with default value
-* default values for optional component matchers
+* default values for optional segment matchers
 * S3 storage prefix support
 
 ### 1.1.0
@@ -152,12 +152,12 @@ Each endpoint can have one or more operation defined that will be performed on r
 
 Endpoints will be evaluated in order of definition until one is matched.
 
-Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URI component matchers:
+Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URI segment matchers:
 
-* `<string>` - `<string>` literally match against URI component in that position for the endpoint to be evaluated
-* `:<symbol>` - match any URI component in that position and store matched component value in variable named `<symbol>`
-* `:<symbol>?[defalut]` - optionally match URI component in that position and store matched component value in variable named `<symbol>`; request URI may not contain component in that position (usually at the end of URI) to be matched for this endpoint to be evaluated; if `[default]` value is specified it will be used when no value was found in the URI, otherwise empty string will be used
-* `:<symbol>/<regexp>/` - match URI component using `/` surrounded [regular expression](http://rubular.com) and store matched component value in variable named `<symbol>`
+* `<string>` - `<string>` literally match against URI segment in that position for the endpoint to be evaluated
+* `:<symbol>` - match any URI segment in that position and store matched segment value in variable named `<symbol>`
+* `:<symbol>?[defalut]` - optionally match URI segment in that position and store matched segment value in variable named `<symbol>`; request URI may not contain segment in that position (usually at the end of URI) to be matched for this endpoint to be evaluated; if `[default]` value is specified it will be used when no value was found in the URI, otherwise empty string will be used
+* `:<symbol>/<regexp>/` - match URI segment using `/` surrounded [regular expression](http://rubular.com) and store matched segment value in variable named `<symbol>`
 * `&<key>=<value>` - match this endpoint when query string contains key `<key>` with value of `<value>`
 * `&:<key>` - match query string parameter of key `<key>` and store it's value in variable named `<key>`
 * `&:<key>?[default]` - optionally match query string parameter of key `<key>`; when `[default]` is specified it will be used as variable value, otherwise empty string will be used

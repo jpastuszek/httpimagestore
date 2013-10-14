@@ -295,7 +295,7 @@ module Configuration
 			handler_configuration.http_method = node.name
 			handler_configuration.uri_matchers = node.values.map do |matcher|
 				case matcher
-				# URI component matchers
+				# URI segment matchers
 				when %r{^:([^/]+)/(.*)/$} # :foobar/.*/
 					name = $1
 					regexp = $2
@@ -331,7 +331,7 @@ module Configuration
 					Matcher.new(name.to_sym) do
 						->{req[name] && captures.push(req[name])}
 					end
-				# String URI component matcher
+				# String URI segment matcher
 				else # foobar
 					Matcher.new(nil) do
 						Regexp.escape(matcher)
