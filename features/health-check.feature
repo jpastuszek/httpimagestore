@@ -27,4 +27,3 @@ Feature: Health check URL
 		"""
 		Connection refused - connect(2) (http://localhost:3100)
 		"""
-

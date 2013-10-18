@@ -6,13 +6,13 @@ Feature: Storing images under different names
 		Given httpthumbnailer server is running at http://localhost:3100/health_check
 		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
-		path "input_digest"	"#{input_digest}"
-		path "input_sha256"	"#{input_sha256}"
-		path "image_digest"	"#{image_digest}"
-		path "image_sha256"	"#{image_sha256}"
-		path "uuid"		"#{uuid}"
-		path "image_meta"	"#{image_width}x#{image_height}.#{image_mime_extension}"
-		path "input_image_meta"	"#{input_image_width}x#{input_image_height}.#{input_image_mime_extension}"
+		path "input_digest"     "#{input_digest}"
+		path "input_sha256"     "#{input_sha256}"
+		path "image_digest"     "#{image_digest}"
+		path "image_sha256"     "#{image_sha256}"
+		path "uuid"             "#{uuid}"
+		path "image_meta"       "#{image_width}x#{image_height}.#{image_mime_extension}"
+		path "input_image_meta" "#{input_image_width}x#{input_image_height}.#{input_image_mime_extension}"
 
 		post "images" "input_digest" {
 			thumbnail "input" "thumbnail" operation="crop" width="50" height="50"
@@ -196,4 +196,3 @@ Feature: Storing images under different names
 			509x719.png
 			"""
 			Then file /tmp/509x719.png will contain PNG image of size 50x100
-

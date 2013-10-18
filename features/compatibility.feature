@@ -9,45 +9,45 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "hash"		"#{input_digest}.#{image_mime_extension}"
-		path "hash-name"	"#{input_digest}/#{image_name}.#{image_mime_extension}"
-		path "structured"	"#{dirname}/#{input_digest}/#{basename}.#{image_mime_extension}"
-		path "structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
-		path "flexi-original" 	"#{hash}.jpg"
+		path "hash"             "#{input_digest}.#{image_mime_extension}"
+		path "hash-name"        "#{input_digest}/#{image_name}.#{image_mime_extension}"
+		path "structured"       "#{dirname}/#{input_digest}/#{basename}.#{image_mime_extension}"
+		path "structured-name"  "#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
+		path "flexi-original"   "#{hash}.jpg"
 
 		put "thumbnail" ":name_list" ":path/.+/" {
 			thumbnail "input" {
-				"small"		operation="crop"	width=128	height=128	format="jpeg"		if-image-name-on="#{name_list}"
-				"tiny_png"	operation="crop"	width=32	height=32	format="png"		if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
+				"small"             operation="crop"        width=128       height=128      format="jpeg"           if-image-name-on="#{name_list}"
+				"tiny_png"          operation="crop"        width=32        height=32       format="png"            if-image-name-on="#{name_list}"
+				"bad"               operation="crop"        width=0         height=0                                if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured"	public=true
-			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured-name"	public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"	path="structured-name"	public=true if-image-name-on="#{name_list}"
+			store_s3 "input"     bucket="@AWS_S3_TEST_BUCKET@"   path="structured"       public=true
+			store_s3 "small"     bucket="@AWS_S3_TEST_BUCKET@"   path="structured-name"  public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"  bucket="@AWS_S3_TEST_BUCKET@"   path="structured-name"  public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
-				"small"		if-image-name-on="#{name_list}"
-				"tiny_png"	if-image-name-on="#{name_list}"
+				"small"             if-image-name-on="#{name_list}"
+				"tiny_png"          if-image-name-on="#{name_list}"
 			}
 		}
 
 		put "thumbnail" ":name_list" {
 			thumbnail "input" {
-				"small"		operation="crop"	width=128	height=128	format="jpeg"	if-image-name-on="#{name_list}"
-				"tiny_png"	operation="crop"	width=32	height=32	format="png"	if-image-name-on="#{name_list}"
+				"small"             operation="crop"        width=128       height=128      format="jpeg"   if-image-name-on="#{name_list}"
+				"tiny_png"          operation="crop"        width=32        height=32       format="png"    if-image-name-on="#{name_list}"
 			}
 
-			store_s3 "input"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash"	 public=true
-			store_s3 "small"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash-name" public=true if-image-name-on="#{name_list}"
-			store_s3 "tiny_png"	bucket="@AWS_S3_TEST_BUCKET@"	path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "input"     bucket="@AWS_S3_TEST_BUCKET@"   path="hash"      public=true
+			store_s3 "small"     bucket="@AWS_S3_TEST_BUCKET@"   path="hash-name" public=true if-image-name-on="#{name_list}"
+			store_s3 "tiny_png"  bucket="@AWS_S3_TEST_BUCKET@"   path="hash-name" public=true if-image-name-on="#{name_list}"
 
 			output_store_url {
 				"input"
-				"small"		if-image-name-on="#{name_list}"
-				"tiny_png"	if-image-name-on="#{name_list}"
-				"bad"		if-image-name-on="#{name_list}"
+				"small"             if-image-name-on="#{name_list}"
+				"tiny_png"          if-image-name-on="#{name_list}"
+				"bad"               if-image-name-on="#{name_list}"
 			}
 		}
 
@@ -143,7 +143,7 @@ Feature: Image list based thumbnailing and S3 storage
 
 	@compatibility @forward @test
 	Scenario: Getting thumbanils requested with compatibility API from flexi bucket
-    		Given test.jpg file content is stored in S3 under 1234567890123456.jpg
+			Given test.jpg file content is stored in S3 under 1234567890123456.jpg
 		When I do GET request http://localhost:3000/thumbnail/1234567890123456/foobar-blah-square.jpg
 		Then response status will be 200
 		And response content type will be image/jpeg
@@ -152,4 +152,3 @@ Feature: Image list based thumbnailing and S3 storage
 		Then response status will be 200
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 100x141
-

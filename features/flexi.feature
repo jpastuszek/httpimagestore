@@ -257,4 +257,3 @@ Feature: Flexible API with two storage options and Facebook like thumbnailing UR
 		Then response status will be 200
 		And response content type will be image/png
 		Then response body will contain PNG image of size 227x321
-

@@ -9,28 +9,28 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "structured-name"	"#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
-		path "missing"		"blah"
-		path "zero"		"zero"
+		path "structured-name"  "#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
+		path "missing"          "blah"
+		path "zero"             "zero"
 
 		put "multipart" ":name_list" {
 			thumbnail "input" {
-				"small"		operation="crop"	width=128	height=128				if-image-name-on="#{name_list}"
-				"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
-				"bad_dim"	operation="crop"	width="128x"	height=128				if-image-name-on="#{name_list}"
-				"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
-				"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
-				"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"	if-image-name-on="#{name_list}"
+				"small"             operation="crop"        width=128       height=128                              if-image-name-on="#{name_list}"
+				"bad"               operation="crop"        width=0         height=0                                if-image-name-on="#{name_list}"
+				"bad_dim"           operation="crop"        width="128x"    height=128                              if-image-name-on="#{name_list}"
+				"superlarge"        operation="crop"        width=16000     height=16000                            if-image-name-on="#{name_list}"
+				"large_png"         operation="crop"        width=7000      height=7000     format="png"            if-image-name-on="#{name_list}"
+				"bad_opts"          operation="crop"        width=128       height=128      options="foo=bar"       if-image-name-on="#{name_list}"
 			}
 		}
 
 		put "singlepart" ":name_list" {
-			thumbnail "input"	"small"		operation="crop"	width=128	height=128				if-image-name-on="#{name_list}"
-			thumbnail "input"	"bad"		operation="crop"	width=0		height=0				if-image-name-on="#{name_list}"
-			thumbnail "input"	"bad_dim"	operation="crop"	width="128x"	height=128				if-image-name-on="#{name_list}"
-			thumbnail "input"	"superlarge"	operation="crop"	width=16000	height=16000				if-image-name-on="#{name_list}"
-			thumbnail "input"	"large_png"	operation="crop"	width=7000	height=7000	format="png"		if-image-name-on="#{name_list}"
-			thumbnail "input"	"bad_opts"	operation="crop"	width=128	height=128	options="foo=bar"	if-image-name-on="#{name_list}"
+			thumbnail "input"    "small"         operation="crop"        width=128       height=128                              if-image-name-on="#{name_list}"
+			thumbnail "input"    "bad"           operation="crop"        width=0         height=0                                if-image-name-on="#{name_list}"
+			thumbnail "input"    "bad_dim"       operation="crop"        width="128x"    height=128                              if-image-name-on="#{name_list}"
+			thumbnail "input"    "superlarge"    operation="crop"        width=16000     height=16000                            if-image-name-on="#{name_list}"
+			thumbnail "input"    "large_png"     operation="crop"        width=7000      height=7000     format="png"            if-image-name-on="#{name_list}"
+			thumbnail "input"    "bad_opts"      operation="crop"        width=128       height=128      options="foo=bar"       if-image-name-on="#{name_list}"
 		}
 
 		get "s3" {
@@ -250,4 +250,3 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		cannot generate path 'no_image_meta' from template '#{image_mime_extension}': image 'input' does not have data for variable 'image_mime_extension'
 		"""
-

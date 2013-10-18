@@ -10,8 +10,8 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "original-hash"	"#{input_digest}.#{image_mime_extension}"
-		path "path"		"#{path}"
+		path "original-hash"  "#{input_digest}.#{image_mime_extension}"
+		path "path"           "#{path}"
 
 		put "original" {
 			thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
@@ -80,4 +80,3 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		And response content type will be image/png
 		Then response body will contain PNG image of size 50x50
 		And that image pixel at 2x2 should be of color green
-
