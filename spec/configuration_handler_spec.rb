@@ -149,7 +149,7 @@ describe Configuration do
 							subject[:input_digest]
 						}.to raise_error Configuration::NoRequestBodyToGenerateMetaVariableError, %q{need not empty request body to generate value for 'input_digest'}
 					end
-					
+
 					it 'should raise ImageNotLoadedError when asking for image related variable of not loaded image' do
 						expect {
 							subject.with_locals(image_name: 'abc')[:image_mime_extension]
@@ -202,7 +202,7 @@ describe Configuration do
 				limit.borrow 1
 				request_state.images['test'] = Configuration::Image.new('x')
 				limit.limit.should == 1
-				
+
 				limit.borrow 1
 				limit.limit.should == 0
 				request_state.images['test'] = Configuration::Image.new('x')
@@ -254,19 +254,6 @@ describe Configuration do
 				subject.handlers[0].output.should be_a Configuration::OutputOK
 				subject.handlers[1].output.should be_a Configuration::OutputOK
 				subject.handlers[2].output.should be_a Configuration::OutputOK
-			end
-
-			describe Configuration::OutputOK do
-				it 'should output 200 with OK text/plain message when realized' do
-					state = Configuration::RequestState.new('abc')
-					subject.handlers[2].output.realize(state)
-
-					env = CubaResponseEnv.new
-					env.instance_eval &state.output_callback
-					env.res.status.should == 200
-					env.res.data.should == "OK\r\n"
-					env.res['Content-Type'].should == 'text/plain'
-				end
 			end
 		end
 	end

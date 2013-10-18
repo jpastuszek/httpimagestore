@@ -177,14 +177,6 @@ module Configuration
 		end
 	end
 
-	class OutputOK
-		def realize(request_state)
-			request_state.output do
-				write_plain 200, 'OK'
-			end
-		end
-	end
-
 	class InclusionMatcher
 		def initialize(value, template)
 			@value = value
@@ -287,7 +279,7 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			handler_configuration = 
+			handler_configuration =
 				Struct.new(
 					:global,
 					:http_method,

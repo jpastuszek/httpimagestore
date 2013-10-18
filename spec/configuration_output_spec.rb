@@ -17,6 +17,56 @@ describe Configuration do
 		CubaResponseEnv.new
 	end
 
+	describe Configuration::OutputText do
+		subject do
+			Configuration.read(<<-EOF)
+			get "test" {
+				output_text
+			}
+			get "test" {
+				output_text "hello world"
+			}
+			get "test" {
+				output_text "bad stuff" status=500
+			}
+			get "test" {
+				output_text "welcome" cache-control="public"
+			}
+			EOF
+		end
+
+		it 'should fail if no text was specified' do
+			expect {
+				subject.handlers[0].sources[0].realize(state)
+			}.to raise_error Configuration::NoValueError, "syntax error while parsing 'output_text': expected text"
+		end
+	end
+
+	describe Configuration::OutputOK do
+		subject do
+			Configuration.read(<<-EOF)
+			put "test" {
+				output_ok
+			}
+			EOF
+		end
+
+		before :each do
+			subject.handlers[0].sources[0].realize(state)
+		end
+
+		it 'should output 200 with OK text/plain message when realized' do
+			state = Configuration::RequestState.new('abc')
+			subject.handlers[0].output.realize(state)
+
+			env = CubaResponseEnv.new
+			env.instance_eval &state.output_callback
+			env.res.status.should == 200
+			env.res.data.should == "OK\r\n"
+			env.res['Content-Type'].should == 'text/plain'
+		end
+	end
+
 	describe Configuration::OutputImage do
 		subject do
 			Configuration.read(<<-EOF)
@@ -270,7 +320,7 @@ describe Configuration do
 				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "file://test.out\r\nfile://test.out2\r\n"
 			end
-			
+
 			describe 'conditional inclusion support' do
 				let :state do
 					Configuration::RequestState.new('abc', list: 'input,image2')

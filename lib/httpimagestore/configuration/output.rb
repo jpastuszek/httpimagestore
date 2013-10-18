@@ -13,6 +13,52 @@ module Configuration
 		end
 	end
 
+	class OutputText
+		def self.match(node)
+			node.name == 'output_text'
+		end
+
+		def self.parse(configuration, node)
+			configuration.output and raise StatementCollisionError.new(node, 'output')
+			text = node.grab_values('text').first
+			status, cache_control = *node.grab_attributes('status', 'cache-control')
+			configuration.output = OutputText.new(text, status || 200, cache_control)
+		end
+
+		def initialize(text, status, cache_control)
+			@text = text || '?!'
+			@status = status || 200
+			@cache_control = cache_control
+		end
+
+		def realize(request_state)
+			# make sure variables are available in request context
+			status = @status
+			text = @text
+			request_state.output do
+				res['Cache-Control'] = @cache_control if @cache_control
+				write_plain status.to_i, text.to_s
+			end
+		end
+	end
+
+	class OutputOK < OutputText
+		def self.match(node)
+			node.name == 'output_ok'
+		end
+
+		def self.parse(configuration, node)
+			configuration.output and raise StatementCollisionError.new(node, 'output')
+			cache_control = node.grab_attributes('cache-control').first
+			configuration.output = OutputOK.new(cache_control)
+		end
+
+		def initialize(cache_control = nil)
+			super 'OK', 200, cache_control
+		end
+	end
+	Handler::register_node_parser OutputText
+
 	class OutputMultiBase
 		class ImageName < String
 			include ConditionalInclusion
@@ -39,7 +85,8 @@ module Configuration
 			@names = names
 		end
 	end
-	
+	Handler::register_node_parser OutputOK
+
 	class OutputImage
 		include ClassLogging
 
@@ -61,7 +108,7 @@ module Configuration
 
 		def realize(request_state)
 			image = request_state.images[@name]
-			mime_type = 
+			mime_type =
 				if image.mime_type
 					image.mime_type
 				else

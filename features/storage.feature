@@ -1,7 +1,6 @@
 Feature: Storing images under different names
 	Storage supports UUID and SHA digest based auto generated storage as well as user provided via request or static configuration string.
 
-
 	Background:
 		Given httpthumbnailer server is running at http://localhost:3100/health_check
 		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
