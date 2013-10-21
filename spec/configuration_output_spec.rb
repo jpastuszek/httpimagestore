@@ -21,9 +21,6 @@ describe Configuration do
 		subject do
 			Configuration.read(<<-EOF)
 			get "test" {
-				output_text
-			}
-			get "test" {
 				output_text "hello world"
 			}
 			get "test" {
@@ -35,10 +32,34 @@ describe Configuration do
 			EOF
 		end
 
-		it 'should fail if no text was specified' do
-			expect {
-				subject.handlers[0].sources[0].realize(state)
-			}.to raise_error Configuration::NoValueError, "syntax error while parsing 'output_text': expected text"
+		it 'should output hello world with default 200 status' do
+			subject.handlers[0].output.realize(state)
+			env = CubaResponseEnv.new
+			env.instance_eval &state.output_callback
+			env.res.status.should == 200
+			env.res.data.should == "hello world\r\n"
+			env.res['Content-Type'].should == 'text/plain'
+			env.res['Cache-Control'].should be_nil
+		end
+
+		it 'should output bad stuff with 500 status' do
+			subject.handlers[1].output.realize(state)
+			env = CubaResponseEnv.new
+			env.instance_eval &state.output_callback
+			env.res.status.should == 500
+			env.res.data.should == "bad stuff\r\n"
+			env.res['Content-Type'].should == 'text/plain'
+			env.res['Cache-Control'].should be_nil
+		end
+
+		it 'should output welcome with public cache control' do
+			subject.handlers[2].output.realize(state)
+			env = CubaResponseEnv.new
+			env.instance_eval &state.output_callback
+			env.res.status.should == 200
+			env.res.data.should == "welcome\r\n"
+			env.res['Content-Type'].should == 'text/plain'
+			env.res['Cache-Control'].should == 'public'
 		end
 	end
 
@@ -385,4 +406,3 @@ describe Configuration do
 		end
 	end
 end
-

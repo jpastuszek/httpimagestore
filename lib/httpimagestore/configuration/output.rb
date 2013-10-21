@@ -35,8 +35,9 @@ module Configuration
 			# make sure variables are available in request context
 			status = @status
 			text = @text
+			cache_control = @cache_control
 			request_state.output do
-				res['Cache-Control'] = @cache_control if @cache_control
+				res['Cache-Control'] = cache_control if cache_control
 				write_plain status.to_i, text.to_s
 			end
 		end
