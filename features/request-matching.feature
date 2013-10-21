@@ -24,6 +24,16 @@ Feature: Request matching
 			output_text "test1: '#{test1}' test2: '#{test2}' path: '#{path}'"
 		}
 
+		get "regexp" "named" "/(?<test1>..)-(?<test2>..)/" ":test3/.*/" {
+			output_text "test1: '#{test1}' test2: '#{test2}' test3: '#{test3}' path: '#{path}'"
+		}
+		get "regexp" "named" "bad1" "/(?<test1>..)-(?<test1>..)/" ":test3/.*/" {
+			output_text "test1: '#{test1}' test2: '#{test2}' test3: '#{test3}' path: '#{path}'"
+		}
+		get "regexp" "named" "bad2" "/(?<test1>..)-(?<test1>..)/" ":test3/.*/" {
+			output_text "test1: '#{test1}' test3: '#{test3}' path: '#{path}'"
+		}
+
 		# Query string matchers
 		get "query" "key-value" "&hello=world" {
 			output_text "query key-value matched path: '#{path}'"
@@ -78,6 +88,28 @@ Feature: Request matching
 		"""
 		When I do GET request http://localhost:3000/regexp2/abc/foobar/hello/world
 		Then response status will be 404
+
+	@request-matching @capture-named-regexp
+	Scenario: Capturing URI segment with named regexp match
+		When I do GET request http://localhost:3000/regexp/named/ab-12/hello/world
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		test1: 'ab' test2: '12' test3: 'hello/world' path: ''
+		"""
+		When I do GET request http://localhost:3000/regexp/named/ab-12
+		Then response status will be 404
+		When I do GET request http://localhost:3000/regexp/named/ab-123/hello/world
+		Then response status will be 404
+		When I do GET request http://localhost:3000/regexp/named/bad1/ab-12/hello/world
+		Then response status will be 500
+		When I do GET request http://localhost:3000/regexp/named/bad2/ab-12/hello/world
+		Then response status will be 500
+		And response body will be CRLF ended lines
+		"""
+		matched more arguments than named (3 for 2)
+		"""
 
 	@request-matching @query-key-value
 	Scenario: Capturing URI by presence of given key-value query string pair

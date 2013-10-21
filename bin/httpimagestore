@@ -24,8 +24,8 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 			extend Stats
 			def_stats(
 				:workers,
-				:total_requests, 
-				:total_errors 
+				:total_requests,
+				:total_errors
 			)
 
 			raindrops_stats = Raindrops::Middleware::Stats.new
@@ -73,7 +73,20 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						log.debug{"matched handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
 						# map and decode matched URI segments
 						matches = {}
-						Hash[handler.uri_matchers.select{|m| m.name}.map{|m| m.name}.zip(args)].each do |name, value|
+						names = handler.uri_matchers.select do |matcher|
+								not matcher.names.empty?
+						end
+						.map do |matcher|
+							matcher.names
+						end
+						.flatten
+
+						fail "matched more arguments than named (#{args.length} for #{names.length})" if args.length > names.length
+						fail "matched less arguments than named (#{args.length} for #{names.length})" if args.length < names.length
+
+						names.zip(args)
+						.each do |name, value|
+							log.debug "#{name} => #{value}"
 							matches[name] = URI.decode(value).force_encoding('UTF-8')
 						end
 
