@@ -1,4 +1,5 @@
 require 'httpimagestore/configuration/handler'
+require 'httpimagestore/ruby_string_template'
 
 module Configuration
 	class StorePathNotSetForImage < ConfigurationError

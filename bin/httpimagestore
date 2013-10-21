@@ -73,9 +73,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						log.debug{"matched handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
 						# map and decode matched URI segments
 						matches = {}
-						names = handler.uri_matchers.select do |matcher|
-								not matcher.names.empty?
-						end
+						names = handler.uri_matchers
 						.map do |matcher|
 							matcher.names
 						end
