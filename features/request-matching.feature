@@ -27,6 +27,9 @@ Feature: Request matching
 		get "regexp" "named" "/(?<test1>..)-(?<test2>..)/" ":test3/.*/" {
 			output_text "test1: '#{test1}' test2: '#{test2}' test3: '#{test3}' path: '#{path}'"
 		}
+		get "regexp" "named" "nocapture" "/..-../" {
+			output_text "path: '#{path}'"
+		}
 		get "regexp" "named" "bad1" "/(?<test1>..)-(?<test1>..)/" ":test3/.*/" {
 			output_text "test1: '#{test1}' test2: '#{test2}' test3: '#{test3}' path: '#{path}'"
 		}
@@ -97,6 +100,13 @@ Feature: Request matching
 		And response body will be CRLF ended lines
 		"""
 		test1: 'ab' test2: '12' test3: 'hello/world' path: ''
+		"""
+		When I do GET request http://localhost:3000/regexp/named/nocapture/ab-12/hello/world
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		path: 'hello/world'
 		"""
 		When I do GET request http://localhost:3000/regexp/named/ab-12
 		Then response status will be 404
