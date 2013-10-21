@@ -399,7 +399,7 @@ This statement will produce custom `text/plain` response.
 
 Arguments:
 
-1. text - text to be provided in response body
+1. text - text to be provided in response body; you can use `#{variable}` expansion
 
 Options:
 

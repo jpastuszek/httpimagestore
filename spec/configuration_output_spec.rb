@@ -19,7 +19,7 @@ describe Configuration do
 
 	describe Configuration::OutputText do
 		subject do
-			Configuration.read(<<-EOF)
+			Configuration.read(<<-'EOF')
 			get "test" {
 				output_text "hello world"
 			}
@@ -28,6 +28,9 @@ describe Configuration do
 			}
 			get "test" {
 				output_text "welcome" cache-control="public"
+			}
+			get "test" {
+				output_text "test1: #{test1} test2: #{test2}"
 			}
 			EOF
 		end
@@ -60,6 +63,17 @@ describe Configuration do
 			env.res.data.should == "welcome\r\n"
 			env.res['Content-Type'].should == 'text/plain'
 			env.res['Cache-Control'].should == 'public'
+		end
+
+		it 'should output text interpolated with variable values' do
+			state = Configuration::RequestState.new
+			state[:test1] = 'abc'
+			state[:test2] = 'xyz'
+
+			subject.handlers[3].output.realize(state)
+			env = CubaResponseEnv.new
+			env.instance_eval &state.output_callback
+			env.res.data.should == "test1: abc test2: xyz\r\n"
 		end
 	end
 

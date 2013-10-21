@@ -20,7 +20,7 @@ module Configuration
 
 		def self.parse(configuration, node)
 			configuration.output and raise StatementCollisionError.new(node, 'output')
-			text = node.grab_values('text').first
+			text = RubyStringTemplate.new(node.grab_values('text').first)
 			status, cache_control = *node.grab_attributes('status', 'cache-control')
 			configuration.output = OutputText.new(text, status || 200, cache_control)
 		end
@@ -34,7 +34,7 @@ module Configuration
 		def realize(request_state)
 			# make sure variables are available in request context
 			status = @status
-			text = @text
+			text = @text.render(request_state)
 			cache_control = @cache_control
 			request_state.output do
 				res['Cache-Control'] = cache_control if cache_control
