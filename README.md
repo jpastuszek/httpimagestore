@@ -17,6 +17,9 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.5.0
+* `output_ok` and `output_text` support
+
 ### 1.4.0
 * read-through and write-through S3 object cache support
 
@@ -163,7 +166,7 @@ Statement should start with one of the following HTTP verbs in lowercase: `get`,
 * `&:<key>?[default]` - optionally match query string parameter of key `<key>`; when `[default]` is specified it will be used as variable value, otherwise empty string will be used
 
 Note that any remaining unmatched URI is stored in `path` variable.
-All query string parameters are available as variables named by their key. 
+All query string parameters are available as variables named by their key.
 Additionally `query_string_options` variable is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
 
 Note that variables can get overwritten in order of evaluation:
@@ -172,7 +175,7 @@ Note that variables can get overwritten in order of evaluation:
 3. all matched URI components and query string parameters in order of specification from left to right
 4. `query_string_options` variable value
 
-Note that URI components are URI decoded after they are matched. 
+Note that URI components are URI decoded after they are matched.
 Query string parameter values are URI decoded before they are matched.
 
 Example:
@@ -386,9 +389,27 @@ Putting image data to `/store/hello.jpg` will store two copies of the image unde
 
 ### API endpoint output operations
 
-When all images are stored output statements are processed.
-They are responsible with generating HTTP response for the API endpoint.
-If not output statement is specified the server will respond with `200 OK` and `OK` in response body.
+After all images are stored the output statement is processed.
+It is responsible for generating HTTP response for the API endpoint.
+If no output statement is specified the server will respond with `200 OK` and `OK` in response body.
+
+#### output_text
+
+This statement will produce custom `text/plain` response.
+
+Arguments:
+
+1. text - text to be provided in response body
+
+Options:
+
+* `status` - numerical value for HTTP response status; default: 200
+* `cache-control` - value for the `Cache-Control` response header
+
+#### output_ok
+
+This is the default output if none is specified.
+It will always produce `200` status HTTP response with `OK` in it's body.
 
 #### output_image
 
@@ -474,7 +495,7 @@ Each output URL is `\r\n` ended.
 
 Arguments:
 
-1. image names - names of images 
+1. image names - names of images
 
 Example:
 
@@ -686,7 +707,7 @@ put "thumbnail" ":name_list" {
 	# Save input image for future reprocessing
 	store_s3 "input"			bucket="mybucket"	path="compat-hash"	public=true
 
-	# Backend classe 
+	# Backend classe
 	store_s3 "original"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
 	store_s3 "search"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
 	store_s3 "brochure"			bucket="mybucket"	path="compat-hash-name"	public=true cache-control="public, max-age=31557600, s-maxage=0" if-image-name-on="#{name_list}"
@@ -699,7 +720,7 @@ put "thumbnail" ":name_list" {
 	}
 }
 
-# Thumbnail on demand API 
+# Thumbnail on demand API
 path "hash"	"#{input_digest}.#{image_mime_extension}"
 path "path"	"#{path}"
 
@@ -732,7 +753,7 @@ Compatibility API example:
 
 ```bash
 # Uploading image and thumbnailing to 'original' and 'brochure' classes
-$ curl -X PUT 10.1.1.24:3000/thumbnail/original,brochure -q --data-binary @Pictures/compute.jpg 
+$ curl -X PUT 10.1.1.24:3000/thumbnail/original,brochure -q --data-binary @Pictures/compute.jpg
 http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a.jpg
 http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/original.jpg
 http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochure.jpg
@@ -745,7 +766,7 @@ $ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochur
 > User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
 > Host: s3-eu-west-1.amazonaws.com
 > Accept: */*
-> 
+>
 < HTTP/1.1 200 OK
 < x-amz-id-2: ZXJSWlUBthbIoUXztc9GkSu7mhpGK5HK+sVXWPdbCX9+a3nVkr4A6pclH1kdKjM9
 < x-amz-request-id: 3DD4C96B6B55B4ED
@@ -757,7 +778,7 @@ $ curl http://s3-eu-west-1.amazonaws.com/test.my.bucket/4006450256177f4a/brochur
 < Content-Type: image/jpeg
 < Content-Length: 39458
 < Server: AmazonS3
-< 
+<
 { [data not shown]
 * Connection #0 to host s3-eu-west-1.amazonaws.com left intact
 * Closing connection #0
@@ -770,7 +791,7 @@ On demand API example:
 
 ```bash
 # Uploading image
-$ curl -X PUT 10.1.1.24:3000/v1/original -q --data-binary @Pictures/compute.jpg 
+$ curl -X PUT 10.1.1.24:3000/v1/original -q --data-binary @Pictures/compute.jpg
 4006450256177f4a.jpg
 
 # Getting fit operation 100x1000 thumbnail to /tmp/test.jpg
@@ -781,7 +802,7 @@ $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /t
 > User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
 > Host: 10.1.1.24:3000
 > Accept: */*
-> 
+>
 < HTTP/1.1 200 OK
 < Server: nginx/1.2.9
 < Date: Thu, 11 Jul 2013 11:26:15 GMT
@@ -790,7 +811,7 @@ $ curl 10.1.1.24:3000/v1/thumbnail/4006450256177f4a.jpg/fit/100/1000 -v -s -o /t
 < Connection: keep-alive
 < Status: 200 OK
 < Cache-Control: public, max-age=31557600, s-maxage=0
-< 
+<
 { [data not shown]
 * Connection #0 to host 10.1.1.24 left intact
 * Closing connection #0
@@ -806,7 +827,7 @@ $ curl 10.1.1.24:3000/v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-c
 > User-Agent: curl/7.22.0 (x86_64-apple-darwin10.8.0) libcurl/7.22.0 OpenSSL/1.0.1c zlib/1.2.7 libidn/1.25
 > Host: 10.1.1.24:3000
 > Accept: */*
-> 
+>
 < HTTP/1.1 200 OK
 < Server: nginx/1.2.9
 < Date: Wed, 24 Jul 2013 11:38:39 GMT
@@ -815,7 +836,7 @@ $ curl 10.1.1.24:3000/v2/thumbnail/pad/100/100/4006450256177f4a.jpg?background-c
 < Connection: keep-alive
 < Status: 200 OK
 < Cache-Control: public, max-age=31557600, s-maxage=0
-< 
+<
 { [data not shown]
 * Connection #0 to host 10.1.1.24 left intact
 * Closing connection #0
@@ -826,7 +847,7 @@ $ identify /tmp/test.jpg
 
 ## Usage
 
-After installation of the gem the `httpimagestore` executable is installed in **PATH**. 
+After installation of the gem the `httpimagestore` executable is installed in **PATH**.
 This executable is used to start HTTP Image Service with given configuration file path as it's last argument.
 
 ### Stand alone
@@ -936,7 +957,7 @@ http {
 
 			client_body_buffer_size		16m;
 			client_max_body_size		128m;
-			
+
 			proxy_buffering				on;
 			proxy_buffer_size			64k;
 			proxy_buffers				256 64k;
@@ -978,7 +999,7 @@ If all goes well `200 OK` will be returned otherwise:
 * uploaded image is too big to fit in memory
 * request body is too long
 * too much image data is loaded in memory
-* memory or pixel cache limit in the thumbnailer backend has been exhausted 
+* memory or pixel cache limit in the thumbnailer backend has been exhausted
 
 ### 415
 
@@ -1025,7 +1046,7 @@ $ curl 10.1.1.24:3000/stats/total_s3_source
 ```
 
 ## Contributing to HTTP Image Store
- 
+
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it
 * Fork the project
