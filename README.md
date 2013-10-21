@@ -160,7 +160,7 @@ Statement should start with one of the following HTTP verbs in lowercase: `get`,
 * `<string>` - `<string>` literally match against URI segment in that position for the endpoint to be evaluated
 * `:<symbol>` - match any URI segment in that position and store matched segment value in variable named `<symbol>`
 * `:<symbol>?[defalut]` - optionally match URI segment in that position and store matched segment value in variable named `<symbol>`; request URI may not contain segment in that position (usually at the end of URI) to be matched for this endpoint to be evaluated; if `[default]` value is specified it will be used when no value was found in the URI, otherwise empty string will be used
-* `:<symbol>/<regexp>/` - match URI segment using `/` surrounded [regular expression](http://rubular.com) and store matched segment value in variable named `<symbol>`
+* `:<symbol>/<regexp>/` - match URI using `/` surrounded [regular expression](http://rubular.com) and store matched segments in variable named `<symbol>`
 * `&<key>=<value>` - match this endpoint when query string contains key `<key>` with value of `<value>`
 * `&:<key>` - match query string parameter of key `<key>` and store it's value in variable named `<key>`
 * `&:<key>?[default]` - optionally match query string parameter of key `<key>`; when `[default]` is specified it will be used as variable value, otherwise empty string will be used
