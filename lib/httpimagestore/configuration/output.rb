@@ -20,13 +20,13 @@ module Configuration
 
 		def self.parse(configuration, node)
 			configuration.output and raise StatementCollisionError.new(node, 'output')
-			text = RubyStringTemplate.new(node.grab_values('text').first)
+			text = node.grab_values('text').first
 			status, cache_control = *node.grab_attributes('status', 'cache-control')
 			configuration.output = OutputText.new(text, status || 200, cache_control)
 		end
 
 		def initialize(text, status, cache_control)
-			@text = text || '?!'
+			@text = RubyStringTemplate.new(text || fail("no text?!"))
 			@status = status || 200
 			@cache_control = cache_control
 		end
