@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "1.4.1"
+  s.version = "1.5.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2013-10-07"
+  s.date = "2013-10-22"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -19,6 +19,17 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".document",
+    ".idea/.name",
+    ".idea/.rakeTasks",
+    ".idea/codeStyleSettings.xml",
+    ".idea/dictionaries/wcc.xml",
+    ".idea/encodings.xml",
+    ".idea/httpimagestore.iml",
+    ".idea/jenkinsSettings.xml",
+    ".idea/misc.xml",
+    ".idea/modules.xml",
+    ".idea/scopes/scope_settings.xml",
+    ".idea/vcs.xml",
     ".rspec",
     "Gemfile",
     "Gemfile.lock",
@@ -32,6 +43,7 @@ Gem::Specification.new do |s|
     "features/error-reporting.feature",
     "features/flexi.feature",
     "features/health-check.feature",
+    "features/request-matching.feature",
     "features/s3-store-and-thumbnail.feature",
     "features/step_definitions/httpimagestore_steps.rb",
     "features/storage.feature",
@@ -81,7 +93,7 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.1.2"])
       s.add_runtime_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
       s.add_runtime_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_runtime_dependency(%q<mime-types>, ["~> 1.17"])
@@ -96,7 +108,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<prawn>, ["= 0.8.4"])
       s.add_development_dependency(%q<httpthumbnailer>, [">= 0"])
     else
-      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.2"])
       s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
       s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_dependency(%q<mime-types>, ["~> 1.17"])
@@ -112,7 +124,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<httpthumbnailer>, [">= 0"])
     end
   else
-    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.1"])
+    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.1.2"])
     s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.1.1"])
     s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
     s.add_dependency(%q<mime-types>, ["~> 1.17"])
