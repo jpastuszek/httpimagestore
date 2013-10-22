@@ -164,19 +164,17 @@ Statement should start with one of the following HTTP verbs in lowercase: `get`,
 * `:<symbol>?[defalut]` - optionally match URI segment in that position and store matched segment value in variable named `<symbol>`; request URI may not contain segment in that position (usually at the end of URI) to be matched for this endpoint to be evaluated; if `[default]` value is specified it will be used when no value was found in the URI, otherwise empty string will be used
 * `:<symbol>/<regexp>/` - match remaining URI using `/` surrounded [regular expression](http://rubular.com) and store matched segments in variable named `<symbol>`
 * `/<regexp>/` - match remaining URI using `/` surrounded [regular expression](http://rubular.com) and store zero or more named captures in variable named as corresponding capture name; e.g. `/(?<my_number>[0-9]+)/` - match a number and store it in `my_number` variable
-* `&<key>=<value>` - match this endpoint when query string contains key `<key>` with value of `<value>`
+* `&<key>=<value>` - match this endpoint when query string contains key `<key>` with value of `<value>` and store the `<value>` in variable named `<key>`
 * `&:<key>` - match query string parameter of key `<key>` and store it's value in variable named `<key>`
 * `&:<key>?[default]` - optionally match query string parameter of key `<key>`; when `[default]` is specified it will be used as variable value, otherwise empty string will be used
 
-Note that any remaining unmatched URI is stored in `path` variable.
-All query string parameters are available as variables named by their key.
-Additionally `query_string_options` variable is build from query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
+Note that any remaining unmatched URI part is stored in `path` variable.
+Variable `query_string_options` is build from all query string parameters and can be used to specify options to [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer).
 
 Note that variables can get overwritten in order of evaluation:
-1. all query string parameters
-2. `path` variable value
-3. all matched URI components and query string parameters in order of specification from left to right
-4. `query_string_options` variable value
+1. `path` variable value
+2. all matched URI components and query string parameters in order of specification from left to right
+3. `query_string_options` variable value
 
 Note that URI components are URI decoded after they are matched.
 Query string parameter values are URI decoded before they are matched.

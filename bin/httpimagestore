@@ -84,7 +84,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 						names.zip(args)
 						.each do |name, value|
-							log.debug "#{name} => #{value}"
+							fail "name should be a symbol" unless name.is_a? Symbol
 							matches[name] = URI.decode(value).force_encoding('UTF-8')
 						end
 

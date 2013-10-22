@@ -66,12 +66,11 @@ module Configuration
 				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
 			end
 
-			merge! query_string
 			self[:path] = path
 			merge! matches
 			self[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
 
-			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{self} "
+			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{map{|k,v| "#{k}: '#{v}'"}.join(', ')}"
 
 			@body = body
 			@images = Images.new(memory_limit)
@@ -255,14 +254,23 @@ module Configuration
 			@names = names
 			@matcher = matcher
 			@debug_type = debug_type
-			@debug_value = debug_value
+			@debug_value = case debug_value
+			when Regexp
+				"/#{debug_value.source}/"
+			else
+				debug_value.inspect
+			end
 		end
 
 		attr_reader :names
 		attr_reader :matcher
 
 		def to_s
-			"Matcher#{@debug_type}(#{@names.join(',')})[#{@debug_value.inspect}]"
+			if @names.empty?
+				"#{@debug_type}(#{@debug_value})"
+			else
+				"#{@debug_type}(#{@names.join(',')} => #{@debug_value})"
+			end
 		end
 	end
 
@@ -293,17 +301,19 @@ module Configuration
 			handler_configuration.http_method = node.name
 			handler_configuration.uri_matchers = node.values.map do |matcher|
 				case matcher
-				# URI segment matchers
+				# URI matchers
 				when %r{^:([^/]+)/(.*)/$} # :foobar/.*/
 					name = $1.to_sym
-					regexp = $2
-					Matcher.new([name], 'Regexp', regexp) do
-						Regexp.new("(#{regexp})")
+					_regexp = Regexp.new($2)
+					regexp = Regexp.new("(#{$2})")
+					Matcher.new([name], 'Regexp', _regexp) do
+						regexp
 					end
 				when %r{^/(.*)/$} # /.*/
 					regexp = $1
+					_regexp = Regexp.new($1)
 					names = Regexp.new($1).names.map{|n| n.to_sym}
-					Matcher.new(names, 'NamedRegexp', regexp) do
+					Matcher.new(names, 'Regexp', _regexp) do
 						-> {
 							matchdata = env["PATH_INFO"].match(/\A\/(?<_match_>#{regexp})(?<_tail_>(?:\/|\z))/)
 
@@ -320,35 +330,35 @@ module Configuration
 				when /^:(.+)\?(.*)$/ # :foo?bar
 					name = $1.to_sym
 					default = $2
-					Matcher.new([name], 'SymbolDefault', default) do
+					Matcher.new([name], 'SegmentDefault', "<segment>|#{default}") do
 						->{match(name) || captures.push(default)}
 					end
 				when /^:(.+)$/ # :foobar
 					name = $1.to_sym
-					Matcher.new([name], 'Symbol', name) do
+					Matcher.new([name], 'Segment', '<segment>') do
 						name
 					end
 				# Query string matchers
 				when /^\&([^=]+)=(.+)$/# ?foo=bar
-					name = $1
+					name = $1.to_sym
 					value = $2
-					Matcher.new([], 'QueryValueTest', value) do
-						->{req[name] && req[name] == value}
+					Matcher.new([name], 'QueryKeyValue', "#{name}=#{value}") do
+						->{req[name] && req[name] == value && captures.push(req[name])}
 					end
 				when /^\&:(.+)\?(.*)$/# &:foo?bar
 					name = $1.to_sym
 					default = $2
-					Matcher.new([name], 'QueryDefault', value) do
+					Matcher.new([name], 'QueryKeyDefault', "#{name}=<key>|#{default}") do
 						->{captures.push(req[name] || default)}
 					end
 				when /^\&:(.+)$/# &:foo
 					name = $1.to_sym
-					Matcher.new([name], 'Query') do
+					Matcher.new([name], 'QueryKey', "#{name}=<key>") do
 						->{req[name] && captures.push(req[name])}
 					end
-				# String URI segment matcher
+				# Literal URI segment matcher
 				else # foobar
-					Matcher.new([], "String", matcher) do
+					Matcher.new([], "Literal", matcher) do
 						Regexp.escape(matcher)
 					end
 				end

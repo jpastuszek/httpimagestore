@@ -62,11 +62,6 @@ describe Configuration do
 					subject[:path].should == '/hello/world.jpg'
 				end
 
-				it 'should provide query string params' do
-					subject[:width].should == '123'
-					subject[:height].should == '321'
-				end
-
 				it 'should provide matches' do
 					subject[:operation].should == 'pad'
 				end

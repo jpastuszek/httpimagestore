@@ -20,7 +20,7 @@ Feature: Request matching
 		get "regexp1" ":test1/a.c/" ":test2/.*/" {
 			output_text "test1: '#{test1}' test2: '#{test2}' path: '#{path}'"
 		}
-		get "regexp-404" ":test1/a.c.*/" ":test2/.*/" {
+		get "regexp-404" ":test1/a.c.*/" ":test2/\\./" {
 			output_text "test1: '#{test1}' test2: '#{test2}' path: '#{path}'"
 		}
 
@@ -47,6 +47,9 @@ Feature: Request matching
 		}
 		get "query" "key" "&:hello" {
 			output_text "key: '#{hello}' path: '#{path}'"
+		}
+		get "query" "options" {
+			output_text "query_string_options: '#{query_string_options}' path: '#{path}'"
 		}
 		"""
 
@@ -194,5 +197,15 @@ Feature: Request matching
 		And response body will be CRLF ended lines
 		"""
 		key: 'abc' path: 'hello/world'
+		"""
+
+	@request-matching @query-string-options
+	Scenario: URI query string key-value pairs should always be available as query_string_options variable
+		When I do GET request http://localhost:3000/query/options/hello/world?foo=hello&bar=world
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		query_string_options: 'bar:world,foo:hello' path: 'hello/world'
 		"""
 
