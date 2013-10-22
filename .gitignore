@@ -52,3 +52,5 @@ pkg
 *.log
 
 features.*
+
+.idea/workspace.xml
