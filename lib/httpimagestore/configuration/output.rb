@@ -1,5 +1,6 @@
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/ruby_string_template'
+require 'uri'
 
 module Configuration
 	class StorePathNotSetForImage < ConfigurationError
@@ -62,29 +63,58 @@ module Configuration
 	Handler::register_node_parser OutputText
 
 	class OutputMultiBase
-		class ImageName < String
+		class OutputSpec
 			include ConditionalInclusion
+			attr_reader :image_name
+			attr_reader :path_spec
 
-			def initialize(name, matcher)
-				super name
+			def initialize(global, image_name, path_spec, matcher)
+				@global = global
+				@image_name = image_name
+				@path_spec = path_spec
 				inclusion_matcher matcher
+			end
+
+			def store_path(request_state)
+				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
+				return store_path unless @path_spec
+				rendered_path(store_path, request_state)
+			end
+
+			def store_url(request_state)
+				store_url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
+				return store_url unless @path_spec
+				uri = URI(store_url)
+				uri.path = '/' + rendered_path(uri.path, request_state)
+				uri.to_s
+			end
+
+		private
+
+			def rendered_path(store_path, request_state)
+				path = @global.paths[@path_spec]
+				locals = {
+					path: store_path
+				}
+				Pathname.new(path.render(request_state.with_locals(locals))).cleanpath.to_s
 			end
 		end
 
 		def self.parse(configuration, node)
 			nodes = node.values.empty? ? node.children : [node]
-			names = nodes.map do |node|
+			output_specs = nodes.map do |node|
 				image_name = node.grab_values('image name').first
-				matcher = InclusionMatcher.new(image_name, node.grab_attributes('if-image-name-on').first)
-				ImageName.new(image_name, matcher)
+				path_spec, if_image_name_on = *node.grab_attributes('path', 'if-image-name-on')
+				matcher = InclusionMatcher.new(image_name, if_image_name_on)
+				OutputSpec.new(configuration.global, image_name, path_spec, matcher)
 			end
 
 			configuration.output and raise StatementCollisionError.new(node, 'output')
-			configuration.output = self.new(names)
+			configuration.output = self.new(output_specs)
 		end
 
-		def initialize(names)
-			@names = names
+		def initialize(output_specs)
+			@output_specs = output_specs
 		end
 	end
 	Handler::register_node_parser OutputOK
@@ -133,10 +163,10 @@ module Configuration
 		end
 
 		def realize(request_state)
-			paths = @names.select do |name|
-				name.included?(request_state)
-			end.map do |name|
-				request_state.images[name].store_path or raise StorePathNotSetForImage.new(name)
+			paths = @output_specs.select do |output_spec|
+				output_spec.included?(request_state)
+			end.map do |output_spec|
+				output_spec.store_path(request_state)
 			end
 
 			request_state.output do
@@ -152,10 +182,10 @@ module Configuration
 		end
 
 		def realize(request_state)
-			urls = @names.select do |name|
-				name.included?(request_state)
-			end.map do |name|
-				request_state.images[name].store_url or raise StoreURLNotSetForImage.new(name)
+			urls = @output_specs.select do |output_spec|
+				output_spec.included?(request_state)
+			end.map do |output_spec|
+				output_spec.store_url(request_state)
 			end
 
 			request_state.output do

@@ -171,13 +171,21 @@ describe Configuration do
 			Pathname.new("/tmp/test.out2")
 		end
 
+		let :test_file do
+			Pathname.new('/tmp/abc/test.out')
+		end
+
 		before :each do
+			test_file.dirname.mkdir
+			test_file.open('w'){|io| io.write('abc')}
 			in_file.open('w'){|io| io.write('abc')}
 			out_file.unlink if out_file.exist?
 			out2_file.unlink if out2_file.exist?
 		end
 
 		after :each do
+			test_file.exist? and test_file.unlink
+			test_file.dirname.exist? and test_file.dirname.rmdir
 			out_file.unlink if out_file.exist?
 			out2_file.unlink if out2_file.exist?
 			in_file.unlink
@@ -281,6 +289,62 @@ describe Configuration do
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/plain'
 					env.res.data.should == "test.out1\r\ntest.out3\r\n"
+				end
+			end
+
+			describe 'custom formatting' do
+				it 'should provide formatted file store path' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	"abc/test.out"
+					path  "formatted"	"hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_path "input" path="formatted"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/plain'
+					env.res.data.should == "hello/abc/world/test-xyz.out\r\n"
+				end
+
+				it 'should provide formatted file store path for each path' do
+					subject = Configuration.read(<<-'EOF')
+					path  "in"	  "test.in"
+					path  "out"	  "abc/test.out"
+					path  "out2"	"test.out2"
+
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+					path  "formatted2"	"#{digest}.#{extension}"
+
+					post "single" {
+						source_file "original" root="/tmp" path="in"
+
+						store_file "input" root="/tmp" path="out"
+						store_file "original" root="/tmp" path="out2"
+
+						output_store_path {
+							"input" path="formatted"
+							"original" path="formatted2"
+						}
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].sources[1].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].stores[1].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/plain'
+					env.res.data.should == "hello/abc/world/test-xyz.out\r\nba7816bf8f01cfea.out2\r\n"
 				end
 			end
 
@@ -399,6 +463,30 @@ describe Configuration do
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file://test.out1\r\nfile://test.out3\r\n"
+				end
+			end
+
+			describe 'custom formatting' do
+				it 'should provide formatted file store URL' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url "input" path="formatted"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "file://abc/hello/world/test-xyz.out\r\n"
 				end
 			end
 
