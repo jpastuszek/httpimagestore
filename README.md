@@ -18,7 +18,7 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 ## Changelog
 
 ### 1.6.0
-* `output_store_path` and `output_store_url` path argument support
+* `output_store_path` and `output_store_url` `path` argument support
 * encoding resulting file storage URL
 
 ### 1.5.0
