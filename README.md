@@ -17,6 +17,10 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.6.0
+* `output_store_path` and `output_store_url` path argument support
+* encoding resulting file storage URL
+
 ### 1.5.0
 * `output_ok` and `output_text` support
 * named captures regexp matcher support
@@ -447,6 +451,10 @@ Arguments:
 
 1. image names - names of images to output storage path for in order
 
+Options:
+
+* `path` - name of predefined path that will be used to generate output path; `#{path}` variable and all derivative will be replaced with given image storage path; if not specified the actual storage path will be provided
+
 Example:
 
 ```sdl
@@ -497,6 +505,10 @@ Each output URL is `\r\n` ended.
 Arguments:
 
 1. image names - names of images
+
+Options:
+
+* `path` - name of predefined path that will be used to generate output URL path part; `#{path}` variable and all derivative will be replaced with given image storage path; if not specified the original URL will be provided
 
 Example:
 
