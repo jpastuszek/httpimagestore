@@ -1,6 +1,7 @@
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
 require 'pathname'
+require 'uri'
 
 module Configuration
 	class FileStorageOutsideOfRootDirError < ConfigurationError
@@ -18,7 +19,7 @@ module Configuration
 	class FileSourceStoreBase < SourceStoreBase
 		extend Stats
 		def_stats(
-			:total_file_store, 
+			:total_file_store,
 			:total_file_store_bytes,
 			:total_file_source,
 			:total_file_source_bytes
@@ -31,11 +32,11 @@ module Configuration
 			matcher = InclusionMatcher.new(image_name, if_image_name_on)
 
 			self.new(
-				configuration.global, 
-				image_name, 
+				configuration.global,
+				image_name,
 				matcher,
-				root_dir, 
-				path_spec 
+				root_dir,
+				path_spec
 			)
 		end
 
@@ -80,7 +81,7 @@ module Configuration
 					FileSourceStoreBase.stats.incr_total_file_source_bytes(data.bytesize)
 
 					image = Image.new(data)
-					image.source_url = "file://#{rendered_path}"
+					image.source_url = "file://#{URI.encode(rendered_path.to_s)}"
 					image
 				rescue Errno::ENOENT
 					raise NoSuchFileError.new(image_name, rendered_path)
@@ -89,7 +90,7 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser FileSource
-	
+
 	class FileStore < FileSourceStoreBase
 		include ClassLogging
 
@@ -105,7 +106,7 @@ module Configuration
 			get_named_image_for_storage(request_state) do |image_name, image, rendered_path|
 				storage_path = storage_path(rendered_path)
 
-				image.store_url = "file://#{rendered_path.to_s}"
+				image.store_url = "file://#{URI.encode(rendered_path.to_s)}"
 
 				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
 				storage_path.open('wb'){|io| io.write image.data}

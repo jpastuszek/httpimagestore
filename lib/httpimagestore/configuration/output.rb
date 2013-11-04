@@ -85,8 +85,8 @@ module Configuration
 				store_url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
 				return store_url unless @path_spec
 				uri = URI(store_url)
-				uri.path = '/' + rendered_path(uri.path, request_state)
-				uri.to_s
+				uri.path = '/' + URI.encode(rendered_path(URI.decode(uri.path), request_state))
+				uri
 			end
 
 		private

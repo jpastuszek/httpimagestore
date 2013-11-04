@@ -175,9 +175,14 @@ describe Configuration do
 			Pathname.new('/tmp/abc/test.out')
 		end
 
+		let :space_test_file do
+			Pathname.new('/tmp/abc/t e s t.out')
+		end
+
 		before :each do
 			test_file.dirname.mkdir
 			test_file.open('w'){|io| io.write('abc')}
+			space_test_file.open('w'){|io| io.write('abc')}
 			in_file.open('w'){|io| io.write('abc')}
 			out_file.unlink if out_file.exist?
 			out2_file.unlink if out2_file.exist?
@@ -185,6 +190,7 @@ describe Configuration do
 
 		after :each do
 			test_file.exist? and test_file.unlink
+			space_test_file.exist? and space_test_file.unlink
 			test_file.dirname.exist? and test_file.dirname.rmdir
 			out_file.unlink if out_file.exist?
 			out2_file.unlink if out2_file.exist?
@@ -487,6 +493,32 @@ describe Configuration do
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file://abc/hello/world/test-xyz.out\r\n"
+				end
+			end
+
+			describe 'URL encoding' do
+				it 'should provide properly encoded file store URL' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/t e s t.out"
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url {
+							"input"
+							"input" path="formatted"
+						}
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "file://abc/t%20e%20s%20t.out\r\nfile://abc/hello/world/t%20e%20s%20t-xyz.out\r\n"
 				end
 			end
 
