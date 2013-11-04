@@ -94,7 +94,8 @@ module Configuration
 			def rendered_path(store_path, request_state)
 				path = @global.paths[@path_spec]
 				locals = {
-					path: store_path
+					path: store_path,
+					image_name: @image_name
 				}
 				Pathname.new(path.render(request_state.with_locals(locals))).cleanpath.to_s
 			end

@@ -327,7 +327,7 @@ describe Configuration do
 					path  "out2"	"test.out2"
 
 					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
-					path  "formatted2"	"#{digest}.#{extension}"
+					path  "formatted2"	"#{image_digest}.#{extension}"
 
 					post "single" {
 						source_file "original" root="/tmp" path="in"
