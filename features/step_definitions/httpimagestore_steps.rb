@@ -4,7 +4,7 @@ end
 
 Given /httpimagestore server is running at (.*) with the following configuration/ do |url, config|
 	$temp_dir = Pathname.new(Dir.mktmpdir) unless $temp_dir
-	
+
 	cfile = $temp_dir + Digest.hexencode(Digest::MD5.digest(config))
 	cfile.open('w') do |io|
 		io.write(config.replace_s3_variables)
@@ -34,7 +34,7 @@ Given /httpthumbnailer server is running at (.*)/ do |url|
 end
 
 Given /httpthumbnailer server is not running/ do
-	stop_server('/tmp/httpthumbnailer.pid') 
+	stop_server('/tmp/httpthumbnailer.pid')
 end
 
 Given /httpimagestore log is empty/ do
@@ -56,7 +56,7 @@ Given /there is no file (.*)/ do |file|
 end
 
 Given /S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables/ do
-	
+
 	unless ENV['AWS_ACCESS_KEY_ID'] and ENV['AWS_SECRET_ACCESS_KEY'] and ENV['AWS_S3_TEST_BUCKET']
 		fail "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY or AWS_S3_TEST_BUCKET environment variables not set"
 	end
@@ -83,7 +83,7 @@ end
 
 When /I do (.*) request (.*)/ do |method, uri|
 	@request_body = nil if method == 'GET'
-	@response = HTTPClient.new.request(method, URI.encode(uri.replace_s3_variables), nil, @request_body, (@request_headers or {}))
+	@response = HTTPClient.new.request(method, uri.replace_s3_variables, nil, @request_body, (@request_headers or {}))
 end
 
 Then /response status will be (.*)/ do |status|
@@ -94,14 +94,14 @@ Then /response content type will be (.*)/ do |content_type|
 	@response.header['Content-Type'].first.should == content_type
 end
 
-Then /response body will be CRLF ended lines like/ do |body|	
+Then /response body will be CRLF ended lines like/ do |body|
 	@response.body.should match(body.replace_s3_variables)
 	@response.body.each_line do |line|
 		line[-2,2].should == "\r\n"
 	end
 end
 
-Then /response body will be CRLF ended lines$/ do |body|	
+Then /response body will be CRLF ended lines$/ do |body|
 	@response.body.should == body.replace_s3_variables.gsub("\n", "\r\n") + "\r\n"
 end
 
@@ -119,7 +119,7 @@ end
 
 Then /(http.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
 	data = get(url.replace_s3_variables)
-	
+
 	@image.destroy! if @image
 	@image = Magick::Image.from_blob(data).first
 
@@ -130,7 +130,7 @@ end
 
 Then /S3 object (.*) will contain (.*) image of size (.*)x(.*)/ do |key, format, width, height|
 	data = @bucket.objects[key].read
-	
+
 	@image.destroy! if @image
 	@image = Magick::Image.from_blob(data).first
 
@@ -146,7 +146,7 @@ end
 Then /response body will contain (.*) image of size (.*)x(.*)/ do |format, width, height|
 	data = @response.body
 	Pathname.new('/tmp/out.jpg').open('w'){|io| io.write data}
-	
+
 	@image.destroy! if @image
 	@image = Magick::Image.from_blob(data).first
 
@@ -165,7 +165,7 @@ end
 
 Then /file (.*) will contain (.*) image of size (.*)x(.*)/ do |file, format, width, height|
 	data = Pathname.new(file).read
-	
+
 	@image.destroy! if @image
 	@image = Magick::Image.from_blob(data).first
 

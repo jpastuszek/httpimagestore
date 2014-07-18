@@ -85,12 +85,12 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						names.zip(args)
 						.each do |name, value|
 							fail "name should be a symbol" unless name.is_a? Symbol
-							matches[name] = URI.decode(value).force_encoding('UTF-8')
+							matches[name] = URI.utf_decode(value)
 						end
 
 						# decode remaining URI components
 						path = (env["PATH_INFO"][1..-1] || '').split('/').map do |part|
-							URI.decode(part).force_encoding('UTF-8')
+							URI.utf_decode(part)
 						end.join('/')
 
 						# query string already decoded by Rack

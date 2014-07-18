@@ -1,6 +1,5 @@
-Feature: Image list based thumbnailing and S3 storage
-	Storage based on URL specified image names to be generated and stored using two different path formats.
-	This configuration should be mostly compatible with pre v1.0 release.
+Feature: Error handling
+	API should provide different status codes with text/plain description body for different error modes.
 
 	Background:
 		Given S3 settings in AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_S3_TEST_BUCKET environment variables
@@ -9,9 +8,11 @@ Feature: Image list based thumbnailing and S3 storage
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
+		path "uri_part"     "/thumbnails/#{input_digest}/#{name}.#{image_mime_extension}"
 		path "structured-name"  "#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
 		path "missing"          "blah"
 		path "zero"             "zero"
+		path "hash"     "#{input_digest}"
 
 		put "multipart" ":name_list" {
 			thumbnail "input" {
@@ -31,6 +32,12 @@ Feature: Image list based thumbnailing and S3 storage
 			thumbnail "input"    "superlarge"    operation="crop"        width=16000     height=16000                            if-image-name-on="#{name_list}"
 			thumbnail "input"    "large_png"     operation="crop"        width=7000      height=7000     format="png"            if-image-name-on="#{name_list}"
 			thumbnail "input"    "bad_opts"      operation="crop"        width=128       height=128      options="foo=bar"       if-image-name-on="#{name_list}"
+		}
+
+		post "filename" "/(?<name>.+?)(\\.[^\\.]+)?$/" {
+			identify "input"
+			store_s3 "input" bucket="@AWS_S3_TEST_BUCKET@" path="hash" cache-root="/tmp"
+			output_store_path "input" path="uri_part"
 		}
 
 		get "s3" {
@@ -197,6 +204,17 @@ Feature: Image list based thumbnailing and S3 storage
 		And response body will be CRLF ended lines like
 		"""
 		thumbnailing of 'input' into 'superlarge' failed: image too large: cache resources exhausted
+		"""
+
+	@error-reporting
+	Scenario: Bad URI encoding
+		Given test.jpg file content as request body
+		When I do POST request http://localhost:3000/filename/hello%e9world.jpg
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		invalid UTF-8 encoding in URI: "hello\\xE9world"
 		"""
 
 	@error-reporting
