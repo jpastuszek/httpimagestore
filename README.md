@@ -17,6 +17,11 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.7.0
+* `output_data_uri_image` support
+* fixed possible data leak with nested template processing
+* reporting `400 Bad Request` for non UTF-8 characters encoded in URLs
+
 ### 1.6.0
 * `output_store_path` and `output_store_url` `path` argument support
 * encoding resulting file storage URL
@@ -439,6 +444,38 @@ put "test" {
 ```
 
 The output will contain the posted image with `Content-Type` header set to `application/octet-stream` and `Cache-Control` to `public, max-age=999, s-maxage=666`.
+
+#### output_data_uri_image
+
+This statement will produce `200 OK` response containing base64 encoded image data within data URI in format:
+```
+data:<image mime type>;base64,<base64 encoded image data>
+```
+No tailing new line/line feed is added to the output.
+
+This may be used to include images directly in HTML pages or CSS.
+
+The `Content-Type` of the response will be `text/uri-list`.
+Image mime type will be provided within data URI and must be known before output is constructed or `500 Internal Server Error` will be served.
+
+Arguments:
+
+1. image name - image to be sent in response body
+
+Options:
+
+* `cache-control` - value of response `Cache-Control` header can be specified with this option
+
+Example:
+
+```sdl
+put "test" {
+	identify "input"
+	output_data_uri_image "input" cache-control="public, max-age=31557600, s-maxage=0"
+}
+```
+
+The output will contain base64 encoded posted image within data URI with `Content-Type` header set to `text/uri-list` and `Cache-Control` to `public, max-age=999, s-maxage=666`.
 
 #### output_store_path
 
