@@ -110,31 +110,32 @@ Feature: Storing images under different names
 			"""
 			Then file /tmp/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e will contain PNG image of size 50x50
 
-		@storage @image_digest
-		Scenario: Posting picture to file system under input data digest
-		Given there is no file /tmp/b0fe25319ba5909a
-			Given test.png file content as request body
-			When I do POST request http://localhost:3000/images/image_digest
-			Then response status will be 200
-			And response content type will be text/plain
-			And response body will be CRLF ended lines
-			"""
-			091000e2c0aee836
-			"""
-			Then file /tmp/091000e2c0aee836 will contain PNG image of size 50x50
+		# Following tests depend on libpng/ImageMagick version
+		#@storage @image_digest
+		#Scenario: Posting picture to file system under input data digest
+		#Given there is no file /tmp/b0fe25319ba5909a
+			#Given test.png file content as request body
+			#When I do POST request http://localhost:3000/images/image_digest
+			#Then response status will be 200
+			#And response content type will be text/plain
+			#And response body will be CRLF ended lines
+			#"""
+			#091000e2c0aee836
+			#"""
+			#Then file /tmp/091000e2c0aee836 will contain PNG image of size 50x50
 
-		@storage @image_sha256
-		Scenario: Posting picture to file system under input data digest
-			Given there is no file /tmp/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e
-			Given test.png file content as request body
-			When I do POST request http://localhost:3000/images/image_sha256
-			Then response status will be 200
-			And response content type will be text/plain
-			And response body will be CRLF ended lines
-			"""
-			091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f
-			"""
-			Then file /tmp/091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f will contain PNG image of size 50x50
+		#@storage @image_sha256
+		#Scenario: Posting picture to file system under input data digest
+			#Given there is no file /tmp/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e
+			#Given test.png file content as request body
+			#When I do POST request http://localhost:3000/images/image_sha256
+			#Then response status will be 200
+			#And response content type will be text/plain
+			#And response body will be CRLF ended lines
+			#"""
+			#091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f
+			#"""
+			#Then file /tmp/091000e2c0aee836fff432c1151faba86d46690c900c0f6355247a353defa37f will contain PNG image of size 50x50
 
 		@storage @uuid
 		Scenario: Posting picture to file system under input data digest
