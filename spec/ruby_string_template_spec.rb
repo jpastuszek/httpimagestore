@@ -16,6 +16,10 @@ describe RubyStringTemplate do
 		}.to raise_error RubyStringTemplate::NoValueForTemplatePlaceholderError, %q{no value for '#{world}' in template '>#{hello}-#{world}#{test}<'}
 	end
 
+	it 'should not process nested placeholders' do
+		subject.render(hello: '#{nested}', world: 'world', test: 123, nested: 'xxx').should == '>#{nested}-world123<'
+	end
+
 	describe 'with custom resolver' do
 		subject do
 			RubyStringTemplate.new('>#{hello}-#{world}#{test}<') do |locals, name|

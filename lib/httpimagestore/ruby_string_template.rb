@@ -11,15 +11,20 @@ class RubyStringTemplate
 	end
 
 	def render(locals = {})
-		template = @template
-		while tag = template.match(/(#\{[^\}]+\})/um)
-			tag = tag.captures.first
-			name = tag.match(/#\{([^\}]*)\}/u).captures.first.to_sym
+		template = @template.dup
+		values = {}
+
+		template.scan(/#\{[^\}]+\}/um).uniq.each do |placeholder|
+			name = placeholder.match(/#\{([^\}]*)\}/u).captures.first.to_sym
 			value = @resolver.call(locals, name)
 			value or fail NoValueForTemplatePlaceholderError.new(name, @template)
-			value = value.to_s
-			template = template.gsub(tag, value) # this can lead to evaluation of nested variables! possible injections and infinite loops!
+			values[placeholder] = value.to_s
 		end
+
+		values.each_pair do |placeholder, value|
+			template.gsub!(placeholder, value)
+		end
+
 		template
 	end
 end
