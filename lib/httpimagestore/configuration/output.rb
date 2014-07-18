@@ -1,6 +1,7 @@
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/ruby_string_template'
 require 'uri'
+require 'base64'
 
 module Configuration
 	class StorePathNotSetForImage < ConfigurationError
@@ -131,7 +132,7 @@ module Configuration
 			configuration.output and raise StatementCollisionError.new(node, 'output')
 			image_name = node.grab_values('image name').first
 			cache_control = node.grab_attributes('cache-control').first
-			configuration.output = OutputImage.new(image_name, cache_control)
+			configuration.output = self.new(image_name, cache_control)
 		end
 
 		def initialize(name, cache_control)
@@ -157,6 +158,24 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser OutputImage
+
+	class OutputDataURIImage < OutputImage
+		def self.match(node)
+			node.name == 'output_data_uri_image'
+		end
+
+		def realize(request_state)
+			image = request_state.images[@name]
+			fail "image '#{@name}' needs to be identified first to be used in data URI output" unless image.mime_type
+
+			cache_control = @cache_control
+			request_state.output do
+				res['Cache-Control'] = cache_control if cache_control
+				write 200, 'text/uri-list', "data:#{image.mime_type};base64,#{Base64.strict_encode64(image.data)}"
+			end
+		end
+	end
+	Handler::register_node_parser OutputDataURIImage
 
 	class OutputStorePath < OutputMultiBase
 		def self.match(node)

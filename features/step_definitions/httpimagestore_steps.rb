@@ -94,11 +94,19 @@ Then /response content type will be (.*)/ do |content_type|
 	@response.header['Content-Type'].first.should == content_type
 end
 
+Then /response Cache-Control will be (.*)/ do |content_type|
+	@response.header['Cache-Control'].first.should == content_type
+end
+
 Then /response body will be CRLF ended lines like/ do |body|
 	@response.body.should match(body.replace_s3_variables)
 	@response.body.each_line do |line|
 		line[-2,2].should == "\r\n"
 	end
+end
+
+Then /response body will be$/ do |body|
+	@response.body.should == body.replace_s3_variables
 end
 
 Then /response body will be CRLF ended lines$/ do |body|
