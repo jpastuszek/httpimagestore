@@ -14,13 +14,13 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 	end
 
 	settings do |settings|
-		Controler.settings[:config_file] = settings.config
+		Controller.settings[:config_file] = settings.config
 	end
 
 	main do |settings|
 		require 'httpimagestore/error_reporter'
 
-		class HTTPImageStore < Controler
+		class HTTPImageStore < Controller
 			extend Stats
 			def_stats(
 				:workers,
@@ -133,8 +133,8 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 		require 'httpimagestore/configuration'
 
-		# connect Scope tree with Controler logger
-		Configuration::Scope.logger = Controler.logger_for(Configuration::Scope)
+		# connect Scope tree with Controller logger
+		Configuration::Scope.logger = Controller.logger_for(Configuration::Scope)
 
 		# load builin supported set
 		require 'httpimagestore/configuration/path'

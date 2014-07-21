@@ -1,4 +1,4 @@
-class ErrorReporter < Controler
+class ErrorReporter < Controller
 	self.define do
 		on error(
 			Configuration::S3NoSuchKeyError,
