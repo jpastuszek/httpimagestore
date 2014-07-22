@@ -1,7 +1,7 @@
 source "http://rubygems.org"
 ruby "1.9.3"
 
-gem "unicorn-cuba-base", "~> 1.1.2"
+gem "unicorn-cuba-base", "~> 1.2.0"
 #gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
 gem "httpthumbnailer-client", "~> 1.1.1"
 #gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
@@ -20,6 +20,6 @@ group :development do
   gem "rdoc", "~> 3.9"
   gem "daemon", "~> 1"
   gem "prawn", "= 0.8.4"
-  gem "httpthumbnailer", path: '../httpthumbnailer'
+  #gem "httpthumbnailer", path: '../httpthumbnailer'
 end
 
