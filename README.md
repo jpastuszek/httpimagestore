@@ -21,6 +21,8 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 * `output_data_uri_image` support
 * fixed possible data leak with nested template processing
 * reporting `400 Bad Request` for non UTF-8 characters encoded in URLs
+* syslog logging
+* transaction ID tracking
 
 ### 1.6.0
 * `output_store_path` and `output_store_url` `path` argument support
@@ -937,6 +939,12 @@ If running as root you can use `--user` option to specify user with whose privil
 `httpimagestore` logs to `httpimagestore.log` file in current directory by default. You can change log file location with `--log-file` option and verbosity with `--verbose` or `--debug` switch.
 
 Additionally `httpimagestore` will log requests in [common NCSA format](http://en.wikipedia.org/wiki/Common_Log_Format) to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
+
+Syslog logging can be enabled with `--syslog-facility` option followed by name of syslog facility to use. When enabled log files are not created and both application logs and access logs are sent to syslog. 
+Access logs will gain meta information that will include `type="http-access"` that can be used to filter access log entries out from application log entries.
+
+With `--xid-header` option name of HTTP request header can be specified. Value of this header will be logged in meta information tag `xid` along side all request related log entries.
+Named header will be passed down with requests to HTTP Thumbnailer for grater traceability.
 
 ### Running with nginx
 

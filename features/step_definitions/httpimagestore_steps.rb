@@ -26,7 +26,7 @@ end
 Given /httpthumbnailer server is running at (.*)/ do |url|
 	log = support_dir + 'thumbniler.log'
 	start_server(
-		"httpthumbnailer -f -d -x XID -l #{log} -w 1",
+		"httpthumbnailer -f -d -x XID -l #{log} -a #{log}.access -w 1",
 		'/tmp/httpthumbnailer.pid',
 		log,
 		url
