@@ -60,7 +60,7 @@ module Configuration
 			end
 		end
 
-		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new)
+		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new, headers = {})
 			super() do |request_state, name|
 				# note that request_state may be different object when useing with_locals that creates duplicate
 				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
@@ -76,11 +76,14 @@ module Configuration
 			@images = Images.new(memory_limit)
 			@memory_limit = memory_limit
 			@output_callback = nil
+
+			@headers = headers
 		end
 
 		attr_reader :body
 		attr_reader :images
 		attr_reader :memory_limit
+		attr_reader :headers
 
 		def with_locals(locals)
 			log.debug "using additional local variables: #{locals}"

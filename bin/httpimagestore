@@ -96,7 +96,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						# query string already decoded by Rack
 						query_string = req.GET
 
-						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit)
+						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit, env['xid'] || {})
 
 						handler.sources.each do |source|
 							source.realize(state) unless source.respond_to? :excluded? and source.excluded?(state)

@@ -36,7 +36,7 @@ module Configuration
 
 		extend Stats
 		def_stats(
-			:total_thumbnail_requests, 
+			:total_thumbnail_requests,
 			:total_thumbnail_requests_bytes,
 			:total_thumbnail_thumbnails,
 			:total_thumbnail_thumbnails_bytes
@@ -134,9 +134,9 @@ module Configuration
 			matcher = InclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
 
 			configuration.processors << self.new(
-				configuration.global, 
-				source_image_name, 
-				specs, 
+				configuration.global,
+				source_image_name,
+				specs,
 				use_multipart_api,
 				matcher
 			)
@@ -177,7 +177,7 @@ module Configuration
 				logger = log
 
 				begin
-					thumbnails = client.thumbnail(source_image.data) do
+					thumbnails = client.with_headers(request_state.headers).thumbnail(source_image.data) do
 						rendered_specs.each_pair do |name, spec|
 							begin
 								thumbnail(*spec)
@@ -202,7 +202,7 @@ module Configuration
 					if thumbnail.kind_of? HTTPThumbnailerClient::HTTPThumbnailerClientError
 						error = thumbnail
 						log.warn 'got single thumbnail error', error
-						raise ThumbnailingError.new(@source_image_name, name, error) 
+						raise ThumbnailingError.new(@source_image_name, name, error)
 					end
 				end
 
@@ -215,7 +215,7 @@ module Configuration
 				log.info "thumbnailing '#{@source_image_name}' to '#{name}' with spec: #{rendered_spec}"
 
 				begin
-					thumbnail = client.thumbnail(source_image.data, *rendered_spec)
+					thumbnail = client.with_headers(request_state.headers).thumbnail(source_image.data, *rendered_spec)
 					request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
 
 					input_mime_type = thumbnail.input_mime_type

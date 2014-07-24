@@ -1,5 +1,6 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
+require 'httpimagestore/configuration/output'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/thumbnailer'
@@ -30,7 +31,7 @@ describe Configuration do
 			subject = Configuration.read(<<-EOF, thumbnailer_url: 'http://1.1.1.1:8080')
 			thumbnailer url="http://2.2.2.2:1000"
 			EOF
-			
+
 			subject.thumbnailer.server_url.should == 'http://2.2.2.2:1000'
 		end
 
@@ -58,7 +59,7 @@ describe Configuration do
 		describe 'should provide thumbnail spec array based on given locals' do
 			it 'where image name is hash key pointing to array where all values are string and options is hash' do
 				Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red').render.should == {
-					'small' => 
+					'small' =>
 						['pad', '100', '100', 'jpeg', {'background-color' => 'red'}]
 				}
 			end
@@ -74,7 +75,7 @@ describe Configuration do
 					}
 
 					Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(locals).should == {
-						'small' => 
+						'small' =>
 							['fit', '99', '66', 'png', {'background-color' => 'white'}]
 					}
 				end
@@ -89,7 +90,7 @@ describe Configuration do
 					}
 
 					Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'options' => '#{opts}', 'background-color' => 'red').render(locals).should == {
-						'small' => 
+						'small' =>
 							['fit', '99', '66', 'png', {'background-color' => 'red', 'quality' => '100'}]
 					}
 				end
@@ -126,7 +127,7 @@ describe Configuration do
 			before :all do
 				log = support_dir + 'server.log'
 				start_server(
-					"httpthumbnailer -f -d -l #{log}",
+					"httpthumbnailer -f -d -x XID -l #{log}",
 					'/tmp/httpthumbnailer.pid',
 					log,
 					'http://localhost:3100/'
@@ -204,6 +205,32 @@ describe Configuration do
 						expect {
 							subject.handlers[0].processors[0].realize(state)
 						}.to raise_error MemoryLimit::MemoryLimitedExceededError
+					end
+				end
+
+				describe 'passing HTTP headers to thumbnailer' do
+					let :xid do
+						rand(0..1000)
+					end
+
+					let :state do
+						Configuration::RequestState.new(
+							(support_dir + 'compute.jpg').read,
+							{
+								operation: 'pad',
+								width: '10',
+								height: '10',
+								options: 'background-color:green'
+							},
+							'', {}, MemoryLimit.new,
+							{'XID' => xid}
+						)
+					end
+
+					it 'should pass headers provided with request state' do
+						subject.handlers[0].processors[0].realize(state)
+
+						(support_dir + 'server.log').read.should include "xid=\"#{xid}\""
 					end
 				end
 
@@ -318,7 +345,7 @@ describe Configuration do
 				end
 
 				describe 'conditional inclusion support' do
-					subject do 
+					subject do
 						Configuration.read(<<-'EOF')
 						put {
 							thumbnail "input" {
@@ -348,6 +375,34 @@ describe Configuration do
 						state.images.should_not include 'original'
 						state.images['small'].data.should_not be_nil
 						state.images['padded'].data.should_not be_nil
+					end
+				end
+
+				describe 'passing HTTP headers to thumbnailer' do
+					let :xid do
+						rand(0..1000)
+					end
+
+					let :state do
+						Configuration::RequestState.new(
+							(support_dir + 'compute.jpg').read,
+							{
+								operation: 'pad',
+								width: '10',
+								height: '10',
+								options: 'background-color:green'
+							},
+							'', {}, MemoryLimit.new,
+							{'XID' => xid}
+						)
+					end
+
+					it 'should pass headers provided with request state' do
+						subject.handlers[0].processors[0].realize(state)
+						state.images.keys.should include 'original'
+						state.images.keys.should include 'small'
+
+						(support_dir + 'server.log').read.should include "xid=\"#{xid}\""
 					end
 				end
 
@@ -400,10 +455,10 @@ describe Configuration do
 					thumbnail "input1" "thumbnail1" if-image-name-on="#{list}"
 					thumbnail "input2" "thumbnail2" if-image-name-on="#{list}"
 					thumbnail "input3" if-image-name-on="#{list}" {
-						"thumbnail3" 
+						"thumbnail3"
 					}
 					thumbnail "input4" if-image-name-on="#{list}" {
-						"thumbnail4" 
+						"thumbnail4"
 					}
 					thumbnail "input5" if-image-name-on="#{list}" {
 						"thumbnail5" if-image-name-on="#{list}"

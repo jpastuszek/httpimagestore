@@ -8,7 +8,7 @@ module Configuration
 
 		extend Stats
 		def_stats(
-			:total_identify_requests, 
+			:total_identify_requests,
 			:total_identify_requests_bytes
 		)
 
@@ -42,7 +42,7 @@ module Configuration
 			Identify.stats.incr_total_identify_requests
 			Identify.stats.incr_total_identify_requests_bytes image.data.bytesize
 
-			id = client.identify(image.data)
+			id = client.with_headers(request_state.headers).identify(image.data)
 
 			image.mime_type = id.mime_type if id.mime_type
 			image.width = id.width if id.width

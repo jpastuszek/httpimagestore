@@ -13,7 +13,7 @@ Given /httpimagestore server is running at (.*) with the following configuration
 	begin
 		log = support_dir + 'server.log'
 		start_server(
-			"bundle exec #{script('httpimagestore')} -f -d -l #{log} -w 1 #{(@httpimagestore_args ||= []).join(' ')} #{cfile.to_s}",
+			"bundle exec #{script('httpimagestore')} -f -d -x XID -l #{log} -w 1 #{(@httpimagestore_args ||= []).join(' ')} #{cfile.to_s}",
 			'/tmp/httpimagestore.pid',
 			log,
 			url
@@ -26,7 +26,7 @@ end
 Given /httpthumbnailer server is running at (.*)/ do |url|
 	log = support_dir + 'thumbniler.log'
 	start_server(
-		"httpthumbnailer -f -d -l #{log} -w 1",
+		"httpthumbnailer -f -d -x XID -l #{log} -w 1",
 		'/tmp/httpthumbnailer.pid',
 		log,
 		url
@@ -182,3 +182,10 @@ Then /file (.*) will contain (.*) image of size (.*)x(.*)/ do |file, format, wid
 	@image.rows.should == height.to_i
 end
 
+Then /httpimagestore log will contain (.*)/ do |entry|
+	(support_dir + 'server.log').read.should include entry
+end
+
+Then /httpthumbnailer log will contain (.*)/ do |entry|
+	(support_dir + 'thumbniler.log').read.should include entry
+end
