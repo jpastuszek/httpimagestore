@@ -3,7 +3,7 @@ ruby "1.9.3"
 
 gem "unicorn-cuba-base", "~> 1.2.0"
 #gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
-gem "httpthumbnailer-client", "~> 1.1.1"
+gem "httpthumbnailer-client", "~> 1.2.0"
 #gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
 gem "aws-sdk", "~> 1.10"
 gem "mime-types", "~> 1.17"
@@ -21,5 +21,6 @@ group :development do
   gem "daemon", "~> 1"
   gem "prawn", "= 0.8.4"
   #gem "httpthumbnailer", path: '../httpthumbnailer'
+  gem "httpthumbnailer", "~> 1.2.0"
 end
 
