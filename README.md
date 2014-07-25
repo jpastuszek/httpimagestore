@@ -19,6 +19,7 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ### 1.7.0
 * `output_data_uri_image` support
+* `source_failover` support
 * fixed possible data leak with nested template processing
 * reporting `400 Bad Request` for non UTF-8 characters encoded in URLs
 * syslog logging
@@ -267,6 +268,33 @@ get "small" {
 ```
 
 Requesting `/small` URI will result with image fetched from S3 bucket `mybucket` and key `myimage.jpg` and named `original`.
+
+
+#### source_failover
+
+This statement can be used to wrap around other sources.
+HTTP Image Store will try to wrapped sources one by one until one will not fail.
+If all sources fail status code for error from the first source will be used.
+
+This source has no options.
+
+Example:
+
+```sdl
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+path "myimage"	"myimage.jpg"
+
+get "small" {
+	source_failover {
+		source_s3 "original" bucket="mybucket" path="myimage"
+		source_s3 "original" bucket="mybucket-backup" path="myimage"
+	}
+}
+```
+
+Requesting `/small` URI will result with image fetched from S3 bucket `mybucket`.
+If `mybucket` does not contain key `myimage.jpg` than `mybucket-backup` will be tried.
+If `mybucket-backup` does not contain the key than `404` status code will be returned.
 
 ### API endpoint processing operations
 
