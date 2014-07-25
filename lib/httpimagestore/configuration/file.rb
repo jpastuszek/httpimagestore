@@ -1,5 +1,6 @@
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/source_failover'
 require 'pathname'
 require 'uri'
 
@@ -54,6 +55,10 @@ module Configuration
 
 			storage_path
 		end
+
+		def to_s
+			"FileSource[image_name: '#{@image_name}' root_dir: '#{@root_dir}' path_spec: '#{@path_spec}']"
+		end
 	end
 
 	class FileSource < FileSourceStoreBase
@@ -90,6 +95,7 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser FileSource
+	SourceFailover::register_node_parser FileSource
 
 	class FileStore < FileSourceStoreBase
 		include ClassLogging

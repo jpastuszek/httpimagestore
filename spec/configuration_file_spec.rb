@@ -3,6 +3,7 @@ require 'httpimagestore/configuration'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/file'
+require 'httpimagestore/configuration/output'
 MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
@@ -62,7 +63,7 @@ describe Configuration do
 					io.write('hello world')
 				end
 			end
-			
+
 			subject do
 				Configuration.read(<<-EOF)
 				path "image_name" "\#{image_name}.jpg"
@@ -155,6 +156,30 @@ describe Configuration do
 				}.to raise_error MemoryLimit::MemoryLimitedExceededError, 'memory limit exceeded'
 			end
 		end
+
+		context 'in failover context' do
+			subject do
+				Configuration.read(<<-EOF)
+				path "in" "test.in"
+
+				get "test" {
+					source_failover {
+						source_file "first_fail_1" root="/tmp/bogous" path="in"
+						source_file "first_fail_2" root="/tmp" path="in"
+					}
+				}
+				EOF
+			end
+
+			it 'should source second image' do
+				subject.handlers[0].sources[0].should be_a Configuration::SourceFailover
+				subject.handlers[0].sources[0].realize(state)
+
+				state.images.keys.should == ['first_fail_2']
+				state.images['first_fail_2'].should_not be_nil
+				state.images['first_fail_2'].data.should == 'abc'
+			end
+		end
 	end
 
 	describe Configuration::FileStore do
@@ -242,7 +267,7 @@ describe Configuration do
 
 				state.images['input'].store_path.should == 'input.jpg'
 			end
-			
+
 			it 'should provide image mime type based file extension to be used as #{image_mime_extension}' do
 				state.images['input'].mime_type = 'image/jpeg'
 				subject.handlers[0].stores[1].realize(state)

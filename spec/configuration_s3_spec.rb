@@ -1,6 +1,7 @@
 require_relative 'spec_helper'
 require 'aws-sdk'
 require 'httpimagestore/configuration'
+require 'httpimagestore/configuration/output'
 Configuration::Scope.logger = Logger.new('/dev/null')
 
 require 'httpimagestore/configuration/s3'
@@ -286,7 +287,7 @@ else
 
 						# should get updated
 						Digest::SHA2.new.update(cache_file.read).to_s.should_not == sum
-						
+
 						sum = Digest::SHA2.new.update(cache_file.read).to_s
 						## read from cahce
 						subject.handlers[0].sources[3].realize(state)
@@ -299,7 +300,7 @@ else
 						let :state do
 							Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 						end
-						
+
 						before :each do
 							@cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
 							@cache_file.dirname.mkpath
@@ -352,7 +353,7 @@ else
 							cache_file = Pathname.new('/tmp/a2/fd/4261e9a7586ed772d0c78bb51c9d')
 							cache_file.unlink if cache_file.exist?
 
-							state = Configuration::RequestState.new('abc', {test_image: 'bogous.jpg'})
+							state = Configuration::RequestState.new('abc', {test_image: 'bogus.jpg'})
 
 							expect {
 								subject.handlers[0].sources[0].realize(state)
@@ -549,6 +550,31 @@ else
 					expect {
 						subject.handlers[0].sources[0].realize(state)
 					}.to raise_error MemoryLimit::MemoryLimitedExceededError
+				end
+			end
+
+			context 'in failover context' do
+				subject do
+					Configuration.read(<<-EOF)
+					s3 key="#{ENV['AWS_ACCESS_KEY_ID']}" secret="#{ENV['AWS_SECRET_ACCESS_KEY']}"
+					path "hash" "\#{test_image}"
+					path "bogus" "bogus"
+					get {
+						source_failover {
+							source_s3 "first_fail_1" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="bogus"
+							source_s3 "first_fail_2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash"
+						}
+					}
+					EOF
+				end
+
+				it 'should source second image' do
+					subject.handlers[0].sources[0].should be_a Configuration::SourceFailover
+					subject.handlers[0].sources[0].realize(state)
+
+					state.images.keys.should == ['first_fail_2']
+					state.images['first_fail_2'].should_not be_nil
+					state.images['first_fail_2'].data.should == @test_data
 				end
 			end
 		end

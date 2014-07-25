@@ -4,6 +4,7 @@ require 'msgpack'
 require 'httpimagestore/aws_sdk_regions_hack'
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/source_failover'
 
 module Configuration
 	class S3NotConfiguredError < ConfigurationError
@@ -43,7 +44,7 @@ module Configuration
 			node.grab_values
 			node.required_attributes('key', 'secret')
 			node.valid_attribute_values('ssl', true, false, nil)
-			
+
 			key, secret, ssl = node.grab_attributes('key', 'secret', 'ssl')
 			ssl = true if ssl.nil?
 
@@ -191,7 +192,7 @@ module Configuration
 		class CacheObject < S3Object
 			extend Stats
 			def_stats(
-				:total_s3_cache_hits, 
+				:total_s3_cache_hits,
 				:total_s3_cache_misses,
 				:total_s3_cache_errors,
 			)
@@ -274,7 +275,7 @@ module Configuration
 
 		extend Stats
 		def_stats(
-			:total_s3_store, 
+			:total_s3_store,
 			:total_s3_store_bytes,
 			:total_s3_source,
 			:total_s3_source_bytes
@@ -286,18 +287,18 @@ module Configuration
 			node.required_attributes('bucket', 'path')
 			node.valid_attribute_values('public_access', true, false, nil)
 
-			bucket, path_spec, public_access, cache_control, prefix, cache_root, if_image_name_on = 
+			bucket, path_spec, public_access, cache_control, prefix, cache_root, if_image_name_on =
 				*node.grab_attributes('bucket', 'path', 'public', 'cache-control', 'prefix', 'cache-root', 'if-image-name-on')
 			public_access = false if public_access.nil?
 			prefix = '' if prefix.nil?
 
 			self.new(
-				configuration.global, 
-				image_name, 
+				configuration.global,
+				image_name,
 				InclusionMatcher.new(image_name, if_image_name_on),
-				bucket, 
-				path_spec, 
-				public_access, 
+				bucket,
+				path_spec,
+				public_access,
 				cache_control,
 				prefix,
 				cache_root
@@ -395,8 +396,13 @@ module Configuration
 				end
 			end
 		end
+
+		def to_s
+			"S3Source[image_name: '#{@image_name}' bucket: '#{@bucket}' prefix: '#{@prefix}' path_spec: '#{@path_spec}']"
+		end
 	end
 	Handler::register_node_parser S3Source
+	SourceFailover::register_node_parser S3Source
 
 	class S3Store < S3SourceStoreBase
 		def self.match(node)

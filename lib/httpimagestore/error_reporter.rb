@@ -20,6 +20,14 @@ class ErrorReporter < Controller
 			write_error 400, error
 		end
 
+		on error Configuration::SourceFailoverAllFailedError do |error|
+			if [Configuration::S3NoSuchKeyError, Configuration::NoSuchFileError].member? error.errors.first.class
+				write_error 404, error
+			else
+				write_error 500, error
+			end
+		end
+
 		run DefaultErrorReporter
 	end
 end
