@@ -273,8 +273,8 @@ Requesting `/small` URI will result with image fetched from S3 bucket `mybucket`
 #### source_failover
 
 This statement can be used to wrap around other sources.
-HTTP Image Store will try to wrapped sources one by one until one will not fail.
-If all sources fail status code for error from the first source will be used.
+HTTP Image Store will try wrapped sources one by one until one will succeed.
+If all sources fail status code for error from the first source will be returned.
 
 This source has no options.
 
