@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2014-07-24"
+  s.date = "2014-07-28"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
     "features/health-check.feature",
     "features/request-matching.feature",
     "features/s3-store-and-thumbnail.feature",
+    "features/source-failover.feature",
     "features/step_definitions/httpimagestore_steps.rb",
     "features/storage.feature",
     "features/support/env.rb",
@@ -54,6 +55,7 @@ Gem::Specification.new do |s|
     "lib/httpimagestore/configuration/output.rb",
     "lib/httpimagestore/configuration/path.rb",
     "lib/httpimagestore/configuration/s3.rb",
+    "lib/httpimagestore/configuration/source_failover.rb",
     "lib/httpimagestore/configuration/thumbnailer.rb",
     "lib/httpimagestore/error_reporter.rb",
     "lib/httpimagestore/ruby_string_template.rb",
@@ -61,12 +63,14 @@ Gem::Specification.new do |s|
     "load_test/load_test.1k.ec9bde794.m1.small.csv",
     "load_test/load_test.jmx",
     "load_test/thumbnail_specs.csv",
+    "load_test/thumbnail_specs_v2.csv",
     "spec/configuration_file_spec.rb",
     "spec/configuration_handler_spec.rb",
     "spec/configuration_identify_spec.rb",
     "spec/configuration_output_spec.rb",
     "spec/configuration_path_spec.rb",
     "spec/configuration_s3_spec.rb",
+    "spec/configuration_source_failover_spec.rb",
     "spec/configuration_spec.rb",
     "spec/configuration_thumbnailer_spec.rb",
     "spec/ruby_string_template_spec.rb",
