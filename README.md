@@ -562,7 +562,7 @@ Putting image data to `/multi` URI will result with image `original` sourced fro
 
 #### output_store_url
 
-This is similar statement to `output_store_file` but it will output `file://` URL for file stored images and valid S3 access URL for S3 stored images.
+This is similar statement to `output_store_file` but it will output `file:` URL for file stored images and valid S3 access URL for S3 stored images.
 
 For S3 stored image if `ssl` is set to `true` on the S3 client statement (`s3 ssl="true"`) the URL will start with `https://`. If `public` is set to `true` when storing image in S3 (`store_s3 public="true"`) then the URL will not contain query string options, otherwise authentication tokens and expiration token (set to expire in 20 years) will be include in the query string.
 
