@@ -98,6 +98,10 @@ module Configuration
 			@output_callback or fail 'no output callback'
 		end
 
+		def render_template(template)
+			RubyStringTemplate.new(template).render(self)
+		end
+
 		def fetch_base_variable(name, base_name)
 			fetch(base_name, nil) or generate_meta_variable(base_name) or raise NoVariableToGenerateMetaVariableError.new(base_name, name)
 		end
@@ -346,18 +350,18 @@ module Configuration
 					name = $1.to_sym
 					value = $2
 					Matcher.new([name], 'QueryKeyValue', "#{name}=#{value}") do
-						->{req[name] && req[name] == value && captures.push(req[name])}
+						->{req.GET[name.to_s] && req.GET[name.to_s] == value && captures.push(req.GET[name.to_s])}
 					end
 				when /^\&:(.+)\?(.*)$/# &:foo?bar
 					name = $1.to_sym
 					default = $2
 					Matcher.new([name], 'QueryKeyDefault', "#{name}=<key>|#{default}") do
-						->{captures.push(req[name] || default)}
+						->{captures.push(req.GET[name.to_s] || default)}
 					end
 				when /^\&:(.+)$/# &:foo
 					name = $1.to_sym
 					Matcher.new([name], 'QueryKey', "#{name}=<key>") do
-						->{req[name] && captures.push(req[name])}
+						->{req.GET[name.to_s] && captures.push(req.GET[name.to_s])}
 					end
 				# Literal URI segment matcher
 				else # foobar
