@@ -623,5 +623,173 @@ describe Configuration do
 				end
 			end
 		end
+
+		describe Configuration::OutputStoreURI do
+			it 'should provide file store URI' do
+				subject = Configuration.read(<<-EOF)
+				path {
+					"out"	"test.out"
+				}
+
+				post "single" {
+					store_file "input" root="/tmp" path="out"
+
+					output_store_uri "input"
+				}
+				EOF
+
+				subject.handlers[0].sources[0].realize(state)
+				subject.handlers[0].stores[0].realize(state)
+				subject.handlers[0].output.realize(state)
+
+				env.instance_eval &state.output_callback
+				env.res['Content-Type'].should == 'text/uri-list'
+				env.res.data.should == "/test.out\r\n"
+			end
+
+			it 'should provide multiple file store URIs' do
+				subject = Configuration.read(<<-EOF)
+				path {
+					"in"	"test.in"
+					"out"	"test.out"
+					"out2"	"test.out2"
+				}
+
+				post "multi" {
+					source_file "original" root="/tmp" path="in"
+
+					store_file "input" root="/tmp" path="out"
+					store_file "original" root="/tmp" path="out2"
+
+					output_store_uri {
+						"input"
+						"original"
+					}
+				}
+				EOF
+
+				subject.handlers[0].sources[0].realize(state)
+				subject.handlers[0].sources[1].realize(state)
+				subject.handlers[0].stores[0].realize(state)
+				subject.handlers[0].stores[1].realize(state)
+				subject.handlers[0].output.realize(state)
+
+				env.instance_eval &state.output_callback
+				env.res['Content-Type'].should == 'text/uri-list'
+				env.res.data.should == "/test.out\r\n/test.out2\r\n"
+			end
+
+			describe 'conditional inclusion support' do
+				let :state do
+					Configuration::RequestState.new('abc', list: 'input,image2')
+				end
+
+				subject do
+					Configuration.read(<<-'EOF')
+					path {
+						"in"		"test.in"
+						"out1"	"test.out1"
+						"out2"	"test.out2"
+						"out3"	"test.out3"
+					}
+
+					post "multi" {
+						source_file "image1" root="/tmp" path="in"
+						source_file "image2" root="/tmp" path="in"
+
+						store_file "input" root="/tmp" path="out1"
+						store_file "image1" root="/tmp" path="out2"
+						store_file "image2" root="/tmp" path="out3"
+
+						output_store_uri {
+							"input"		if-image-name-on="#{list}"
+							"image1"	if-image-name-on="#{list}"
+							"image2"	if-image-name-on="#{list}"
+						}
+					}
+					EOF
+				end
+
+				it 'should output store url only for images that names match if-image-name-on list' do
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].sources[1].realize(state)
+					subject.handlers[0].sources[2].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].stores[1].realize(state)
+					subject.handlers[0].stores[2].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "/test.out1\r\n/test.out3\r\n"
+				end
+			end
+
+			describe 'URI rewrites' do
+				it 'should allow using path spec to rewrite URI path' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_uri "input" path="formatted"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "/hello/abc/world/test-xyz.out\r\n"
+				end
+			end
+
+			describe 'URI encoding' do
+				it 'should provide properly encoded file store URI' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/t e s t.out"
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_uri {
+							"input"
+							"input" path="formatted"
+						}
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "/abc/t%20e%20s%20t.out\r\n/hello/abc/world/t%20e%20s%20t-xyz.out\r\n"
+				end
+			end
+
+			describe 'error handling' do
+				it 'should raise StoreURLNotSetForImage for output of not stored image' do
+					subject = Configuration.read(<<-EOF)
+					post "single" {
+						output_store_uri "input"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+
+					expect {
+						subject.handlers[0].output.realize(state)
+					}.to raise_error Configuration::StoreURLNotSetForImage, %{store URL not set for image 'input'}
+				end
+			end
+		end
 	end
 end

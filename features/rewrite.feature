@@ -14,6 +14,11 @@ Feature: Rewrite of the output path and URL
 			output_store_path "input" path="rewritten"
 		}
 
+		post "rewrite" "uri" "path" "&:prefix" {
+			store_file "input" root="/tmp" path="input_digest"
+			output_store_uri "input" path="rewritten"
+		}
+
 		post "rewrite" "url" "path" "&:prefix" {
 			store_file "input" root="/tmp" path="input_digest"
 			output_store_url "input" path="rewritten"
@@ -46,6 +51,14 @@ Feature: Rewrite of the output path and URL
 		And response body will be CRLF ended lines
 		"""
 		hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
+		"""
+
+	Scenario: Store URI path rewriting
+		Given test.png file content as request body
+		When I do POST request http://localhost:3000/rewrite/uri/path?prefix=world
+		And response body will be CRLF ended lines
+		"""
+		/hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
 		"""
 
 	Scenario: Store URL path rewriting

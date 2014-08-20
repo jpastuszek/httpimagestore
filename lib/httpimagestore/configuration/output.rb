@@ -233,5 +233,24 @@ module Configuration
 		end
 	end
 	Handler::register_node_parser OutputStoreURL
+
+	class OutputStoreURI < OutputMultiBase
+		def self.match(node)
+			node.name == 'output_store_uri'
+		end
+
+		def realize(request_state)
+			urls = @output_specs.select do |output_spec|
+				output_spec.included?(request_state)
+			end.map do |output_spec|
+				output_spec.store_url(request_state).path
+			end
+
+			request_state.output do
+				write_url_list 200, urls
+			end
+		end
+	end
+	Handler::register_node_parser OutputStoreURI
 end
 

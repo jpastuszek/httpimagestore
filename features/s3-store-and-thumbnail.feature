@@ -16,7 +16,7 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		put "original" {
 			thumbnail "input" "original" operation="limit" width=100 height=100 format="jpeg" quality=95
 			store_s3 "original" bucket="@AWS_S3_TEST_BUCKET@" path="original-hash" cache-root="/tmp"
-			output_store_path "original"
+			output_store_uri "original"
 		}
 
 		get "thumbnail" "v1" ":path" ":operation" ":width" ":height" ":options?" {
@@ -38,10 +38,10 @@ Feature: Store limited original image in S3 and thumbnail based on request
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/original
 		Then response status will be 200
-		And response content type will be text/plain
+		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
 		"""
-		4006450256177f4a.jpg
+		/4006450256177f4a.jpg
 		"""
 		Then S3 object 4006450256177f4a.jpg will contain JPEG image of size 71x100
 		When I do GET request http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/4006450256177f4a.jpg

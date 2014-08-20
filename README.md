@@ -19,7 +19,9 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ### 1.8.0
 * `output_store_url` support additional arguments: `scheme`, `port` and `host`
+* `output_store_uri` support added
 * fixed `output_store_url` URL formatting for `file_store`
+* fixed parsing of POST body when query string matches are used
 
 ### 1.7.0
 * `output_data_uri_image` support
@@ -616,6 +618,55 @@ Putting image data will result in storage of that image and two thumbnails gener
 http://mybucket.s3.amazonaws.com/4006450256177f4a.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/small.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/tiny_png.png
+```
+
+#### output_store_uri
+
+This is similar statement to `output_store_url` but it will output only path component of the URL for stored images.
+
+The `Content-Type` header of this response is `text/uri-list`.
+Each output URL is `\r\n` ended.
+
+Arguments:
+
+1. image names - names of images
+
+Options:
+
+* `path` - name of predefined path that will be used to generate output URL path part; `#{path}` variable and all derivative will be replaced with given image storage path; if not specified the original URL will be provided; `#{url}` variable will contain full original URL
+
+Example:
+
+```sdl
+s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" ssl=false
+
+path "hash"			"#{input_digest}.#{image_mime_extension}"
+path "hash-name"	"#{input_digest}/#{image_name}.#{image_mime_extension}"
+
+put "thumbnail" {
+	thumbnail "input" {
+		"small"		operation="crop"	width=128	height=128	format="jpeg"
+		"tiny_png"	operation="crop"	width=32	height=32	format="png"
+	}
+
+	store_s3 "input"	bucket="mybucket"		path="hash"		 public=true
+	store_s3 "small"	bucket="mybucket"		path="hash-name" public=true
+	store_s3 "tiny_png"	bucket="mybucket"		path="hash-name" public=true
+
+	output_store_uri {
+		"input"
+		"small"
+		"tiny_png"
+	}
+}
+```
+
+Putting image data will result in storage of that image and two thumbnails generated from it. The output will contain `\r\n` ended lines like:
+
+```
+/4006450256177f4a.jpg
+/4006450256177f4a/small.jpg
+/4006450256177f4a/tiny_png.png
 ```
 
 ### API endpoint meta options
