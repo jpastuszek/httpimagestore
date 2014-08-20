@@ -131,10 +131,10 @@ else
 				subject.handlers[0].sources[0].realize(state)
 
 				state.images['original'].source_path.should == "test.jpg"
-				state.images['original'].source_url.should start_with "https://"
-				state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
-				state.images['original'].source_url.should include "/test.jpg"
-				state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+				state.images['original'].source_url.to_s.should start_with "https://"
+				state.images['original'].source_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+				state.images['original'].source_url.to_s.should include "/test.jpg"
+				state.images['original'].source_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 				status(state.images['original'].source_url).should == 200
 			end
 
@@ -152,10 +152,10 @@ else
 				it 'should still provide valid HTTPS URL incliding prefix' do
 					subject.handlers[0].sources[0].realize(state)
 
-					state.images['original'].source_url.should start_with "https://"
-					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
-					state.images['original'].source_url.should include "/test_prefix/test.jpg"
-					state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+					state.images['original'].source_url.to_s.should start_with "https://"
+					state.images['original'].source_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['original'].source_url.to_s.should include "/test_prefix/test.jpg"
+					state.images['original'].source_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 					status(state.images['original'].source_url).should == 200
 				end
 
@@ -219,7 +219,8 @@ else
 				it 'should keep private source URL' do
 					subject.handlers[0].sources[0].realize(state)
 
-					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID']
+					state.images['original'].source_url.should be_a URI::HTTPS
+					state.images['original'].source_url.to_s.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID']
 				end
 
 				it 'should keep public source URL' do
@@ -232,7 +233,8 @@ else
 					EOF
 					subject.handlers[0].sources[0].realize(state)
 
-					state.images['original'].source_url.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
+					state.images['original'].source_url.should be_a URI::HTTPS
+					state.images['original'].source_url.to_s.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
 				end
 
 				describe 'read-through' do
@@ -417,10 +419,10 @@ else
 
 				it 'should provide source HTTP url' do
 					subject.handlers[0].sources[0].realize(state)
-					state.images['original'].source_url.should start_with "http://"
-					state.images['original'].source_url.should include ENV['AWS_S3_TEST_BUCKET']
-					state.images['original'].source_url.should include "/test.jpg"
-					state.images['original'].source_url.should include ENV['AWS_ACCESS_KEY_ID']
+					state.images['original'].source_url.to_s.should start_with "http://"
+					state.images['original'].source_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['original'].source_url.to_s.should include "/test.jpg"
+					state.images['original'].source_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 					status(state.images['original'].source_url).should == 200
 				end
 			end
@@ -627,10 +629,10 @@ else
 				subject.handlers[0].stores[0].realize(state)
 
 				state.images['input'].store_path.should == "test_out.jpg"
-				state.images['input'].store_url.should start_with "https://"
-				state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
-				state.images['input'].store_url.should include "/test_out.jpg"
-				state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+				state.images['input'].store_url.to_s.should start_with "https://"
+				state.images['input'].store_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+				state.images['input'].store_url.to_s.should include "/test_out.jpg"
+				state.images['input'].store_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 				status(state.images['input'].store_url).should == 200
 			end
 
@@ -648,10 +650,10 @@ else
 				it 'should still provide valid HTTPS URL incliding prefix' do
 					subject.handlers[0].stores[0].realize(state)
 
-					state.images['input'].store_url.should start_with "https://"
-					state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
-					state.images['input'].store_url.should include "test_prefix/test_out.jpg"
-					state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+					state.images['input'].store_url.to_s.should start_with "https://"
+					state.images['input'].store_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['input'].store_url.to_s.should include "test_prefix/test_out.jpg"
+					state.images['input'].store_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 					status(state.images['input'].store_url).should == 200
 				end
 
@@ -683,10 +685,10 @@ else
 				it 'should provide source HTTP url' do
 					subject.handlers[0].stores[0].realize(state)
 
-					state.images['input'].store_url.should start_with "http://"
-					state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
-					state.images['input'].store_url.should include "/test_out.jpg"
-					state.images['input'].store_url.should include ENV['AWS_ACCESS_KEY_ID']
+					state.images['input'].store_url.to_s.should start_with "http://"
+					state.images['input'].store_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+					state.images['input'].store_url.to_s.should include "/test_out.jpg"
+					state.images['input'].store_url.to_s.should include ENV['AWS_ACCESS_KEY_ID']
 					status(state.images['input'].store_url).should == 200
 				end
 			end
@@ -694,7 +696,7 @@ else
 			describe 'permission control' do
 				it 'should store images that are not accessible by public by default' do
 					subject.handlers[0].stores[0].realize(state)
-					status(state.images['input'].store_url[/^[^\?]*/]).should == 403
+					status(state.images['input'].store_url.to_s[/^[^\?]*/]).should == 403
 				end
 
 				describe 'public' do
@@ -717,10 +719,10 @@ else
 					it 'should provide public source HTTPS url' do
 						subject.handlers[0].stores[0].realize(state)
 
-						state.images['input'].store_url.should start_with "https://"
-						state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
-						state.images['input'].store_url.should include "/test_out.jpg"
-						state.images['input'].store_url.should_not include ENV['AWS_ACCESS_KEY_ID']
+						state.images['input'].store_url.to_s.should start_with "https://"
+						state.images['input'].store_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+						state.images['input'].store_url.to_s.should include "/test_out.jpg"
+						state.images['input'].store_url.to_s.should_not include ENV['AWS_ACCESS_KEY_ID']
 						status(state.images['input'].store_url).should == 200
 					end
 
@@ -738,10 +740,10 @@ else
 						it 'should provide public source HTTP url' do
 							subject.handlers[0].stores[0].realize(state)
 
-							state.images['input'].store_url.should start_with "http://"
-							state.images['input'].store_url.should include ENV['AWS_S3_TEST_BUCKET']
-							state.images['input'].store_url.should include "/test_out.jpg"
-							state.images['input'].store_url.should_not include ENV['AWS_ACCESS_KEY_ID']
+							state.images['input'].store_url.to_s.should start_with "http://"
+							state.images['input'].store_url.to_s.should include ENV['AWS_S3_TEST_BUCKET']
+							state.images['input'].store_url.to_s.should include "/test_out.jpg"
+							state.images['input'].store_url.to_s.should_not include ENV['AWS_ACCESS_KEY_ID']
 							status(state.images['input'].store_url).should == 200
 						end
 					end

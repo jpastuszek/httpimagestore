@@ -86,7 +86,7 @@ module Configuration
 					FileSourceStoreBase.stats.incr_total_file_source_bytes(data.bytesize)
 
 					image = Image.new(data)
-					image.source_url = "file://#{URI.encode(rendered_path.to_s)}"
+					image.source_url = URI::Generic.new('file', nil, nil, nil, nil, "/#{URI.encode(rendered_path.to_s)}", nil, nil, nil, URI::DEFAULT_PARSER, true)
 					image
 				rescue Errno::ENOENT
 					raise NoSuchFileError.new(image_name, rendered_path)
@@ -112,7 +112,7 @@ module Configuration
 			get_named_image_for_storage(request_state) do |image_name, image, rendered_path|
 				storage_path = storage_path(rendered_path)
 
-				image.store_url = "file://#{URI.encode(rendered_path.to_s)}"
+				image.store_url = URI::Generic.new('file', nil, nil, nil, nil, "/#{URI.encode(rendered_path.to_s)}", nil, nil, nil, URI::DEFAULT_PARSER, true)
 
 				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
 				storage_path.open('wb'){|io| io.write image.data}

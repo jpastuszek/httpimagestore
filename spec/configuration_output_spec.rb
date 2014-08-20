@@ -391,7 +391,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/uri-list'
-				env.res.data.should == "file://test.out\r\n"
+				env.res.data.should == "file:/test.out\r\n"
 			end
 
 			it 'should provide multiple file store URLs' do
@@ -423,7 +423,7 @@ describe Configuration do
 
 				env.instance_eval &state.output_callback
 				env.res['Content-Type'].should == 'text/uri-list'
-				env.res.data.should == "file://test.out\r\nfile://test.out2\r\n"
+				env.res.data.should == "file:/test.out\r\nfile:/test.out2\r\n"
 			end
 
 			describe 'conditional inclusion support' do
@@ -468,12 +468,12 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "file://test.out1\r\nfile://test.out3\r\n"
+					env.res.data.should == "file:/test.out1\r\nfile:/test.out3\r\n"
 				end
 			end
 
 			describe 'custom formatting' do
-				it 'should provide formatted file store URL' do
+				it 'should provide formatted file store path' do
 					subject = Configuration.read(<<-'EOF')
 					path  "out"	  "abc/test.out"
 
@@ -492,7 +492,7 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "file://abc/hello/world/test-xyz.out\r\n"
+					env.res.data.should == "file:/hello/abc/world/test-xyz.out\r\n"
 				end
 			end
 
@@ -518,7 +518,7 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "file://abc/t%20e%20s%20t.out\r\nfile://abc/hello/world/t%20e%20s%20t-xyz.out\r\n"
+					env.res.data.should == "file:/abc/t%20e%20s%20t.out\r\nfile:/hello/abc/world/t%20e%20s%20t-xyz.out\r\n"
 				end
 			end
 

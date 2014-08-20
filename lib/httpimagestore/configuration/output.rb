@@ -85,7 +85,7 @@ module Configuration
 			def store_url(request_state)
 				store_url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
 				return store_url unless @path_spec
-				uri = URI(store_url)
+				uri = store_url.dup
 				uri.path = '/' + URI.encode(rendered_path(URI.decode(uri.path), request_state))
 				uri
 			end

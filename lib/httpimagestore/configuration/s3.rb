@@ -177,11 +177,11 @@ module Configuration
 			end
 
 			def private_url
-				s3_object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20).to_s # expire in 20 years
+				s3_object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20) # expire in 20 years
 			end
 
 			def public_url
-				s3_object.public_url.to_s
+				s3_object.public_url
 			end
 
 			def content_type
@@ -237,11 +237,19 @@ module Configuration
 			end
 
 			def private_url
-				@cache_file.header['private_url'] ||= (dirty! :private_url; super)
+				url = @cache_file.header['private_url'] and return URI(url)
+				dirty! :private_url
+				url = super
+				@cache_file.header['private_url'] = url.to_s
+				url
 			end
 
 			def public_url
-				@cache_file.header['public_url'] ||= (dirty! :public_url; super)
+				url = @cache_file.header['public_url'] and return URI(url)
+				dirty! :public_url
+				url = super
+				@cache_file.header['public_url'] = url.to_s
+				url
 			end
 
 			def content_type

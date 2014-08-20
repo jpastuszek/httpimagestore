@@ -54,7 +54,7 @@ describe Configuration do
 			subject.handlers[0].sources[0].realize(state)
 
 			state.images['original'].source_path.should == "test.in"
-			state.images['original'].source_url.should == "file://test.in"
+			state.images['original'].source_url.to_s.should == "file:/test.in"
 		end
 
 		describe 'context locals' do
@@ -220,7 +220,7 @@ describe Configuration do
 			subject.handlers[0].stores[0].realize(state)
 
 			state.images['input'].store_path.should == "test.out"
-			state.images['input'].store_url.should == "file://test.out"
+			state.images['input'].store_url.to_s.should == "file:/test.out"
 		end
 
 		describe 'conditional inclusion support' do
