@@ -69,9 +69,12 @@ module Configuration
 			attr_reader :image_name
 			attr_reader :path_spec
 
-			def initialize(global, image_name, path_spec, matcher)
+			def initialize(global, image_name, scheme, host, port, path_spec, matcher)
 				@global = global
 				@image_name = image_name
+				@scheme = scheme
+				@host = host
+				@port = port
 				@path_spec = path_spec
 				inclusion_matcher matcher
 			end
@@ -79,26 +82,42 @@ module Configuration
 			def store_path(request_state)
 				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 				return store_path unless @path_spec
-				rendered_path(store_path, request_state)
+
+				locals = {
+					image_name: @image_name,
+					path: store_path
+				}
+
+				rendered_path(request_state.with_locals(locals))
 			end
 
 			def store_url(request_state)
-				store_url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
-				return store_url unless @path_spec
-				uri = store_url.dup
-				uri.path = '/' + URI.encode(rendered_path(URI.decode(uri.path), request_state))
-				uri
+				url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
+				url = url.dup
+
+				locals = {
+					image_name: @image_name,
+					path: URI.decode(url.path),
+					url: url.to_s
+				}
+				locals[:scheme] = url.scheme if url.scheme
+				locals[:host] = url.host if url.host
+				locals[:port] = url.port if url.port
+
+				request_state = request_state.with_locals(locals)
+
+				# optional rewrites
+				url.scheme = request_state.render_template(@scheme) if @scheme
+				url.host = request_state.render_template(@host) if @host
+				url.port = request_state.render_template(@port).to_i if @port
+				url.path = '/' + URI.encode(rendered_path(request_state)) if @path_spec
+
+				url
 			end
 
 		private
-
-			def rendered_path(store_path, request_state)
-				path = @global.paths[@path_spec]
-				locals = {
-					path: store_path,
-					image_name: @image_name
-				}
-				Pathname.new(path.render(request_state.with_locals(locals))).cleanpath.to_s
+			def rendered_path(request_state)
+				Pathname.new(@global.paths[@path_spec].render(request_state)).cleanpath.to_s
 			end
 		end
 
@@ -106,9 +125,9 @@ module Configuration
 			nodes = node.values.empty? ? node.children : [node]
 			output_specs = nodes.map do |node|
 				image_name = node.grab_values('image name').first
-				path_spec, if_image_name_on = *node.grab_attributes('path', 'if-image-name-on')
+				scheme, host, port, path_spec, if_image_name_on = *node.grab_attributes('scheme', 'host', 'port', 'path', 'if-image-name-on')
 				matcher = InclusionMatcher.new(image_name, if_image_name_on)
-				OutputSpec.new(configuration.global, image_name, path_spec, matcher)
+				OutputSpec.new(configuration.global, image_name, scheme, host, port, path_spec, matcher)
 			end
 
 			configuration.output and raise StatementCollisionError.new(node, 'output')

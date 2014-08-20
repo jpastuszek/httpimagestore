@@ -17,6 +17,10 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.8.0
+* `output_store_url` support additional arguments: `scheme`, `port` and `host`
+* fixed `output_store_url` URL formatting for `file_store`
+
 ### 1.7.0
 * `output_data_uri_image` support
 * `source_failover` support
@@ -575,7 +579,10 @@ Arguments:
 
 Options:
 
-* `path` - name of predefined path that will be used to generate output URL path part; `#{path}` variable and all derivative will be replaced with given image storage path; if not specified the original URL will be provided
+* `scheme` - rewrite URL scheme with provided one; variables can be used; `#{path}` variable and all derivative will be replaced with given image storage path; `#{url}` variable will contain full original URL
+* `host` - add/rewrite provided host to the URL; variables can be used; `#{path}` variable and all derivative will be replaced with given image storage path; `#{url}` variable will contain full original URL
+* `port` - add provided port to the URL; variables can be used; `#{path}` variable and all derivative will be replaced with given image storage path; `#{url}` variable will contain full original URL
+* `path` - name of predefined path that will be used to generate output URL path part; `#{path}` variable and all derivative will be replaced with given image storage path; if not specified the original URL will be provided; `#{url}` variable will contain full original URL
 
 Example:
 
@@ -610,10 +617,6 @@ http://mybucket.s3.amazonaws.com/4006450256177f4a.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/small.jpg
 http://mybucket.s3.amazonaws.com/4006450256177f4a/tiny_png.png
 ```
-
-#### output_source_file and output_source_url
-
-This statements are similar to their storage variants. The difference is that they will output path and URL of the source locations.
 
 ### API endpoint meta options
 

@@ -471,8 +471,8 @@ describe Configuration do
 				end
 			end
 
-			describe 'custom formatting' do
-				it 'should provide formatted file store path' do
+			describe 'URL rewrites' do
+				it 'should allow using path spec to rewrite URL path component' do
 					subject = Configuration.read(<<-'EOF')
 					path  "out"	  "abc/test.out"
 
@@ -492,6 +492,92 @@ describe Configuration do
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file:/hello/abc/world/test-xyz.out\r\n"
+				end
+
+				it 'should allow rewriting scheme component' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url "input" scheme="ftp"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "ftp:/abc/test.out\r\n"
+				end
+
+				it 'should allow rewriting host component' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url "input" host="localhost"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "file://localhost/abc/test.out\r\n"
+				end
+
+				it 'should allow rewriting port component' do
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url "input" port="21"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "file::21/abc/test.out\r\n"
+				end
+
+				it 'should allow using variables for all supported rewrites' do
+					state = Configuration::RequestState.new('abc',
+						remote: 'example.com',
+						remote_port: 21,
+						proto: 'ftp'
+					)
+					subject = Configuration.read(<<-'EOF')
+					path  "out"	  "abc/test.out"
+					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+					post "single" {
+						store_file "input" root="/tmp" path="out"
+
+						output_store_url "input" scheme="#{proto}" host="#{remote}" port="#{remote_port}" path="formatted"
+					}
+					EOF
+
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					env.res.data.should == "ftp://example.com:21/hello/abc/world/test-xyz.out\r\n"
 				end
 			end
 
