@@ -1,8 +1,8 @@
 source "http://rubygems.org"
 ruby "1.9.3"
 
-gem "unicorn-cuba-base", "~> 1.2.0"
-#gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
+#gem "unicorn-cuba-base", "~> 1.2.0"
+gem "unicorn-cuba-base", path: "../unicorn-cuba-base"
 gem "httpthumbnailer-client", "~> 1.2.0"
 #gem "httpthumbnailer-client", path: "../httpthumbnailer-client"
 gem "aws-sdk", "~> 1.10"

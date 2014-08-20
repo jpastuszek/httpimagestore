@@ -1,10 +1,9 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
-Configuration::Scope.logger = Logger.new('/dev/null')
+MemoryLimit.logger = Configuration::Scope.logger = RootLogger.new('/dev/null')
 
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/path'
-MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe 'path rendering' do
@@ -62,7 +61,7 @@ describe Configuration do
 
 				expect {
 					subject.paths['test'].render
-				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'} 
+				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'}
 			end
 		end
 

@@ -1,11 +1,10 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
-Configuration::Scope.logger = Logger.new('/dev/null')
+MemoryLimit.logger = Configuration::Scope.logger = RootLogger.new('/dev/null')
 
 require 'httpimagestore/configuration/output'
 require 'httpimagestore/configuration/thumbnailer'
 require 'httpimagestore/configuration/identify'
-MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe 'identify' do

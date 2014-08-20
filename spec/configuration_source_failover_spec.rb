@@ -1,6 +1,6 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
-Configuration::Scope.logger = Logger.new('/dev/null')
+MemoryLimit.logger = Configuration::Scope.logger = RootLogger.new('/dev/null')
 
 require 'httpimagestore/configuration/source_failover'
 require 'httpimagestore/configuration/file'

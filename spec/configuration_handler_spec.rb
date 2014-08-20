@@ -2,11 +2,10 @@ require_relative 'spec_helper'
 require_relative 'support/cuba_response_env'
 
 require 'httpimagestore/configuration'
-Configuration::Scope.logger = Logger.new('/dev/null')
+MemoryLimit.logger = Configuration::Scope.logger = RootLogger.new('/dev/null')
 
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/configuration/output'
-MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	describe Configuration::Handler do

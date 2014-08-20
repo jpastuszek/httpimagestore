@@ -1,11 +1,10 @@
 require_relative 'spec_helper'
 require 'aws-sdk'
 require 'httpimagestore/configuration'
-require 'httpimagestore/configuration/output'
-Configuration::Scope.logger = Logger.new('/dev/null')
+MemoryLimit.logger = Configuration::Scope.logger = RootLogger.new('/dev/null')
 
+require 'httpimagestore/configuration/output'
 require 'httpimagestore/configuration/s3'
-MemoryLimit.logger = Logger.new('/dev/null')
 
 unless ENV['AWS_ACCESS_KEY_ID'] and ENV['AWS_SECRET_ACCESS_KEY'] and ENV['AWS_S3_TEST_BUCKET']
 	puts "AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY or AWS_S3_TEST_BUCKET environment variables not set - Skipping S3 specs"

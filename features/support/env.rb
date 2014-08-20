@@ -65,7 +65,7 @@ end
 def start_server(cmd, pid_file, log_file, test_url)
 	if @@running_cmd[pid_file]
 		return if @@running_cmd[pid_file] == cmd
-		stop_server(pid_file) 
+		stop_server(pid_file)
 	end
 
 	fork do
@@ -96,7 +96,7 @@ def stop_server(pid_file)
 	pid_file = Pathname.new(pid_file)
 	return unless pid_file.exist?
 
-	STDERR.puts http_client.get_content("http://localhost:3000/stats") if pid_file.to_s.include? 'httpimagestore'
+	#STDERR.puts http_client.get_content("http://localhost:3000/stats") if pid_file.to_s.include? 'httpimagestore'
 	pid = pid_file.read.strip.to_i
 
 	Timeout.timeout(20) do
