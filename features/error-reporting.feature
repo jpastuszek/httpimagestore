@@ -218,6 +218,17 @@ Feature: Error handling
 		"""
 
 	@error-reporting
+	Scenario: Bad URI encoding + JavaScript encode
+		Given test.jpg file content as request body
+		When I do POST request http://localhost:3000/filename/triple%20kro%25udfcfl.png
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines like
+		"""
+		invalid UTF-8 encoding in URI: "triple kro\\xED\\xBF\\x8Fl"
+		"""
+
+	@error-reporting
 	Scenario: Zero body length
 		Given test.empty file content as request body
 		When I do PUT request http://localhost:3000/multipart/small
