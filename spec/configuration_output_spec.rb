@@ -158,6 +158,10 @@ describe Configuration do
 	end
 
 	describe 'output store paths and URLs' do
+		let :utf_string do
+			(support_dir + 'utf_string.txt').read.strip
+		end
+
 		let :in_file do
 			Pathname.new("/tmp/test.in")
 		end
@@ -178,8 +182,12 @@ describe Configuration do
 			Pathname.new('/tmp/abc/t e s t.out')
 		end
 
+		let :utf_test_file do
+			Pathname.new("/tmp/abc/#{utf_string}.out")
+		end
+
 		before :each do
-			test_file.dirname.mkdir
+			test_file.dirname.mkdir unless test_file.dirname.directory?
 			test_file.open('w'){|io| io.write('abc')}
 			space_test_file.open('w'){|io| io.write('abc')}
 			in_file.open('w'){|io| io.write('abc')}
@@ -190,6 +198,7 @@ describe Configuration do
 		after :each do
 			test_file.exist? and test_file.unlink
 			space_test_file.exist? and space_test_file.unlink
+			utf_test_file.exist? and utf_test_file.unlink
 			test_file.dirname.exist? and test_file.dirname.rmdir
 			out_file.unlink if out_file.exist?
 			out2_file.unlink if out2_file.exist?
@@ -750,10 +759,10 @@ describe Configuration do
 			end
 
 			describe 'URI encoding' do
-				it 'should provide properly encoded file store URI' do
-					subject = Configuration.read(<<-'EOF')
-					path  "out"	  "abc/t e s t.out"
-					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+				let :subject do
+					Configuration.read(<<-'EOF')
+					path  "out"         "abc/#{name}.out"
+					path  "formatted"   "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
 
 					post "single" {
 						store_file "input" root="/tmp" path="out"
@@ -764,6 +773,10 @@ describe Configuration do
 						}
 					}
 					EOF
+				end
+
+				it 'should provide properly encoded file store URI' do
+					state = Configuration::RequestState.new('abc', name: 't e s t')
 
 					subject.handlers[0].sources[0].realize(state)
 					subject.handlers[0].stores[0].realize(state)
@@ -772,6 +785,19 @@ describe Configuration do
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "/abc/t%20e%20s%20t.out\r\n/hello/abc/world/t%20e%20s%20t-xyz.out\r\n"
+				end
+
+				it 'should handle UTF-8 characters' do
+					state = Configuration::RequestState.new('abc', name: utf_string)
+					subject.handlers[0].sources[0].realize(state)
+					subject.handlers[0].stores[0].realize(state)
+					subject.handlers[0].output.realize(state)
+
+					env.instance_eval &state.output_callback
+					env.res['Content-Type'].should == 'text/uri-list'
+					l1, l2 = *env.res.data.split("\r\n")
+					URI.utf_decode(l1).should == "/abc/#{utf_string}.out"
+					URI.utf_decode(l2).should == "/hello/abc/world/#{utf_string}-xyz.out"
 				end
 			end
 

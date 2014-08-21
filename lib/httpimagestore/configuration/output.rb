@@ -97,7 +97,7 @@ module Configuration
 
 				locals = {
 					image_name: @image_name,
-					path: URI.decode(url.path),
+					path: URI.utf_decode(url.path),
 					url: url.to_s
 				}
 				locals[:scheme] = url.scheme if url.scheme
