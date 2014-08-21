@@ -22,7 +22,7 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 * `output_store_uri` support added
 * fixed `output_store_url` URL formatting for `file_store`
 * fixed parsing of POST body when query string matches are used
-* decoding UTF-8 character encoded with JavaScript encode() (%uXXXX)
+* decoding UTF-8 characters encoded with JavaScript encode() (%uXXXX) to support legacy/broken clients
 
 ### 1.7.0
 * `output_data_uri_image` support
