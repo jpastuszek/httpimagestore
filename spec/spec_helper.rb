@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'rspec'
-require 'httpclient'
+require 'faraday'
 require 'daemon'
 
 # Requires supporting files with custom matchers and macros, etc,
@@ -9,30 +9,38 @@ require 'daemon'
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each {|f| require f}
 
 RSpec.configure do |config|
-  
+
 end
 
 def support_dir
 	Pathname.new('spec/support')
 end
 
+def http_client
+	@faraday ||= Faraday.new
+end
+
+def request(method, uri, body, headers)
+	http_client.run_request(method.downcase.to_sym, uri.replace_s3_variables, body, headers || {})
+end
+
 def get(url)
-	HTTPClient.new.get_content(url)
+	http_client.get(url).body
 end
 
 def status(url)
-	HTTPClient.new.get(url).status
+	http_client.get(url).status
 end
 
 def headers(url)
-	HTTPClient.new.get(url).headers
+	http_client.get(url).headers
 end
 
 @@running_cmd = {}
 def start_server(cmd, pid_file, log_file, test_url)
 	if @@running_cmd[pid_file]
 		return if @@running_cmd[pid_file] == cmd
-		stop_server(pid_file) 
+		stop_server(pid_file)
 	end
 
 	fork do
@@ -52,7 +60,7 @@ def start_server(cmd, pid_file, log_file, test_url)
 	Timeout.timeout(10) do
 		begin
 			get test_url
-		rescue Errno::ECONNREFUSED
+		rescue Faraday::Error::ConnectionFailed
 			sleep 0.1
 			retry
 		end

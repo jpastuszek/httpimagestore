@@ -81,9 +81,14 @@ Then /S3 bucket will not contain (.*)/ do |key|
 	@bucket.objects[key].exists?.should_not be_true
 end
 
-When /I do (.*) request (.*)/ do |method, uri|
+When /I do (.*) request ([^ ]+)$/ do |method, uri|
 	@request_body = nil if method == 'GET'
-	@response = HTTPClient.new.request(method, uri.replace_s3_variables, nil, @request_body, (@request_headers or {}))
+
+	@response = request(method, uri, @request_body, (@request_headers or {}))
+end
+
+When /I do (.*) request with encoded URL (.*)/ do |method, uri|
+	step "I do #{method} request #{URI.encode(uri)}"
 end
 
 Then /response status will be (.*)/ do |status|
@@ -91,11 +96,11 @@ Then /response status will be (.*)/ do |status|
 end
 
 Then /response content type will be (.*)/ do |content_type|
-	@response.header['Content-Type'].first.should == content_type
+	@response.headers['Content-Type'].should == content_type
 end
 
 Then /response Cache-Control will be (.*)/ do |content_type|
-	@response.header['Cache-Control'].first.should == content_type
+	@response.headers['Cache-Control'].should == content_type
 end
 
 Then /response body will be CRLF ended lines like/ do |body|
@@ -110,7 +115,9 @@ Then /response body will be$/ do |body|
 end
 
 Then /response body will be CRLF ended lines$/ do |body|
-	@response.body.should == body.replace_s3_variables.gsub("\n", "\r\n") + "\r\n"
+	res = @response.body.dup
+	res.force_encoding('UTF-8')
+	res.should == body.replace_s3_variables.gsub("\n", "\r\n") + "\r\n"
 end
 
 Then /(http.*) content type will be (.*)/ do |url, content_type|
@@ -125,7 +132,7 @@ Then /(http.*) ([^ ]+) header will not be set/ do |url, header|
 	get_headers(url.replace_s3_variables)[header].should be_nil
 end
 
-Then /(http.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
+Then /^(http[^ ]+) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
 	data = get(url.replace_s3_variables)
 
 	@image.destroy! if @image
@@ -134,6 +141,11 @@ Then /(http.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width
 	@image.format.should == format
 	@image.columns.should == width.to_i
 	@image.rows.should == height.to_i
+end
+
+
+Then /Encoded URL (http.*) will contain (.*) image of size (.*)x(.*)/ do |url, format, width, height|
+	step "#{URI.encode(url)} will contain #{format} image of size #{width}x#{height}"
 end
 
 Then /S3 object (.*) will contain (.*) image of size (.*)x(.*)/ do |key, format, width, height|

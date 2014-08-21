@@ -12,7 +12,7 @@ require 'rspec/expectations'
 
 require 'daemon'
 require 'timeout'
-require 'httpclient'
+require 'faraday'
 require "open3"
 require "thread"
 require 'tempfile'
@@ -48,17 +48,19 @@ def script(file)
 end
 
 def http_client
-	client = HTTPClient.new
-	#client.debug_dev = STDOUT
-	client
+	@faraday ||= Faraday.new
+end
+
+def request(method, uri, body, headers)
+	http_client.run_request(method.downcase.to_sym, uri.replace_s3_variables, body, headers || {})
 end
 
 def get(url)
-	http_client.get_content(URI.encode(url))
+	http_client.get(url).body
 end
 
 def get_headers(url)
-	http_client.get(URI.encode(url)).headers
+	http_client.get(url).headers
 end
 
 @@running_cmd = {}
@@ -85,7 +87,7 @@ def start_server(cmd, pid_file, log_file, test_url)
 	Timeout.timeout(10) do
 		begin
 			get test_url
-		rescue Errno::ECONNREFUSED
+		rescue Faraday::Error::ConnectionFailed
 			sleep 0.1
 			retry
 		end
@@ -96,7 +98,7 @@ def stop_server(pid_file)
 	pid_file = Pathname.new(pid_file)
 	return unless pid_file.exist?
 
-	#STDERR.puts http_client.get_content("http://localhost:3000/stats") if pid_file.to_s.include? 'httpimagestore'
+	#STDERR.puts http_client.get("http://localhost:3000/stats").body if pid_file.to_s.include? 'httpimagestore'
 	pid = pid_file.read.strip.to_i
 
 	Timeout.timeout(20) do

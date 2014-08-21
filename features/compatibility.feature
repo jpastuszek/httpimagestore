@@ -130,7 +130,7 @@ Feature: Image list based thumbnailing and S3 storage
 		Given there is no test/图像/4006450256177f4a/测试.jpg file in S3 bucket
 		And there is no test/图像/4006450256177f4a/测试-small.jpg file in S3 bucket
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/thumbnail/small/test/图像/测试
+		When I do PUT request with encoded URL http://localhost:3000/thumbnail/small/test/图像/测试
 		Then response status will be 200
 		And response content type will be text/uri-list
 		And response body will be CRLF ended lines
@@ -138,8 +138,8 @@ Feature: Image list based thumbnailing and S3 storage
 		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95.jpg
 		http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/%E5%9B%BE%E5%83%8F/4006450256177f4a/%E6%B5%8B%E8%AF%95-small.jpg
 		"""
-		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
-		And http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
+		And Encoded URL http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
+		And Encoded URL http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
 
 	@compatibility @forward @test
 	Scenario: Getting thumbanils requested with compatibility API from flexi bucket
