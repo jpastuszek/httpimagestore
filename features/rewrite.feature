@@ -5,9 +5,10 @@ Feature: Rewrite of the output path and URL
 		Given httpthumbnailer server is running at http://localhost:3100/health_check
 		Given httpimagestore server is running at http://localhost:3000/health_check with the following configuration
 		"""
-		path "input_digest"     "#{input_digest}"
-		path "rewritten"        "hello/#{prefix}/#{input_sha256}.jpg"
-		path "demo"             "image/#{input_sha256}.jpg"
+		path "input_digest"       "#{input_digest}"
+		path "rewritten"          "hello/#{prefix}/#{input_sha256}.jpg"
+		path "rewritten-absolute" "/hello/#{prefix}/#{input_sha256}.jpg"
+		path "demo"               "image/#{input_sha256}.jpg"
 
 		post "rewrite" "path" "&:prefix" {
 			store_file "input" root="/tmp" path="input_digest"
@@ -19,9 +20,19 @@ Feature: Rewrite of the output path and URL
 			output_store_uri "input" path="rewritten"
 		}
 
+		post "rewrite" "uri" "path-absolute" "&:prefix" {
+			store_file "input" root="/tmp" path="input_digest"
+			output_store_uri "input" path="rewritten-absolute"
+		}
+
 		post "rewrite" "url" "path" "&:prefix" {
 			store_file "input" root="/tmp" path="input_digest"
 			output_store_url "input" path="rewritten"
+		}
+
+		post "rewrite" "url" "path-absolute" "&:prefix" {
+			store_file "input" root="/tmp" path="input_digest"
+			output_store_url "input" path="rewritten-absolute"
 		}
 
 		post "rewrite" "url" "scheme" "&:proto" {
@@ -61,9 +72,25 @@ Feature: Rewrite of the output path and URL
 		/hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
 		"""
 
+	Scenario: Store URI path rewriting - absolute path
+		Given test.png file content as request body
+		When I do POST request http://localhost:3000/rewrite/uri/path-absolute?prefix=world
+		And response body will be CRLF ended lines
+		"""
+		/hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
+		"""
+
 	Scenario: Store URL path rewriting
 		Given test.png file content as request body
 		When I do POST request http://localhost:3000/rewrite/url/path?prefix=world
+		And response body will be CRLF ended lines
+		"""
+		file:/hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
+		"""
+
+	Scenario: Store URL path rewriting - absolute path
+		Given test.png file content as request body
+		When I do POST request http://localhost:3000/rewrite/url/path-absolute?prefix=world
 		And response body will be CRLF ended lines
 		"""
 		file:/hello/world/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg

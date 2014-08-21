@@ -110,7 +110,7 @@ module Configuration
 				url.scheme = request_state.render_template(@scheme) if @scheme
 				url.host = request_state.render_template(@host) if @host
 				url.port = request_state.render_template(@port).to_i if @port
-				url.path = '/' + URI.encode(rendered_path(request_state)) if @path_spec
+				url.path = URI.encode(rendered_path(request_state)).tap{|path| path.replace('/' + path) if path[0] != '/'} if @path_spec
 
 				url
 			end
