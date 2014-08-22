@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "httpimagestore"
-  s.version = "1.7.0"
+  s.version = "1.8.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2014-07-28"
+  s.date = "2014-08-22"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -30,10 +30,12 @@ Gem::Specification.new do |s|
     "features/cache-control.feature",
     "features/compatibility.feature",
     "features/data-uri.feature",
+    "features/encoding.feature",
     "features/error-reporting.feature",
     "features/flexi.feature",
     "features/health-check.feature",
     "features/request-matching.feature",
+    "features/rewrite.feature",
     "features/s3-store-and-thumbnail.feature",
     "features/source-failover.feature",
     "features/step_definitions/httpimagestore_steps.rb",
@@ -77,7 +79,8 @@ Gem::Specification.new do |s|
     "spec/spec_helper.rb",
     "spec/support/compute.jpg",
     "spec/support/cuba_response_env.rb",
-    "spec/support/full.cfg"
+    "spec/support/full.cfg",
+    "spec/support/utf_string.txt"
   ]
   s.homepage = "http://github.com/jpastuszek/httpimagestore"
   s.licenses = ["MIT"]
@@ -89,13 +92,13 @@ Gem::Specification.new do |s|
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.2.0"])
+      s.add_runtime_dependency(%q<unicorn-cuba-base>, ["~> 1.2.2"])
       s.add_runtime_dependency(%q<httpthumbnailer-client>, ["~> 1.2.0"])
       s.add_runtime_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_runtime_dependency(%q<mime-types>, ["~> 1.17"])
       s.add_runtime_dependency(%q<sdl4r>, ["~> 0.9"])
       s.add_runtime_dependency(%q<msgpack>, ["~> 0.5"])
-      s.add_development_dependency(%q<httpclient>, [">= 2.3"])
+      s.add_development_dependency(%q<faraday>, [">= 0.8"])
       s.add_development_dependency(%q<rspec>, ["~> 2.13"])
       s.add_development_dependency(%q<cucumber>, [">= 0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.8.4"])
@@ -104,13 +107,13 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<prawn>, ["= 0.8.4"])
       s.add_development_dependency(%q<httpthumbnailer>, ["~> 1.2.0"])
     else
-      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.2.0"])
+      s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.2.2"])
       s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.2.0"])
       s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
       s.add_dependency(%q<mime-types>, ["~> 1.17"])
       s.add_dependency(%q<sdl4r>, ["~> 0.9"])
       s.add_dependency(%q<msgpack>, ["~> 0.5"])
-      s.add_dependency(%q<httpclient>, [">= 2.3"])
+      s.add_dependency(%q<faraday>, [">= 0.8"])
       s.add_dependency(%q<rspec>, ["~> 2.13"])
       s.add_dependency(%q<cucumber>, [">= 0"])
       s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
@@ -120,13 +123,13 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<httpthumbnailer>, ["~> 1.2.0"])
     end
   else
-    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.2.0"])
+    s.add_dependency(%q<unicorn-cuba-base>, ["~> 1.2.2"])
     s.add_dependency(%q<httpthumbnailer-client>, ["~> 1.2.0"])
     s.add_dependency(%q<aws-sdk>, ["~> 1.10"])
     s.add_dependency(%q<mime-types>, ["~> 1.17"])
     s.add_dependency(%q<sdl4r>, ["~> 0.9"])
     s.add_dependency(%q<msgpack>, ["~> 0.5"])
-    s.add_dependency(%q<httpclient>, [">= 2.3"])
+    s.add_dependency(%q<faraday>, [">= 0.8"])
     s.add_dependency(%q<rspec>, ["~> 2.13"])
     s.add_dependency(%q<cucumber>, [">= 0"])
     s.add_dependency(%q<jeweler>, ["~> 1.8.4"])
