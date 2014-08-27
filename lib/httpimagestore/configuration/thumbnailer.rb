@@ -31,7 +31,7 @@ module Configuration
 		end
 	end
 
-	class Thumbnail
+	class Thumbnail < HandlerStatement
 		include ClassLogging
 
 		extend Stats
@@ -143,7 +143,7 @@ module Configuration
 		end
 
 		def initialize(global, source_image_name, specs, use_multipart_api, matcher)
-			@global = global
+			super(global)
 			@source_image_name = source_image_name
 			@specs = specs
 			@use_multipart_api = use_multipart_api

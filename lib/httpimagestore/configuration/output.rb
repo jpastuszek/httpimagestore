@@ -1,6 +1,6 @@
 require 'httpimagestore/configuration/handler'
 require 'httpimagestore/ruby_string_template'
-require 'uri'
+require 'addressable/uri'
 require 'base64'
 
 module Configuration
@@ -64,13 +64,13 @@ module Configuration
 	Handler::register_node_parser OutputText
 
 	class OutputMultiBase
-		class OutputSpec
+		class OutputSpec < HandlerStatement
 			include ConditionalInclusion
 			attr_reader :image_name
 			attr_reader :path_spec
 
 			def initialize(global, image_name, scheme, host, port, path_spec, matcher)
-				@global = global
+				super(global)
 				@image_name = image_name
 				@scheme = scheme
 				@host = host
@@ -94,10 +94,11 @@ module Configuration
 			def store_url(request_state)
 				url = request_state.images[@image_name].store_url or raise StoreURLNotSetForImage.new(@image_name)
 				url = url.dup
+				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 
 				locals = {
 					image_name: @image_name,
-					path: URI.utf_decode(url.path),
+					path: store_path,
 					url: url.to_s
 				}
 				locals[:scheme] = url.scheme if url.scheme
@@ -109,15 +110,10 @@ module Configuration
 				# optional rewrites
 				url.scheme = request_state.render_template(@scheme) if @scheme
 				url.host = request_state.render_template(@host) if @host
-				url.port = request_state.render_template(@port).to_i if @port
-				url.path = URI.encode(rendered_path(request_state)).tap{|path| path.replace('/' + path) if path[0] != '/'} if @path_spec
+				(url.host ||= 'localhost'; url.port = request_state.render_template(@port).to_i) if @port
+				url.path = rendered_path(request_state).to_uri if @path_spec
 
-				url
-			end
-
-		private
-			def rendered_path(request_state)
-				Pathname.new(@global.paths[@path_spec].render(request_state)).cleanpath.to_s
+				url.normalize
 			end
 		end
 

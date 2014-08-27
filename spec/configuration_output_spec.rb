@@ -543,7 +543,7 @@ describe Configuration do
 					env.res.data.should == "file://localhost/abc/test.out\r\n"
 				end
 
-				it 'should allow rewriting port component' do
+				it 'should allow rewriting port component (defaults host to localhost)' do
 					subject = Configuration.read(<<-'EOF')
 					path  "out"	  "abc/test.out"
 
@@ -560,13 +560,13 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "file::21/abc/test.out\r\n"
+					env.res.data.should == "file://localhost:21/abc/test.out\r\n"
 				end
 
 				it 'should allow using variables for all supported rewrites' do
 					state = Configuration::RequestState.new('abc',
 						remote: 'example.com',
-						remote_port: 21,
+						remote_port: 421,
 						proto: 'ftp'
 					)
 					subject = Configuration.read(<<-'EOF')
@@ -586,7 +586,7 @@ describe Configuration do
 
 					env.instance_eval &state.output_callback
 					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "ftp://example.com:21/hello/abc/world/test-xyz.out\r\n"
+					env.res.data.should == "ftp://example.com:421/hello/abc/world/test-xyz.out\r\n"
 				end
 			end
 

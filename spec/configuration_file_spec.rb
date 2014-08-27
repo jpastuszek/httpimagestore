@@ -52,7 +52,7 @@ describe Configuration do
 		it 'should have source path and url' do
 			subject.handlers[0].sources[0].realize(state)
 
-			state.images['original'].source_path.should == "test.in"
+			state.images['original'].source_path.to_s.should == "test.in"
 			state.images['original'].source_url.to_s.should == "file:/test.in"
 		end
 
@@ -75,7 +75,7 @@ describe Configuration do
 
 			it 'should provide image name to be used as #{image_name}' do
 				subject.handlers[0].sources[0].realize(state)
-				state.images['test-image-name'].source_path.should == 'test-image-name.jpg'
+				state.images['test-image-name'].source_path.to_s.should == 'test-image-name.jpg'
 				state.images['test-image-name'].data.should == 'hello world'
 			end
 		end

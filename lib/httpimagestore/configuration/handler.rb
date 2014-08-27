@@ -212,13 +212,29 @@ module Configuration
 		end
 	end
 
-	class SourceStoreBase
+	class HandlerStatement
+		def initialize(global)
+			@global = global
+			@locals = {}
+		end
+
+		def local(name, value)
+			@locals[name] = value
+		end
+
+		# TODO: should this be part of request_state? (including @global tracking?)
+		def rendered_path(request_state)
+			path = @global.paths[@path_spec]
+			path.render(request_state.with_locals(@locals))
+		end
+	end
+
+	class SourceStoreBase < HandlerStatement
 		include ConditionalInclusion
 
 		def initialize(global, image_name, matcher)
-			@global = global
+			super(global)
 			@image_name = image_name
-			@locals = {}
 
 			inclusion_matcher matcher
 			local :imagename, @image_name # deprecated
@@ -228,15 +244,6 @@ module Configuration
 		private
 
 		attr_accessor :image_name
-
-		def local(name, value)
-			@locals[name] = value
-		end
-
-		def rendered_path(request_state)
-			path = @global.paths[@path_spec]
-			Pathname.new(path.render(request_state.with_locals(@locals))).cleanpath.to_s
-		end
 
 		def put_sourced_named_image(request_state)
 			rendered_path = rendered_path(request_state)

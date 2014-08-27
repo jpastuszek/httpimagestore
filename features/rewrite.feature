@@ -52,7 +52,7 @@ Feature: Rewrite of the output path and URL
 
 		post "rewrite" "demo" {
 			store_file "input" root="/tmp" path="input_digest"
-			output_store_url "input" scheme="ftp" host="example.com" port="21" path="demo"
+			output_store_url "input" scheme="ftp" host="example.com" port="421" path="demo"
 		}
 		"""
 
@@ -109,7 +109,7 @@ Feature: Rewrite of the output path and URL
 		When I do POST request http://localhost:3000/rewrite/url/port?number=41
 		And response body will be CRLF ended lines
 		"""
-		file::41/b0fe25319ba5909a
+		file://localhost:41/b0fe25319ba5909a
 		"""
 
 	Scenario: Store URL rewriting demo
@@ -117,6 +117,6 @@ Feature: Rewrite of the output path and URL
 		When I do POST request http://localhost:3000/rewrite/demo
 		And response body will be CRLF ended lines
 		"""
-		ftp://example.com:21/image/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
+		ftp://example.com:421/image/b0fe25319ba5909aa97fded546847a96d7fdf26e18715b0cfccfcbee52dce57e.jpg
 		"""
 

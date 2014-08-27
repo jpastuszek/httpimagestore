@@ -3,7 +3,7 @@ require 'httpimagestore/ruby_string_template'
 require 'httpimagestore/configuration/handler'
 
 module Configuration
-	class Identify
+	class Identify < HandlerStatement
 		include ClassLogging
 
 		extend Stats
@@ -28,7 +28,7 @@ module Configuration
 		end
 
 		def initialize(global, image_name, matcher = nil)
-			@global = global
+			super(global)
 			@image_name = image_name
 			inclusion_matcher matcher if matcher
 		end

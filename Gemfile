@@ -9,6 +9,7 @@ gem 'aws-sdk', '~> 1.10'
 gem 'mime-types', '~> 1.17'
 gem 'sdl4r', '~> 0.9'
 gem 'msgpack', '~> 0.5'
+gem 'addressable', '~> 2.3'
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

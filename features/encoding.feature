@@ -23,7 +23,15 @@ Feature: Encoded UTF-8 URI support
 		When I do POST request http://localhost:3000/encoding/encoded/triple%20kro%25u0301l.png
 		And response body will be CRLF ended lines
 		"""
-		/triple%20kro%CC%81l.png
+		/triple%20kr%C3%B3l.png
+		"""
+
+	Scenario: URL encoded variable decoding and URL encoding with ?
+		Given test.png file content as request body
+		When I do POST request http://localhost:3000/encoding/encoded/hello%3Fworld.png
+		And response body will be CRLF ended lines
+		"""
+		/hello%3Fworld.png
 		"""
 
 	Scenario: URL encoded variable decoding
@@ -32,4 +40,12 @@ Feature: Encoded UTF-8 URI support
 		And response body will be CRLF ended lines
 		"""
 		triple król.png
+		"""
+
+	Scenario: URL path normalization with ?
+		Given test.png file content as request body
+		When I do POST request http://localhost:3000/encoding/decoded/hello%3Fworld.png
+		And response body will be CRLF ended lines
+		"""
+		hello?world.png
 		"""

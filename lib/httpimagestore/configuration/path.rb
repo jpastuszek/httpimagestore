@@ -1,5 +1,6 @@
 require 'httpimagestore/ruby_string_template'
 require 'digest/sha2'
+require 'addressable/uri'
 
 module Configuration
 	class PathNotDefinedError < ConfigurationError
@@ -21,6 +22,14 @@ module Configuration
 	end
 
 	class Path < RubyStringTemplate
+		class RenderedPath < String
+			def to_uri
+				uri_path = self.gsub(/^\/?([a-zA-Z])[\|:][\\\/]/){"/#{$1.downcase}:/"} # fix windows backslash
+				uri_path = Addressable::URI::SLASH + uri_path if uri_path[0] != Addressable::URI::SLASH # make absolute
+				Addressable::URI.new(path: uri_path).normalize
+			end
+		end
+
 		def self.match(node)
 			node.name == 'path'
 		end
@@ -49,6 +58,10 @@ module Configuration
 					raise PathRenderingError.new(path_name, template, error.message)
 				end or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)
 			end
+		end
+
+		def render(locals = {})
+			RenderedPath.new(super)
 		end
 	end
 	Global.register_node_parser Path
