@@ -42,6 +42,20 @@ describe RubyStringTemplate do
 				subject.render(hello: 'hello', test: 123)
 			}.to raise_error RubyStringTemplate::NoValueForTemplatePlaceholderError, %q{no value for '#{world}' in template '>#{hello}-#{world}#{test}<'}
 		end
+
+		it 'should allow using custom missing value resolver' do
+			template = subject
+			expect {
+				template.with_missing_resolver do |locals, key|
+					fail "missing key: #{key}"
+				end
+				.render(hello: 'hello', test: 123)
+			}.to raise_error RuntimeError, "missing key: world"
+
+			expect {
+				template.render(hello: 'hello', test: 123)
+			}.to raise_error RubyStringTemplate::NoValueForTemplatePlaceholderError, %q{no value for '#{world}' in template '>#{hello}-#{world}#{test}<'}
+		end
 	end
 end
 

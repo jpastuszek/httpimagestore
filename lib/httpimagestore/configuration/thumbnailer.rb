@@ -56,24 +56,19 @@ module Configuration
 		end
 
 		class ThumbnailSpec < HandlerStatement
-			class Spec < RubyStringTemplate
-				def initialize(image_name, sepc_name, template)
-					super(template) do |locals, name|
-						locals[name] or raise NoValueForSpecTemplatePlaceholerError.new(image_name, sepc_name, name, template)
-					end
-				end
-			end
-
 			include ImageName
 			include ConditionalInclusion
 
 			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
 				super(nil, image_name, matcher)
-				@method = Spec.new(image_name, 'method', method)
-				@width = Spec.new(image_name, 'width', width)
-				@height = Spec.new(image_name, 'height', height)
-				@format = Spec.new(image_name, 'format', format)
-				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
+				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'method', key, method)}
+				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'width', key, width)}
+				@height = height.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'height', key, height)}
+				@format = format.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'format', key, format)}
+
+				@options = options.merge(options) do |option, old, template|
+					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholerError.new(image_name, option, field, template)}
+				end
 			end
 
 			def render(locals = {})
