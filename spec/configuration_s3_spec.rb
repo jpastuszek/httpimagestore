@@ -218,7 +218,7 @@ else
 				it 'should keep private source URL' do
 					subject.handlers[0].sources[0].realize(state)
 
-					state.images['original'].source_url.should be_a URI::HTTPS
+					state.images['original'].source_url.should be_a Addressable::URI
 					state.images['original'].source_url.to_s.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg?' + ENV['AWS_ACCESS_KEY_ID']
 				end
 
@@ -232,7 +232,7 @@ else
 					EOF
 					subject.handlers[0].sources[0].realize(state)
 
-					state.images['original'].source_url.should be_a URI::HTTPS
+					state.images['original'].source_url.should be_a Addressable::URI
 					state.images['original'].source_url.to_s.should == 'https://s3-eu-west-1.amazonaws.com/test/ghost.jpg'
 				end
 

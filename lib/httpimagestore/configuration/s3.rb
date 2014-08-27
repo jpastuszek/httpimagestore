@@ -1,6 +1,7 @@
 require 'aws-sdk'
 require 'digest/sha2'
 require 'msgpack'
+require 'addressable/uri'
 require 'httpimagestore/aws_sdk_regions_hack'
 require 'httpimagestore/configuration/path'
 require 'httpimagestore/configuration/handler'
@@ -177,7 +178,7 @@ module Configuration
 			end
 
 			def private_url
-				s3_object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20) # expire in 20 years
+				s3_object.url_for(:read, expires: 60 * 60 * 24 * 365 * 20)
 			end
 
 			def public_url
@@ -237,7 +238,7 @@ module Configuration
 			end
 
 			def private_url
-				url = @cache_file.header['private_url'] and return URI(url)
+				url = @cache_file.header['private_url'] and return Addressable::URI.parse(url)
 				dirty! :private_url
 				url = super
 				@cache_file.header['private_url'] = url.to_s
@@ -245,7 +246,7 @@ module Configuration
 			end
 
 			def public_url
-				url = @cache_file.header['public_url'] and return URI(url)
+				url = @cache_file.header['public_url'] and return Addressable::URI.parse(url)
 				dirty! :public_url
 				url = super
 				@cache_file.header['public_url'] = url.to_s
