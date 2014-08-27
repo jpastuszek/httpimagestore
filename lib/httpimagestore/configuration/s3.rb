@@ -242,7 +242,7 @@ module Configuration
 				dirty! :private_url
 				url = super
 				@cache_file.header['private_url'] = url.to_s
-				url
+				Addressable::URI.parse(url)
 			end
 
 			def public_url
@@ -250,7 +250,7 @@ module Configuration
 				dirty! :public_url
 				url = super
 				@cache_file.header['public_url'] = url.to_s
-				url
+				Addressable::URI.parse(url)
 			end
 
 			def content_type
