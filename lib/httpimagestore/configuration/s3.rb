@@ -332,7 +332,7 @@ module Configuration
 				log.warn "not using S3 object cache for image '#{image_name}'", error
 			end
 
-			local :bucket, @bucket
+			config_local :bucket, @bucket
 		end
 
 		def client

@@ -65,30 +65,22 @@ module Configuration
 
 	class OutputMultiBase
 		class OutputSpec < HandlerStatement
+			include ImageName
+			include PathSpec
 			include ConditionalInclusion
-			attr_reader :image_name
-			attr_reader :path_spec
 
 			def initialize(global, image_name, scheme, host, port, path_spec, matcher)
-				super(global)
-				@image_name = image_name
+				super(global, image_name, path_spec, matcher)
 				@scheme = scheme
 				@host = host
 				@port = port
-				@path_spec = path_spec
-				inclusion_matcher matcher
 			end
 
 			def store_path(request_state)
 				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 				return store_path unless @path_spec
 
-				locals = {
-					image_name: @image_name,
-					path: store_path
-				}
-
-				request_state.with_locals(locals).render_template(path_template(@path_spec))
+				request_state.with_locals(config_locals, path: store_path).render_template(path_template)
 			end
 
 			def store_url(request_state)
@@ -96,22 +88,21 @@ module Configuration
 				url = url.dup
 				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 
-				locals = {
-					image_name: @image_name,
+				request_locals = {
 					path: store_path,
 					url: url.to_s
 				}
-				locals[:scheme] = url.scheme if url.scheme
-				locals[:host] = url.host if url.host
-				locals[:port] = url.port if url.port
+				request_locals[:scheme] = url.scheme if url.scheme
+				request_locals[:host] = url.host if url.host
+				request_locals[:port] = url.port if url.port
 
-				request_state = request_state.with_locals(locals)
+				request_state = request_state.with_locals(config_locals, request_locals)
 
 				# optional rewrites
 				url.scheme = request_state.render_template(@scheme) if @scheme
 				url.host = request_state.render_template(@host) if @host
 				(url.host ||= 'localhost'; url.port = request_state.render_template(@port).to_i) if @port
-				url.path = request_state.render_template(path_template(@path_spec)).to_uri if @path_spec
+				url.path = request_state.render_template(path_template).to_uri if @path_spec
 
 				url.normalize
 			end

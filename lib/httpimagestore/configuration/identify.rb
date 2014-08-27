@@ -12,8 +12,6 @@ module Configuration
 			:total_identify_requests_bytes
 		)
 
-		include ConditionalInclusion
-
 		def self.match(node)
 			node.name == 'identify'
 		end
@@ -27,10 +25,11 @@ module Configuration
 			configuration.processors << self.new(configuration.global, image_name, matcher)
 		end
 
+		include ImageName
+		include ConditionalInclusion
+
 		def initialize(global, image_name, matcher = nil)
-			super(global)
-			@image_name = image_name
-			inclusion_matcher matcher if matcher
+			super(global, image_name, matcher)
 		end
 
 		def realize(request_state)

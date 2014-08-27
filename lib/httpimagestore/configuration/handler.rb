@@ -85,7 +85,8 @@ module Configuration
 		attr_reader :memory_limit
 		attr_reader :headers
 
-		def with_locals(locals)
+		def with_locals(*locals)
+			locals = locals.reduce{|a, b| a.merge(b)}
 			log.debug "using additional local variables: #{locals}"
 			self.dup.merge!(locals)
 		end
@@ -199,32 +200,66 @@ module Configuration
 		end
 	end
 
-	module ConditionalInclusion
-		def inclusion_matcher(matcher)
-			(@matchers ||= []) << matcher if matcher
-		end
+	class HandlerStatement
+		module ImageName
+			attr_reader :image_name
 
-		def included?(request_state)
-			return true unless @matchers
-			@matchers.any? do |matcher|
-				matcher.included?(request_state)
+			def initialize(global, *args)
+				@image_name = args.pop
+
+				super(global, *args)
+
+				config_local :imagename, @image_name # deprecated
+				config_local :image_name, @image_name
 			end
 		end
 
-		def excluded?(request_state)
-			not included? request_state
-		end
-	end
+		module PathSpec
+			attr_reader :path_spec
 
-	class HandlerStatement
-		def initialize(global)
+			def initialize(global, *args)
+				@path_spec = args.pop
+				super(global, *args)
+			end
+
+			def path_template
+				@global.paths[@path_spec]
+			end
+		end
+
+		module ConditionalInclusion
+			def initialize(global, *args)
+				@matchers = []
+				matcher = args.pop
+				@matchers << matcher if matcher
+				super(global, *args)
+			end
+
+			def inclusion_matcher(matcher)
+				@matchers << matcher
+			end
+
+			def included?(request_state)
+				return true if @matchers.empty?
+				@matchers.any? do |matcher|
+					matcher.included?(request_state)
+				end
+			end
+
+			def excluded?(request_state)
+				not included? request_state
+			end
+		end
+
+		def initialize(global, *args)
 			@global = global
-			@locals = {}
+			@config_locals = {}
+			@module_args = args
 		end
 
-		attr_reader :locals
-		def local(name, value)
-			@locals[name] = value
+		attr_reader :config_locals
+		def config_local(name, value)
+			@config_locals[name] = value
 		end
 
 		def path_template(path_spec)
@@ -234,29 +269,18 @@ module Configuration
 
 
 	class SourceStoreBase < HandlerStatement
+		include ImageName
+		include PathSpec
 		include ConditionalInclusion
 
 		def initialize(global, image_name, matcher, path_spec)
-			super(global)
-			@image_name = image_name
-			@path_spec = path_spec
-
-			inclusion_matcher matcher
-			local :imagename, @image_name # deprecated
-			local :image_name, @image_name
+			super(global, image_name, path_spec, matcher)
 		end
 
 		private
 
-		attr_accessor :image_name
-		attr_accessor :path_spec
-
-		def path_template
-			super(@path_spec)
-		end
-
 		def put_sourced_named_image(request_state)
-			rendered_path = request_state.with_locals(locals).render_template(path_template)
+			rendered_path = request_state.with_locals(config_locals).render_template(path_template)
 
 			image = yield @image_name, rendered_path
 
@@ -266,7 +290,7 @@ module Configuration
 
 		def get_named_image_for_storage(request_state)
 			image = request_state.images[@image_name]
-			rendered_path = request_state.with_locals(locals).render_template(path_template)
+			rendered_path = request_state.with_locals(config_locals).render_template(path_template)
 			image.store_path = rendered_path
 
 			yield @image_name, image, rendered_path

@@ -55,7 +55,7 @@ module Configuration
 			attr_reader :remote_error
 		end
 
-		class ThumbnailSpec
+		class ThumbnailSpec < HandlerStatement
 			class Spec < RubyStringTemplate
 				def initialize(image_name, sepc_name, template)
 					super(template) do |locals, name|
@@ -64,25 +64,23 @@ module Configuration
 				end
 			end
 
+			include ImageName
 			include ConditionalInclusion
 
 			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
-				@image_name = image_name
+				super(nil, image_name, matcher)
 				@method = Spec.new(image_name, 'method', method)
 				@width = Spec.new(image_name, 'width', width)
 				@height = Spec.new(image_name, 'height', height)
 				@format = Spec.new(image_name, 'format', format)
 				@options = options.inject({}){|h, v| h[v.first] = Spec.new(image_name, v.first, v.last); h}
-				inclusion_matcher matcher if matcher
 			end
-
-			attr_reader :image_name
 
 			def render(locals = {})
 				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
 				nested_options = options['options'] ? Hash[options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}] : {}
 				{
-					@image_name =>
+					image_name =>
 						[
 							@method.render(locals),
 							@width.render(locals),
@@ -93,8 +91,6 @@ module Configuration
 				}
 			end
 		end
-
-		include ConditionalInclusion
 
 		def self.match(node)
 			node.name == 'thumbnail'
@@ -142,12 +138,13 @@ module Configuration
 			)
 		end
 
+		include ConditionalInclusion
+
 		def initialize(global, source_image_name, specs, use_multipart_api, matcher)
-			super(global)
+			super(global, matcher)
 			@source_image_name = source_image_name
 			@specs = specs
 			@use_multipart_api = use_multipart_api
-			inclusion_matcher matcher
 		end
 
 		def realize(request_state)
@@ -159,6 +156,10 @@ module Configuration
 			end.each do |spec|
 				rendered_specs.merge! spec.render(request_state)
 			end
+
+			# TODO: raise 400 error
+			rendered_specs.empty? and fail 'no specs to render images to!'
+
 			source_image = request_state.images[@source_image_name]
 
 			thumbnails = {}
