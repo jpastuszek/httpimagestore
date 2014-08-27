@@ -88,7 +88,7 @@ module Configuration
 					path: store_path
 				}
 
-				rendered_path(request_state.with_locals(locals))
+				request_state.with_locals(locals).render_template(path_template(@path_spec))
 			end
 
 			def store_url(request_state)
@@ -111,7 +111,7 @@ module Configuration
 				url.scheme = request_state.render_template(@scheme) if @scheme
 				url.host = request_state.render_template(@host) if @host
 				(url.host ||= 'localhost'; url.port = request_state.render_template(@port).to_i) if @port
-				url.path = rendered_path(request_state).to_uri if @path_spec
+				url.path = request_state.render_template(path_template(@path_spec)).to_uri if @path_spec
 
 				url.normalize
 			end

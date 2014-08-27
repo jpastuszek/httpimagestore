@@ -99,7 +99,11 @@ module Configuration
 		end
 
 		def render_template(template)
-			RubyStringTemplate.new(template).render(self)
+			if template.is_a? RubyStringTemplate
+				template.render(self)
+			else
+				RubyStringTemplate.new(template).render(self)
+			end
 		end
 
 		def fetch_base_variable(name, base_name)
@@ -218,23 +222,24 @@ module Configuration
 			@locals = {}
 		end
 
+		attr_reader :locals
 		def local(name, value)
 			@locals[name] = value
 		end
 
-		# TODO: should this be part of request_state? (including @global tracking?)
-		def rendered_path(request_state)
-			path = @global.paths[@path_spec]
-			path.render(request_state.with_locals(@locals))
+		def path_template(path_spec)
+			@global.paths[path_spec]
 		end
 	end
+
 
 	class SourceStoreBase < HandlerStatement
 		include ConditionalInclusion
 
-		def initialize(global, image_name, matcher)
+		def initialize(global, image_name, matcher, path_spec)
 			super(global)
 			@image_name = image_name
+			@path_spec = path_spec
 
 			inclusion_matcher matcher
 			local :imagename, @image_name # deprecated
@@ -244,9 +249,14 @@ module Configuration
 		private
 
 		attr_accessor :image_name
+		attr_accessor :path_spec
+
+		def path_template
+			super(@path_spec)
+		end
 
 		def put_sourced_named_image(request_state)
-			rendered_path = rendered_path(request_state)
+			rendered_path = request_state.with_locals(locals).render_template(path_template)
 
 			image = yield @image_name, rendered_path
 
@@ -256,7 +266,7 @@ module Configuration
 
 		def get_named_image_for_storage(request_state)
 			image = request_state.images[@image_name]
-			rendered_path = rendered_path(request_state)
+			rendered_path = request_state.with_locals(locals).render_template(path_template)
 			image.store_path = rendered_path
 
 			yield @image_name, image, rendered_path

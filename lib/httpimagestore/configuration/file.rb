@@ -42,16 +42,15 @@ module Configuration
 		end
 
 		def initialize(global, image_name, matcher, root_dir, path_spec)
-			super global, image_name, matcher
+			super global, image_name, matcher, path_spec
 			@root_dir = Pathname.new(root_dir).cleanpath
-			@path_spec = path_spec
 		end
 
 		def storage_path(rendered_path)
 			path = Pathname.new(rendered_path)
 
 			storage_path = (@root_dir + path).cleanpath
-			storage_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(@image_name, path)
+			storage_path.to_s =~ /^#{@root_dir.to_s}/ or raise FileStorageOutsideOfRootDirError.new(image_name, path)
 
 			storage_path
 		end
@@ -63,7 +62,7 @@ module Configuration
 		end
 
 		def to_s
-			"FileSource[image_name: '#{@image_name}' root_dir: '#{@root_dir}' path_spec: '#{@path_spec}']"
+			"FileSource[image_name: '#{image_name}' root_dir: '#{@root_dir}' path_spec: '#{path_spec}']"
 		end
 	end
 

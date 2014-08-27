@@ -314,9 +314,8 @@ module Configuration
 		end
 
 		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control, prefix, cache_root)
-			super global, image_name, matcher
+			super global, image_name, matcher, path_spec
 			@bucket = bucket
-			@path_spec = path_spec
 			@public_access = public_access
 			@cache_control = cache_control
 			@prefix = prefix
@@ -406,7 +405,7 @@ module Configuration
 		end
 
 		def to_s
-			"S3Source[image_name: '#{@image_name}' bucket: '#{@bucket}' prefix: '#{@prefix}' path_spec: '#{@path_spec}']"
+			"S3Source[image_name: '#{image_name}' bucket: '#{@bucket}' prefix: '#{@prefix}' path_spec: '#{path_spec}']"
 		end
 	end
 	Handler::register_node_parser S3Source
