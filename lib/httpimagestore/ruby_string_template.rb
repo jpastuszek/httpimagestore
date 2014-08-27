@@ -27,5 +27,14 @@ class RubyStringTemplate
 
 		template
 	end
+
+	def to_template
+		self
+	end
 end
 
+class String
+	def to_template
+		RubyStringTemplate.new(self)
+	end
+end

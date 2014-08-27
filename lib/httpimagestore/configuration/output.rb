@@ -71,16 +71,16 @@ module Configuration
 
 			def initialize(global, image_name, scheme, host, port, path_spec, matcher)
 				super(global, image_name, path_spec, matcher)
-				@scheme = scheme
-				@host = host
-				@port = port
+				@scheme = scheme && scheme.to_template
+				@host = host && host.to_template
+				@port = port && port.to_template
 			end
 
 			def store_path(request_state)
 				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 				return store_path unless @path_spec
 
-				request_state.with_locals(config_locals, path: store_path).render_template(path_template)
+				path_template.render(request_state.with_locals(config_locals, path: store_path))
 			end
 
 			def store_url(request_state)
@@ -99,10 +99,10 @@ module Configuration
 				request_state = request_state.with_locals(config_locals, request_locals)
 
 				# optional rewrites
-				url.scheme = request_state.render_template(@scheme) if @scheme
-				url.host = request_state.render_template(@host) if @host
-				(url.host ||= 'localhost'; url.port = request_state.render_template(@port).to_i) if @port
-				url.path = request_state.render_template(path_template).to_uri if @path_spec
+				url.scheme = @scheme.render(request_state) if @scheme
+				url.host = @host.render(request_state) if @host
+				(url.host ||= 'localhost'; url.port = @port.render(request_state).to_i) if @port
+				url.path = path_template.render(request_state).to_uri if @path_spec
 
 				url.normalize
 			end

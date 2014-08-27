@@ -99,14 +99,6 @@ module Configuration
 			@output_callback or fail 'no output callback'
 		end
 
-		def render_template(template)
-			if template.is_a? RubyStringTemplate
-				template.render(self)
-			else
-				RubyStringTemplate.new(template).render(self)
-			end
-		end
-
 		def fetch_base_variable(name, base_name)
 			fetch(base_name, nil) or generate_meta_variable(base_name) or raise NoVariableToGenerateMetaVariableError.new(base_name, name)
 		end
@@ -267,7 +259,6 @@ module Configuration
 		end
 	end
 
-
 	class SourceStoreBase < HandlerStatement
 		include ImageName
 		include PathSpec
@@ -280,7 +271,7 @@ module Configuration
 		private
 
 		def put_sourced_named_image(request_state)
-			rendered_path = request_state.with_locals(config_locals).render_template(path_template)
+			rendered_path = path_template.render(request_state.with_locals(config_locals))
 
 			image = yield @image_name, rendered_path
 
@@ -290,7 +281,7 @@ module Configuration
 
 		def get_named_image_for_storage(request_state)
 			image = request_state.images[@image_name]
-			rendered_path = request_state.with_locals(config_locals).render_template(path_template)
+			rendered_path = path_template.render(request_state.with_locals(config_locals))
 			image.store_path = rendered_path
 
 			yield @image_name, image, rendered_path
