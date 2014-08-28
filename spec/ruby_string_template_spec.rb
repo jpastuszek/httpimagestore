@@ -18,6 +18,7 @@ describe RubyStringTemplate do
 
 	it 'should not process nested placeholders' do
 		subject.render(hello: '#{nested}', world: 'world', test: 123, nested: 'xxx').should == '>#{nested}-world123<'
+		subject.render(hello: '#{world}', world: 'world', test: 123, nested: 'xxx').should == '>#{world}-world123<'
 	end
 
 	describe 'with custom resolver' do

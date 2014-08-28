@@ -23,32 +23,19 @@ class RubyStringTemplate < String
 	end
 
 	def render(locals = {})
-		template = self.to_s
-		values = {}
-
-		# use gsub with block instead!
-		template.scan(/#\{[^\}]+\}/um).uniq.each do |placeholder|
+		self.gsub(/#\{[^\}]+\}/um) do |placeholder|
 			name = placeholder.match(/#\{([^\}]*)\}/u).captures.first.to_sym
 
-			value = nil
-			@resolvers.find{|resolver| value = resolver.call(locals, name)} or fail NoValueForTemplatePlaceholderError.new(name, self)
-			values[placeholder] = value.to_s
+			@resolvers.find do |resolver|
+				value = resolver.call(locals, name)
+				value and break value.to_s
+			end or fail NoValueForTemplatePlaceholderError.new(name, self)
 		end
-
-		values.each_pair do |placeholder, value|
-			template.gsub!(placeholder, value)
-		end
-
-		template
 	end
 
 	def to_template
 		self
 	end
-
-	#def inspect
-		#super + "[#{@resolvers}]"
-	#end
 
 	def add_missing_resolver(&resolver)
 		@resolvers << resolver
