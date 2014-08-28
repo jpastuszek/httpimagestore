@@ -16,7 +16,10 @@ class ErrorReporter < Controller
 			write_error status, error
 		end
 
-		on error Configuration::ZeroBodyLengthError do |error|
+		on error(
+			Configuration::ZeroBodyLengthError,
+			Configuration::NoSpecSelectedError
+		) do |error|
 			write_error 400, error
 		end
 

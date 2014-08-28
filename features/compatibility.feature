@@ -152,3 +152,14 @@ Feature: Image list based thumbnailing and S3 storage
 		Then response status will be 200
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 100x141
+
+	@compatibility
+	Scenario: Input file extension should be based on content detected mime type and not on provided path
+		Given test.jpg file content as request body
+		When I do PUT request http://localhost:3000/thumbnail/blah/test/image/test.gif
+		Then response status will be 400
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		no thumbnailing specs were selected, please use at least one of: small, tiny_png, bad
+		"""

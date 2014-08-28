@@ -31,6 +31,12 @@ module Configuration
 		end
 	end
 
+	class NoSpecSelectedError < RuntimeError
+		def initialize(specs)
+			super "no thumbnailing specs were selected, please use at least one of: #{specs.join(', ')}"
+		end
+	end
+
 	class Thumbnail < HandlerStatement
 		include ClassLogging
 
@@ -152,8 +158,7 @@ module Configuration
 				rendered_specs.merge! spec.render(request_state)
 			end
 
-			# TODO: raise 400 error
-			rendered_specs.empty? and fail 'no specs to render images to!'
+			rendered_specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
 
 			source_image = request_state.images[@source_image_name]
 
