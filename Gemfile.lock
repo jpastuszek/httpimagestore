@@ -124,4 +124,4 @@ DEPENDENCIES
   rdoc (~> 3.9)
   rspec (~> 2.13)
   sdl4r (~> 0.9)
-  unicorn-cuba-base (~> 1.2.2)
+  unicorn-cuba-base (~> 1.2)
