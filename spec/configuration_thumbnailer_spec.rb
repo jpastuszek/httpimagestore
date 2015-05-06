@@ -229,7 +229,7 @@ describe Configuration do
 					it 'should pass headers provided with request state' do
 						subject.handlers[0].processors[0].realize(state)
 
-						(support_dir + 'server.log').read.should include "xid=\"#{xid}\""
+						(support_dir + 'server.log').read.should include "\"xid\":\"#{xid}\""
 					end
 				end
 
@@ -401,7 +401,7 @@ describe Configuration do
 						state.images.keys.should include 'original'
 						state.images.keys.should include 'small'
 
-						(support_dir + 'server.log').read.should include "xid=\"#{xid}\""
+						(support_dir + 'server.log').read.should include "\"xid\":\"#{xid}\""
 					end
 				end
 

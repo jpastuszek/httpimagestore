@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
 ruby '1.9.3'
 
-gem 'unicorn-cuba-base', '~> 1.2'
+gem 'unicorn-cuba-base', '~> 1.4.1'
 #gem 'unicorn-cuba-base', path: '../unicorn-cuba-base'
 gem 'httpthumbnailer-client', '~> 1.2.0'
 #gem 'httpthumbnailer-client', path: '../httpthumbnailer-client'
@@ -17,7 +17,7 @@ group :development do
   gem 'faraday', '>= 0.8'
   gem 'rspec', '~> 2.13'
   gem 'cucumber', '>= 0'
-  gem 'jeweler', '~> 1.8.4'
+  gem "jeweler", "~> 1.8", ">= 1.8.8"
   gem 'rdoc', '~> 3.9'
   gem 'daemon', '~> 1'
   gem 'prawn', '= 0.8.4'

@@ -27,8 +27,8 @@ Feature: Forwarding of transaction ID header to thumbnailer
 		And XID header set to 123
 		When I do POST request http://localhost:3000/identify
 		Then response status will be 200
-		And httpimagestore log will contain xid="123"
-		And httpthumbnailer log will contain xid="123"
+		And httpimagestore log will contain "xid":"123"
+		And httpthumbnailer log will contain "xid":"123"
 
 	@xid-forwarding
 	Scenario: Should forward XID with single thumbnail requests
@@ -36,8 +36,8 @@ Feature: Forwarding of transaction ID header to thumbnailer
 		And XID header set to 123
 		When I do POST request http://localhost:3000/single
 		Then response status will be 200
-		And httpimagestore log will contain xid="123"
-		And httpthumbnailer log will contain xid="123"
+		And httpimagestore log will contain "xid":"123"
+		And httpthumbnailer log will contain "xid":"123"
 
 	@xid-forwarding
 	Scenario: Should forward XID with multi thumbnail requests
@@ -45,5 +45,5 @@ Feature: Forwarding of transaction ID header to thumbnailer
 		And XID header set to 123
 		When I do POST request http://localhost:3000/multi
 		Then response status will be 200
-		And httpimagestore log will contain xid="123"
-		And httpthumbnailer log will contain xid="123"
+		And httpimagestore log will contain "xid":"123"
+		And httpthumbnailer log will contain "xid":"123"

@@ -58,7 +58,7 @@ describe Configuration do
 				subject.handlers[0].processors[0].realize(state)
 				state.images['input'].mime_type.should == 'image/jpeg'
 
-				(support_dir + 'server.log').read.should include "xid=\"#{xid}\""
+				(support_dir + 'server.log').read.should include "\"xid\":\"#{xid}\""
 			end
 		end
 	end
