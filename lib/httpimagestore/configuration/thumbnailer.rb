@@ -65,7 +65,7 @@ module Configuration
 			include ImageName
 			include ConditionalInclusion
 
-			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
+			def initialize(image_name, method, width, height, format, options = {}, edits = [], matcher = nil)
 				super(nil, image_name, matcher)
 				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
 				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
@@ -75,21 +75,36 @@ module Configuration
 				@options = options.merge(options) do |option, old, template|
 					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholderError.new(image_name, option, field, template)}
 				end
+
+				@edits = edits.map.with_index do |edit, edit_no|
+					edit.map.with_index do |arg, arg_no|
+						arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+					end
+				end
 			end
 
 			def render(locals = {})
+				rendered = Struct.new(:name, :spec, :edits).new
+
 				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
+
+				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
 				nested_options = options['options'] ? Hash[options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}] : {}
-				{
-					image_name =>
-						[
-							@method.render(locals),
-							@width.render(locals),
-							@height.render(locals),
-							@format.render(locals),
-							nested_options.merge(options)
-						]
-				}
+
+				rendered.name = image_name
+				rendered.spec = [
+					@method.render(locals),
+					@width.render(locals),
+					@height.render(locals),
+					@format.render(locals),
+					nested_options.merge(options)
+				]
+				rendered.edits = @edits.map do |edit|
+					edit.map do |arg|
+						arg.render(locals)
+					end
+				end
+				rendered
 			end
 		end
 
@@ -151,11 +166,10 @@ module Configuration
 		def realize(request_state)
 			client = @global.thumbnailer or fail 'thumbnailer configuration'
 
-			rendered_specs = {}
-			@specs.select do |spec|
+			rendered_specs = @specs.select do |spec|
 				spec.included?(request_state)
-			end.each do |spec|
-				rendered_specs.merge! spec.render(request_state)
+			end.map do |spec|
+				spec.render(request_state)
 			end
 
 			rendered_specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
@@ -179,12 +193,16 @@ module Configuration
 
 				begin
 					thumbnails = client.with_headers(request_state.headers).thumbnail(source_image.data) do
-						rendered_specs.each_pair do |name, spec|
+						rendered_specs.each do |spec|
 							begin
-								thumbnail(*spec)
+								thumbnail(*spec.spec) do
+									spec.edits.each do |spec|
+										edit(*spec)
+									end
+								end
 							rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 								logger.warn 'got thumbnailer error while passing specs', error
-								raise ThumbnailingError.new(source_image_name, name, error)
+								raise ThumbnailingError.new(source_image_name, spec.name, error)
 							end
 						end
 					end
