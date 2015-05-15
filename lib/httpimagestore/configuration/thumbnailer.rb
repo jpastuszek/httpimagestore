@@ -78,7 +78,13 @@ module Configuration
 
 				@edits = edits.map.with_index do |edit, edit_no|
 					edit.map.with_index do |arg, arg_no|
-						arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+						if arg.kind_of? Hash
+							arg.merge(arg) do |option, old, template|
+								template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
+							end
+						else
+							arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+						end
 					end
 				end
 			end
@@ -91,6 +97,28 @@ module Configuration
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
 				nested_options = options['options'] ? Hash[options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}] : {}
 
+				# TODO: move to client as util? and test it there
+				edits_option =
+					if options.has_key?('edits')
+						options['edits'].split('!').map do |edit|
+							args = edit.split(',')
+							args, *edit_options = *args.slice_before{|a| a =~ /.+:.+/}.to_a
+							edit_options.flatten!
+
+							edit_opts = {}
+							edit_options.each do |option|
+								key, value = option.split(':', 2)
+								fail "missing option key or value in edit specification: #{spec}" unless key and value
+								edit_opts[key] = value
+							end
+
+							args << edit_opts unless edit_opts.empty?
+							args
+						end
+					else
+						[]
+					end
+
 				rendered.name = image_name
 				rendered.spec = [
 					@method.render(locals),
@@ -101,9 +129,15 @@ module Configuration
 				]
 				rendered.edits = @edits.map do |edit|
 					edit.map do |arg|
-						arg.render(locals)
+						if arg.kind_of? Hash
+							arg.merge(arg) do |option, old, template|
+								template.render(locals)
+							end
+						else
+							arg.render(locals)
+						end
 					end
-				end
+				end | edits_option
 				rendered
 			end
 		end

@@ -70,29 +70,40 @@ describe Configuration do
 				end
 
 				describe '#edits' do
-					context 'when provided as already parsed' do
+					context 'when edits are provided as already parsed' do
 						subject do
-							Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '30'], ['crop', '0.1', '0.1', '0.8', '0.8']]).render
+							Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]).render
 						end
 
 						it 'should provide list of edits to apply for to' do
-							subject.edits.should == [['rotate', '30'], ['crop', '0.1', '0.1', '0.8', '0.8']]
+							subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
 						end
 
 						context 'with arguments containing placeholders with existing locals' do
 							subject do
 								locals = {
 									angle: 90,
+									color: 'blue',
 									edit: 'fit',
 									width: 0.42,
 									height: 0.34
 								}
-								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '#{angle}'], ['#{edit}', '0.1', '0.1', '#{width}', '#{height}']]).render(locals)
+								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '#{angle}', 'background-color' => '#{color}'], ['#{edit}', '0.1', '0.1', '#{width}', '#{height}']]).render(locals)
 							end
 
 							it 'should provide list of edits to apply for to with placeholders filled' do
-								subject.edits.should == [['rotate', '90'], ['fit', '0.1', '0.1', '0.42', '0.34']]
+								subject.edits.should == [['rotate', '90', 'background-color' => 'blue'], ['fit', '0.1', '0.1', '0.42', '0.34']]
 							end
+						end
+					end
+
+					context 'when edits are provided unparsed as option edits' do
+						subject do
+							Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red', 'edits' => 'rotate,30,background-color:red!crop,0.1,0.1,0.8,0.8').render
+						end
+
+						it 'should provide list of edits to apply for to' do
+							subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
 						end
 					end
 				end

@@ -1,10 +1,10 @@
 source 'http://rubygems.org'
 ruby '1.9.3'
 
-gem 'unicorn-cuba-base', '~> 1.4.1'
+gem 'unicorn-cuba-base', '~> 1.5.0'
 #gem 'unicorn-cuba-base', path: '../unicorn-cuba-base'
-gem 'httpthumbnailer-client', '~> 1.2.0'
-#gem 'httpthumbnailer-client', path: '../httpthumbnailer-client'
+#gem 'httpthumbnailer-client', '~> 1.3.0'
+gem 'httpthumbnailer-client', path: '../httpthumbnailer-client'
 gem 'aws-sdk', '~> 1.10'
 gem 'mime-types', '~> 1.17'
 gem 'sdl4r', '~> 0.9'
@@ -21,7 +21,7 @@ group :development do
   gem 'rdoc', '~> 3.9'
   gem 'daemon', '~> 1'
   gem 'prawn', '= 0.8.4'
-  #gem 'httpthumbnailer', path: '../httpthumbnailer'
-  gem 'httpthumbnailer', '~> 1.2.0'
+  gem 'httpthumbnailer', path: '../httpthumbnailer'
+  #gem 'httpthumbnailer', '~> 1.2.0'
 end
 

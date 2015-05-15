@@ -46,6 +46,10 @@ class RubyStringTemplate < String
 		new_template.add_missing_resolver(&resolver)
 		new_template
 	end
+
+	def inspect
+		"T<#{to_s}>"
+	end
 end
 
 class String
