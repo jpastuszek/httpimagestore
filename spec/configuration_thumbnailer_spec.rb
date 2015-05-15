@@ -96,7 +96,7 @@ describe Configuration do
 			end
 
 			describe 'error handling' do
-				it 'should raise NoValueForSpecTemplatePlaceholerError on missing spec template value' do
+				it 'should raise NoValueForSpecTemplatePlaceholderError on missing spec template value' do
 					locals = {
 						width: 99,
 						height: 66,
@@ -105,10 +105,10 @@ describe Configuration do
 
 					expect {
 						Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}').render(locals)
-					}.to raise_error Configuration::NoValueForSpecTemplatePlaceholerError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'method' from template '#{operation}': no value for #{operation}}
+					}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'method' from template '#{operation}': no value for #{operation}}
 				end
 
-				it 'should raise NoValueForSpecTemplatePlaceholerError on missing option template value' do
+				it 'should raise NoValueForSpecTemplatePlaceholderError on missing option template value' do
 					locals = {
 						width: 99,
 						height: 66,
@@ -117,7 +117,7 @@ describe Configuration do
 
 					expect {
 						Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(locals)
-					}.to raise_error Configuration::NoValueForSpecTemplatePlaceholerError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'background-color' from template '#{bg}': no value for #{bg}}
+					}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'background-color' from template '#{bg}': no value for #{bg}}
 				end
 			end
 		end

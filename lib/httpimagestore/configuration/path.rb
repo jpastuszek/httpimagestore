@@ -15,7 +15,7 @@ module Configuration
 		end
 	end
 
-	class NoValueForPathTemplatePlaceholerError < PathRenderingError
+	class NoValueForPathTemplatePlaceholderError < PathRenderingError
 		def initialize(path_name, template, placeholder)
 			super path_name, template, "no value for '\#{#{placeholder}}'"
 		end
@@ -56,7 +56,7 @@ module Configuration
 					locals[name]
 				rescue ConfigurationError => error
 					raise PathRenderingError.new(path_name, template, error.message)
-				end or raise NoValueForPathTemplatePlaceholerError.new(path_name, template, name)
+				end or raise NoValueForPathTemplatePlaceholderError.new(path_name, template, name)
 			end
 		end
 

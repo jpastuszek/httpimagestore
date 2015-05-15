@@ -25,7 +25,7 @@ module Configuration
 	end
 	Global.register_node_parser Thumnailer
 
-	class NoValueForSpecTemplatePlaceholerError < ConfigurationError
+	class NoValueForSpecTemplatePlaceholderError < ConfigurationError
 		def initialize(image_name, spec_name, value_name, template)
 			super "cannot generate specification for thumbnail '#{image_name}': cannot generate value for attribute '#{spec_name}' from template '#{template}': no value for \#{#{value_name}}"
 		end
@@ -67,13 +67,13 @@ module Configuration
 
 			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
 				super(nil, image_name, matcher)
-				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'method', key, method)}
-				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'width', key, width)}
-				@height = height.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'height', key, height)}
-				@format = format.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholerError.new(image_name, 'format', key, format)}
+				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
+				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
+				@height = height.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'height', key, height)}
+				@format = format.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'format', key, format)}
 
 				@options = options.merge(options) do |option, old, template|
-					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholerError.new(image_name, option, field, template)}
+					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholderError.new(image_name, option, field, template)}
 				end
 			end
 

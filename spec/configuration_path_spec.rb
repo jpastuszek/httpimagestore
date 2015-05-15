@@ -52,7 +52,7 @@ describe Configuration do
 				}.to raise_error Configuration::PathNotDefinedError, "path 'blah' not defined"
 			end
 
-			it 'should raise NoValueForPathTemplatePlaceholerError if locals value is not found' do
+			it 'should raise NoValueForPathTemplatePlaceholderError if locals value is not found' do
 				subject = Configuration.read(<<-'EOF')
 				path {
 					"test"								"#{abc}#{xyz}"
@@ -61,7 +61,7 @@ describe Configuration do
 
 				expect {
 					subject.paths['test'].render
-				}.to raise_error Configuration::NoValueForPathTemplatePlaceholerError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'}
+				}.to raise_error Configuration::NoValueForPathTemplatePlaceholderError, %q{cannot generate path 'test' from template '#{abc}#{xyz}': no value for '#{abc}'}
 			end
 		end
 
