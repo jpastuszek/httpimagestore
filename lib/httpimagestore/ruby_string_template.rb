@@ -30,7 +30,7 @@ class RubyStringTemplate < String
 				value = resolver.call(locals, name)
 				value and break value.to_s
 			end or fail NoValueForTemplatePlaceholderError.new(name, self)
-		end
+		end.to_s
 	end
 
 	def to_template

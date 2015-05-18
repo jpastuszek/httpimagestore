@@ -56,122 +56,189 @@ describe Configuration do
 
 	describe Configuration::Thumbnail::ThumbnailSpec do
 		context 'when rendered' do
-			context 'new stuff' do
+			context 'without placeholders' do
 				subject do
-					Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red').render
+					Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', '100', '102', 'JPEG', 'background-color' => 'red').render
 				end
 
 				it '#name should provide name of the spec' do
 					subject.name.should == 'small'
 				end
 
-				it '#spec should provide array of arguments to thumbnail operation' do
-					subject.spec.should == ['pad', '100', '100', 'jpeg', {'background-color' => 'red'}]
-				end
-
-				describe '#edits' do
-					context 'when edits are provided as already parsed' do
-						subject do
-							Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]).render
-						end
-
-						it 'should provide list of edits to apply for to' do
-							subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
-						end
-
-						context 'with arguments containing placeholders with existing locals' do
-							subject do
-								locals = {
-									angle: 90,
-									color: 'blue',
-									edit: 'fit',
-									width: 0.42,
-									height: 0.34
-								}
-								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '#{angle}', 'background-color' => '#{color}'], ['#{edit}', '0.1', '0.1', '#{width}', '#{height}']]).render(locals)
-							end
-
-							it 'should provide list of edits to apply for to with placeholders filled' do
-								subject.edits.should == [['rotate', '90', 'background-color' => 'blue'], ['fit', '0.1', '0.1', '0.42', '0.34']]
-							end
-						end
+				describe '#spec' do
+					it 'should provide full thumbnailing spec with options' do
+						subject.spec.method.should == 'pad'
+						subject.spec.width.should == '100'
+						subject.spec.height.should == '102'
+						subject.spec.format.should == 'JPEG'
+						subject.spec.options.should == {'background-color' => 'red'}
 					end
 
-					context 'when edits are provided unparsed as option edits' do
-						subject do
-							Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red', 'edits' => 'rotate,30,background-color:red!crop,0.1,0.1,0.8,0.8').render
+					describe '#edits' do
+						context 'when edits are provided as already parsed' do
+							next pending
+							subject do
+								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]).render
+							end
+
+							it 'should provide list of edits to apply for to' do
+								subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
+							end
+
+							context 'with arguments containing placeholders with existing locals' do
+								subject do
+									locals = {
+										angle: 90,
+										color: 'blue',
+										edit: 'fit',
+										width: 0.42,
+										height: 0.34
+									}
+									Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '#{angle}', 'background-color' => '#{color}'], ['#{edit}', '0.1', '0.1', '#{width}', '#{height}']]).render(locals)
+								end
+
+								it 'should provide list of edits to apply for to with placeholders filled' do
+									subject.edits.should == [['rotate', '90', 'background-color' => 'blue'], ['fit', '0.1', '0.1', '0.42', '0.34']]
+								end
+							end
 						end
 
-						it 'should provide list of edits to apply for to' do
-							subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
+						context 'when edits are provided unparsed as option edits' do
+							subject do
+								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red', 'edits' => 'rotate,30,background-color:red!crop,0.1,0.1,0.8,0.8').render.spec
+							end
+
+							it 'should provide list of edits to apply' do
+								subject.edits.should have(2).edits
+
+								subject.edits[0].name.should == 'rotate'
+								subject.edits[0].args.should have(1).argument
+								subject.edits[0].args[0].should == '30'
+								subject.edits[0].options.should == {'background-color' => 'red'}
+
+								subject.edits[1].name.should == 'crop'
+								subject.edits[1].args.should have(4).argument
+								subject.edits[1].args.should == ['0.1', '0.1', '0.8', '0.8']
+								subject.edits[1].options.should == {}
+							end
 						end
 					end
 				end
 			end
 
-			describe 'should provide thumbnail spec array based on given locals' do
-				it 'where image name is hash key pointing to array where all values are string and options is hash' do
-					Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', 'background-color' => 'red').render.should == {
-						'small' =>
-							['pad', '100', '100', 'jpeg', {'background-color' => 'red'}]
-					}
-				end
-
-				describe 'that are templated' do
-					it 'with local values for operation, width, height and values of options' do
-						locals = {
+			context 'with placeholders to fill with locals' do
+				context 'for method, width, height and options values' do
+					subject do
+						Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(
 							operation: 'fit',
 							width: 99,
 							height: 66,
 							format: 'png',
 							bg: 'white'
-						}
-
-						Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(locals).should == {
-							'small' =>
-								['fit', '99', '66', 'png', {'background-color' => 'white'}]
-						}
+						)
 					end
 
-					it 'with nested options provided by options key in <key>:<value>[,<key>:<value>]* format but not overwriting predefined options' do
-						locals = {
-							operation: 'fit',
-							width: 99,
-							height: 66,
-							format: 'png',
-							opts: 'background-color:blue,quality:100'
-						}
-
-						Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'options' => '#{opts}', 'background-color' => 'red').render(locals).should == {
-							'small' =>
-								['fit', '99', '66', 'png', {'background-color' => 'red', 'quality' => '100'}]
-						}
-					end
-				end
-
-				describe 'error handling' do
-					it 'should raise NoValueForSpecTemplatePlaceholderError on missing spec template value' do
-						locals = {
-							width: 99,
-							height: 66,
-							format: 'png'
-						}
-
-						expect {
-							Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}').render(locals)
-						}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'method' from template '#{operation}': no value for #{operation}}
+					describe '#spec' do
+						it 'should provide thumbnailing spec with filled values' do
+							subject.spec.method.should == 'fit'
+							subject.spec.width.should == '99'
+							subject.spec.height.should == '66'
+							subject.spec.format.should == 'png'
+							subject.spec.options.should == {'background-color' => 'white'}
+						end
 					end
 
-					it 'should raise NoValueForSpecTemplatePlaceholderError on missing option template value' do
-						locals = {
-							width: 99,
-							height: 66,
-							format: 'png',
-						}
+					context 'and with options passed as options key via placeholder' do
+						subject do
+							Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'options' => '#{opts}').render(
+								operation: 'fit',
+								width: 99,
+								height: 66,
+								format: 'png',
+								opts: 'background-color:blue,quality:100'
+							)
+						end
 
-						expect {
-							Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(locals)
-						}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'background-color' from template '#{bg}': no value for #{bg}}
+						describe '#spec' do
+							it 'should provide thumbnailing spec with options taken from filled options key that will not replace already provided values' do
+								subject.spec.options.should == {'background-color' => 'blue', 'quality' => '100'}
+							end
+
+							context 'with existing key' do
+								subject do
+									Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'options' => '#{opts}', 'background-color' => 'red').render(
+										operation: 'fit',
+										width: 99,
+										height: 66,
+										format: 'png',
+										opts: 'background-color:blue,quality:100'
+									)
+								end
+								it 'should not replace existing value' do
+									subject.spec.options.should == {'background-color' => 'red', 'quality' => '100'}
+								end
+							end
+						end
+					end
+
+					context 'and with edits passed as options key via placeholder' do
+						describe '#spec' do
+							subject do
+								Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'edits' => '#{ed}', 'background-color' => 'red').render(
+									operation: 'fit',
+									width: 99,
+									height: 66,
+									format: 'png',
+									ed: 'rotate,30,background-color:red!crop,0.1,0.1,0.8,0.8'
+								).spec
+							end
+
+							describe '#edits' do
+								it 'should provide thumbnailing spec with edits taken from filled edits key' do
+									subject.edits.should have(2).edits
+
+									subject.edits[0].name.should == 'rotate'
+									subject.edits[0].args.should have(1).argument
+									subject.edits[0].args[0].should == '30'
+									subject.edits[0].options.should == {'background-color' => 'red'}
+
+									subject.edits[1].name.should == 'crop'
+									subject.edits[1].args.should have(4).argument
+									subject.edits[1].args.should == ['0.1', '0.1', '0.8', '0.8']
+									subject.edits[1].options.should == {}
+								end
+
+								context 'with existing key' do
+									pending
+								end
+							end
+						end
+					end
+
+					describe 'error handling' do
+						it 'should raise NoValueForSpecTemplatePlaceholderError on missing spec template value' do
+							locals = {
+								width: 99,
+								height: 66,
+								format: 'png'
+							}
+
+							expect {
+								Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}').render(locals)
+							}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'method' from template '#{operation}': no value for #{operation}}
+						end
+
+						it 'should raise NoValueForSpecTemplatePlaceholderError on missing option template value' do
+							locals = {
+								width: 99,
+								height: 66,
+								format: 'png',
+							}
+
+							expect {
+								Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', 'background-color' => '#{bg}').render(locals)
+							}.to raise_error Configuration::NoValueForSpecTemplatePlaceholderError, %q{cannot generate specification for thumbnail 'small': cannot generate value for attribute 'background-color' from template '#{bg}': no value for #{bg}}
+						end
 					end
 				end
 			end

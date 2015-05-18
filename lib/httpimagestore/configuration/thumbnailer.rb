@@ -65,7 +65,7 @@ module Configuration
 			include ImageName
 			include ConditionalInclusion
 
-			def initialize(image_name, method, width, height, format, options = {}, edits = [], matcher = nil)
+			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
 				super(nil, image_name, matcher)
 				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
 				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
@@ -76,69 +76,37 @@ module Configuration
 					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholderError.new(image_name, option, field, template)}
 				end
 
-				@edits = edits.map.with_index do |edit, edit_no|
-					edit.map.with_index do |arg, arg_no|
-						if arg.kind_of? Hash
-							arg.merge(arg) do |option, old, template|
-								template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
-							end
-						else
-							arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
-						end
-					end
-				end
+			#	@edits = edits.map.with_index do |edit, edit_no|
+			#		edit.map.with_index do |arg, arg_no|
+			#			if arg.kind_of? Hash
+			#				arg.merge(arg) do |option, old, template|
+			#					template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
+			#				end
+			#			else
+			#				arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+			#			end
+			#		end
+			#	end
 			end
 
 			def render(locals = {})
-				rendered = Struct.new(:name, :spec, :edits).new
-
 				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
 
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
-				nested_options = options['options'] ? Hash[options.delete('options').to_s.split(',').map{|pair| pair.split(':', 2)}] : {}
+				nested_options = options.has_key?('options') ? HTTPThumbnailerClient::ThumbnailingSpec.parse_options(options.delete('options')) : {}
 
-				# TODO: move to client as util? and test it there
-				edits_option =
-					if options.has_key?('edits')
-						options['edits'].split('!').map do |edit|
-							args = edit.split(',')
-							args, *edit_options = *args.slice_before{|a| a =~ /.+:.+/}.to_a
-							edit_options.flatten!
+				edits_option = options.has_key?('edits') ? options['edits'].split('!').map{|edit| HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)} : []
 
-							edit_opts = {}
-							edit_options.each do |option|
-								key, value = option.split(':', 2)
-								fail "missing option key or value in edit specification: #{spec}" unless key and value
-								edit_opts[key] = value
-							end
-
-							args << edit_opts unless edit_opts.empty?
-							args
-						end
-					else
-						[]
-					end
-
-				rendered.name = image_name
-				rendered.spec = [
+				spec = HTTPThumbnailerClient::ThumbnailingSpec.new(
 					@method.render(locals),
 					@width.render(locals),
 					@height.render(locals),
 					@format.render(locals),
-					nested_options.merge(options)
-				]
-				rendered.edits = @edits.map do |edit|
-					edit.map do |arg|
-						if arg.kind_of? Hash
-							arg.merge(arg) do |option, old, template|
-								template.render(locals)
-							end
-						else
-							arg.render(locals)
-						end
-					end
-				end | edits_option
-				rendered
+					nested_options.merge(options),
+					edits_option
+				)
+
+				Struct.new(:name, :spec).new(image_name, spec)
 			end
 		end
 
@@ -200,13 +168,14 @@ module Configuration
 		def realize(request_state)
 			client = @global.thumbnailer or fail 'thumbnailer configuration'
 
-			rendered_specs = @specs.select do |spec|
+			specs = @specs.select do |spec|
 				spec.included?(request_state)
-			end.map do |spec|
+			end
+			specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
+
+			rendered_specs = spec.map do |spec|
 				spec.render(request_state)
 			end
-
-			rendered_specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
 
 			source_image = request_state.images[@source_image_name]
 
@@ -227,11 +196,12 @@ module Configuration
 
 				begin
 					thumbnails = client.with_headers(request_state.headers).thumbnail(source_image.data) do
-						rendered_specs.each do |spec|
+						rendered_specs.each do |rendered_spec|
+							spec = rendered_spec.spec
 							begin
-								thumbnail(*spec.spec) do
+								thumbnail(spec.method, spec.width, spec.height, spec.format, spec.options) do
 									spec.edits.each do |spec|
-										edit(*spec)
+										edit(spec.name, spec.args, spec.options)
 									end
 								end
 							rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
@@ -250,7 +220,7 @@ module Configuration
 				input_height = thumbnails.input_height
 
 				# check each thumbnail for errors
-				thumbnails = Hash[rendered_specs.keys.zip(thumbnails)]
+				thumbnails = Hash[rendered_specs.map{|rendered_spec| rendered_spec.name}.zip(thumbnails)]
 				thumbnails.each do |name, thumbnail|
 					if thumbnail.kind_of? HTTPThumbnailerClient::HTTPThumbnailerClientError
 						error = thumbnail
@@ -268,7 +238,7 @@ module Configuration
 				log.info "thumbnailing '#{@source_image_name}' to '#{name}' with spec: #{rendered_spec}"
 
 				begin
-					thumbnail = client.with_headers(request_state.headers).thumbnail(source_image.data, *rendered_spec)
+					thumbnail = client.with_headers(request_state.headers).thumbnail(source_image.data, rendered_spec.method, rendered_spec.width, rendered_spec.height, rendered_spec.format, rendered_spec.options)
 					request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
 
 					input_mime_type = thumbnail.input_mime_type
