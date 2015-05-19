@@ -37,6 +37,20 @@ module Configuration
 		end
 	end
 
+	InvalidSpecError = Class.new RuntimeError
+
+	class InvalidOptionsSpecError < InvalidSpecError
+		def initialize(spec, cause)
+			super "thumbnailing options spec '#{spec}' format is invalid: #{cause}"
+		end
+	end
+
+	class InvalidEditsSpecError < InvalidSpecError
+		def initialize(spec, cause)
+			super "thumbnailing edits spec '#{spec}' format is invalid: #{cause}"
+		end
+	end
+
 	class Thumbnail < HandlerStatement
 		include ClassLogging
 
@@ -93,9 +107,27 @@ module Configuration
 				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
 
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
-				nested_options = options.has_key?('options') ? HTTPThumbnailerClient::ThumbnailingSpec.parse_options(options.delete('options')) : {}
+				nested_options = begin
+					opts = options.delete('options')
+					opts ? HTTPThumbnailerClient::ThumbnailingSpec.parse_options(opts) : {}
+				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+					raise InvalidOptionsSpecError.new(opts, error)
+				end
 
-				edits_option = options.has_key?('edits') ? options['edits'].split('!').map{|edit| HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)} : []
+				edits_option = (
+					 edits = options.delete('edits')
+					 if edits
+						 edits.split('!').map do |edit|
+							 begin
+								 HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)
+							 rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+								 raise InvalidEditsSpecError.new(edit, error)
+							 end
+						 end
+					 else
+						 []
+					 end
+				)
 
 				spec = HTTPThumbnailerClient::ThumbnailingSpec.new(
 					@method.render(locals),
@@ -173,7 +205,7 @@ module Configuration
 			end
 			specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
 
-			rendered_specs = spec.map do |spec|
+			rendered_specs = specs.map do |spec|
 				spec.render(request_state)
 			end
 
@@ -206,7 +238,7 @@ module Configuration
 								end
 							rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 								logger.warn 'got thumbnailer error while passing specs', error
-								raise ThumbnailingError.new(source_image_name, spec.name, error)
+								raise ThumbnailingError.new(source_image_name, rendered_spec.name, error)
 							end
 						end
 					end

@@ -142,14 +142,14 @@ Feature: Error handling
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing of 'input' into 'bad_opts' failed: missing option value for key 'foo=bar'
+		thumbnailing options spec 'foo=bar' format is invalid: missing option key value for key 'foo=bar'
 		"""
 		When I do PUT request http://localhost:3000/singlepart/small,bad_opts
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing of 'input' into 'bad_opts' failed: missing option value for key 'foo=bar'
+		thumbnailing options spec 'foo=bar' format is invalid: missing option key value for key 'foo=bar'
 		"""
 
 	@error-reporting @test

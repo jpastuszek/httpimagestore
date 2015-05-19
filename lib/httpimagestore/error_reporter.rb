@@ -18,7 +18,8 @@ class ErrorReporter < Controller
 
 		on error(
 			Configuration::ZeroBodyLengthError,
-			Configuration::NoSpecSelectedError
+			Configuration::NoSpecSelectedError,
+			Configuration::InvalidSpecError
 		) do |error|
 			write_error 400, error
 		end
