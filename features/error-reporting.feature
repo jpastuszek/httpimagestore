@@ -17,6 +17,7 @@ Feature: Error handling
 		put "multipart" ":name_list" {
 			thumbnail "input" {
 				"small"             operation="crop"        width=128       height=128                              if-image-name-on="#{name_list}"
+				"tiny"							operation="crop"        width=10				height=10																if-image-name-on="#{name_list}"
 				"bad"               operation="crop"        width=0         height=0                                if-image-name-on="#{name_list}"
 				"bad_dim"           operation="crop"        width="128x"    height=128                              if-image-name-on="#{name_list}"
 				"superlarge"        operation="crop"        width=16000     height=16000                            if-image-name-on="#{name_list}"
@@ -142,38 +143,38 @@ Feature: Error handling
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing options spec 'foo=bar' format is invalid: missing option key value for key 'foo=bar'
+		thumbnailing spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
 		"""
 		When I do PUT request http://localhost:3000/singlepart/small,bad_opts
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing options spec 'foo=bar' format is invalid: missing option key value for key 'foo=bar'
+		thumbnailing spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
 		"""
 
 	@error-reporting @test
 	Scenario: Bad dimension
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/multipart/bad_dim
+		When I do PUT request http://localhost:3000/multipart/bad_dim,small
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing of 'input' into 'bad_dim' failed: bad dimension value: 128x
+		thumbnailing spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
 		"""
 		When I do PUT request http://localhost:3000/singlepart/bad_dim
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing of 'input' into 'bad_dim' failed: bad dimension value: 128x
+		thumbnailing spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
 		"""
 
 	@error-reporting @413 @load
 	Scenario: Too large image - uploaded image too big to fit in memory limit
 		Given test-large.jpg file content as request body
-		When I do PUT request http://localhost:3000/multipart/large_png
+		When I do PUT request http://localhost:3000/multipart/large_png,small
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
@@ -191,14 +192,14 @@ Feature: Error handling
 	@error-reporting @413 @thumbnail
 	Scenario: Too large image - memory exhausted when thmbnailing
 		Given test.jpg file content as request body
-		When I do PUT request http://localhost:3000/multipart/superlarge
+		When I do PUT request http://localhost:3000/multipart/superlarge,small
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
 		thumbnailing of 'input' into 'superlarge' failed: image too large: cache resources exhausted
 		"""
-		When I do PUT request http://localhost:3000/singlepart/superlarge
+		When I do PUT request http://localhost:3000/singlepart/superlarge,small
 		Then response status will be 413
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
@@ -231,7 +232,7 @@ Feature: Error handling
 	@error-reporting
 	Scenario: Zero body length
 		Given test.empty file content as request body
-		When I do PUT request http://localhost:3000/multipart/small
+		When I do PUT request http://localhost:3000/multipart/small,tiny
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like

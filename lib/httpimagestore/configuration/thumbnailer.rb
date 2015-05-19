@@ -37,17 +37,21 @@ module Configuration
 		end
 	end
 
-	InvalidSpecError = Class.new RuntimeError
+	class InvalidSpecError < RuntimeError
+		def initialize(spec_name, cause)
+			super "thumbnailing spec '#{spec_name}' is invalid: #{cause}"
+		end
+	end
 
 	class InvalidOptionsSpecError < InvalidSpecError
-		def initialize(spec, cause)
-			super "thumbnailing options spec '#{spec}' format is invalid: #{cause}"
+		def initialize(spec_name, spec, cause)
+			super spec_name, "options spec '#{spec}' format is invalid: #{cause}"
 		end
 	end
 
 	class InvalidEditsSpecError < InvalidSpecError
-		def initialize(spec, cause)
-			super "thumbnailing edits spec '#{spec}' format is invalid: #{cause}"
+		def initialize(spec_name, spec, cause)
+			super spec_name, "edits spec '#{spec}' format is invalid: #{cause}"
 		end
 	end
 
@@ -108,35 +112,32 @@ module Configuration
 
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
 				nested_options = begin
-					opts = options.delete('options')
-					opts ? HTTPThumbnailerClient::ThumbnailingSpec.parse_options(opts) : {}
+					opts = options.delete('options') || ''
+					HTTPThumbnailerClient::ThumbnailingSpec.parse_options(HTTPThumbnailerClient::ThumbnailingSpec.split_args(opts))
 				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
-					raise InvalidOptionsSpecError.new(opts, error)
+					raise InvalidOptionsSpecError.new(image_name, opts, error)
 				end
 
-				edits_option = (
-					 edits = options.delete('edits')
-					 if edits
-						 edits.split('!').map do |edit|
-							 begin
-								 HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)
-							 rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
-								 raise InvalidEditsSpecError.new(edit, error)
-							 end
-						 end
-					 else
-						 []
-					 end
-				)
+				edits_option = HTTPThumbnailerClient::ThumbnailingSpec.split_edits(options.delete('edits') || '').map do |edit|
+					begin
+						HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)
+					rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+						raise InvalidEditsSpecError.new(image_name, edit, error)
+					end
+				end
 
-				spec = HTTPThumbnailerClient::ThumbnailingSpec.new(
-					@method.render(locals),
-					@width.render(locals),
-					@height.render(locals),
-					@format.render(locals),
-					nested_options.merge(options),
-					edits_option
-				)
+				spec = begin
+					HTTPThumbnailerClient::ThumbnailingSpec.new(
+						@method.render(locals),
+						@width.render(locals),
+						@height.render(locals),
+						@format.render(locals),
+						nested_options.merge(options),
+						edits_option
+					)
+				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+					raise InvalidSpecError.new(image_name, error)
+				end
 
 				Struct.new(:name, :spec).new(image_name, spec)
 			end
@@ -219,69 +220,32 @@ module Configuration
 			Thumbnail.stats.incr_total_thumbnail_requests
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
 
-			if @use_multipart_api
-				log.info "thumbnailing '#{@source_image_name}' to multiple specs: #{rendered_specs}"
 
-				# need to reference to local so they are available within thumbnail() block context
-				source_image_name = @source_image_name
-				logger = log
+			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs.map(&:name)}"
+			thumbnails = begin
+				client.with_headers(request_state.headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
+			rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
+				log.warn 'got thumbnailer error', error
+				raise ThumbnailingError.new(@source_image_name, rendered_specs.length == 1 ? rendered_specs.first.name : nil, error)
+			end
 
-				begin
-					thumbnails = client.with_headers(request_state.headers).thumbnail(source_image.data) do
-						rendered_specs.each do |rendered_spec|
-							spec = rendered_spec.spec
-							begin
-								thumbnail(spec.method, spec.width, spec.height, spec.format, spec.options) do
-									spec.edits.each do |spec|
-										edit(spec.name, spec.args, spec.options)
-									end
-								end
-							rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
-								logger.warn 'got thumbnailer error while passing specs', error
-								raise ThumbnailingError.new(source_image_name, rendered_spec.name, error)
-							end
-						end
-					end
-				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
-					logger.warn 'got thumbnailer error while sending input data', error
-					raise ThumbnailingError.new(source_image_name, nil, error)
-				end
+			input_mime_type = thumbnails.input_mime_type
+			input_width = thumbnails.input_width
+			input_height = thumbnails.input_height
 
-				input_mime_type = thumbnails.input_mime_type
-				input_width = thumbnails.input_width
-				input_height = thumbnails.input_height
-
-				# check each thumbnail for errors
-				thumbnails = Hash[rendered_specs.map{|rendered_spec| rendered_spec.name}.zip(thumbnails)]
-				thumbnails.each do |name, thumbnail|
-					if thumbnail.kind_of? HTTPThumbnailerClient::HTTPThumbnailerClientError
-						error = thumbnail
-						log.warn 'got single thumbnail error', error
-						raise ThumbnailingError.new(@source_image_name, name, error)
-					end
-				end
-
-				# borrow from memory limit - note that we might have already used too much memory
-				thumbnails.each do |name, thumbnail|
-					request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
-				end
-			else
-				name, rendered_spec = *rendered_specs.first
-				log.info "thumbnailing '#{@source_image_name}' to '#{name}' with spec: #{rendered_spec}"
-
-				begin
-					thumbnail = client.with_headers(request_state.headers).thumbnail(source_image.data, rendered_spec.method, rendered_spec.width, rendered_spec.height, rendered_spec.format, rendered_spec.options)
-					request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
-
-					input_mime_type = thumbnail.input_mime_type
-					input_width = thumbnail.input_width
-					input_height = thumbnail.input_height
-
-					thumbnails[name] = thumbnail
-				rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
-					log.warn 'got thumbnailer error', error
+			# check each thumbnail for errors
+			thumbnails = Hash[rendered_specs.map(&:name).zip(thumbnails)]
+			thumbnails.each do |name, thumbnail|
+				if thumbnail.kind_of? HTTPThumbnailerClient::HTTPThumbnailerClientError
+					error = thumbnail
+					log.warn 'got single thumbnail error', error
 					raise ThumbnailingError.new(@source_image_name, name, error)
 				end
+			end
+
+			# borrow from memory limit - note that we might have already used too much memory
+			thumbnails.each do |name, thumbnail|
+				request_state.memory_limit.borrow(thumbnail.data.bytesize, "thumbnail '#{name}'")
 			end
 
 			# copy input source path and url
