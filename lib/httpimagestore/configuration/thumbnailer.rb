@@ -31,6 +31,12 @@ module Configuration
 		end
 	end
 
+	class UnknownThumbnailingDirectiveError < ConfigurationError
+		def initialize(source_image_name, image_name, directive)
+			super "unknown directive '#{directive}' for thumbnail specification '#{image_name}' for image '#{source_image_name}'"
+		end
+	end
+
 	class NoSpecSelectedError < RuntimeError
 		def initialize(specs)
 			super "no thumbnailing specs were selected, please use at least one of: #{specs.join(', ')}"
@@ -83,7 +89,7 @@ module Configuration
 			include ImageName
 			include ConditionalInclusion
 
-			def initialize(image_name, method, width, height, format, options = {}, matcher = nil)
+			def initialize(image_name, method, width, height, format, options = {}, edits = [], matcher = nil)
 				super(nil, image_name, matcher)
 				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
 				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
@@ -94,17 +100,17 @@ module Configuration
 					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholderError.new(image_name, option, field, template)}
 				end
 
-			#	@edits = edits.map.with_index do |edit, edit_no|
-			#		edit.map.with_index do |arg, arg_no|
-			#			if arg.kind_of? Hash
-			#				arg.merge(arg) do |option, old, template|
-			#					template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
-			#				end
-			#			else
-			#				arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
-			#			end
-			#		end
-			#	end
+				@edits = edits.map.with_index do |edit, edit_no|
+					edit.map.with_index do |arg, arg_no|
+						if arg.kind_of? Hash
+							arg.merge(arg) do |option, old, template|
+								template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
+							end
+						else
+							arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+						end
+					end
+				end
 			end
 
 			def render(locals = {})
@@ -126,6 +132,23 @@ module Configuration
 					end
 				end
 
+				edits = @edits.map.with_index do |edit, edit_no|
+					edit.map.with_index do |arg, arg_no|
+						if arg.kind_of? Hash
+							arg.merge(arg) do |option, old, template|
+								template.render(locals)
+							end
+						else
+							arg.render(locals)
+						end
+					end
+				end
+				edits.map! do |edit|
+					name = edit.shift
+					options = edit.pop
+					HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.new(name, edit, options)
+				end
+
 				spec = begin
 					HTTPThumbnailerClient::ThumbnailingSpec.new(
 						@method.render(locals),
@@ -133,7 +156,7 @@ module Configuration
 						@height.render(locals),
 						@format.render(locals),
 						nested_options.merge(options),
-						edits_option
+						edits | edits_option
 					)
 				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
 					raise InvalidSpecError.new(image_name, error)
@@ -150,7 +173,7 @@ module Configuration
 		def self.parse(configuration, node)
 			use_multipart_api = node.values.length == 1 ? true : false
 
-			nodes = use_multipart_api ?  node.children : [node]
+			nodes = use_multipart_api ? node.children : [node]
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
@@ -167,6 +190,17 @@ module Configuration
 
 				matcher = InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
 
+				edits = []
+				# check for edits
+				node.children.each do |node|
+					case node.name
+					when 'edit'
+						edits << (node.values.dup << node.attributes.dup)
+					else
+						raise UnknownThumbnailingDirectiveError.new(source_image_name, image_name, node.name)
+					end
+				end
+
 				ThumbnailSpec.new(
 					image_name,
 					operation || 'fit',
@@ -174,6 +208,7 @@ module Configuration
 					height || 'input',
 					format || 'input',
 					remaining || {},
+					edits,
 					matcher
 				)
 			end
