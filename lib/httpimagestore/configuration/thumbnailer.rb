@@ -217,11 +217,10 @@ module Configuration
 			input_width = nil
 			input_height = nil
 
+			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs.map(&:name)}"
 			Thumbnail.stats.incr_total_thumbnail_requests
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
 
-
-			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs.map(&:name)}"
 			thumbnails = begin
 				client.with_headers(request_state.headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
 			rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
@@ -266,6 +265,7 @@ module Configuration
 			request_state.images.merge! thumbnails
 		end
 	end
+
 	Handler::register_node_parser Thumbnail
 	StatsReporter << Thumbnail.stats
 end

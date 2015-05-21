@@ -153,7 +153,7 @@ Feature: Error handling
 		thumbnailing spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
 		"""
 
-	@error-reporting @test
+	@error-reporting
 	Scenario: Bad dimension
 		Given test.jpg file content as request body
 		When I do PUT request http://localhost:3000/multipart/bad_dim,small

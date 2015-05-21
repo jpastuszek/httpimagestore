@@ -141,7 +141,7 @@ Feature: Image list based thumbnailing and S3 storage
 		And Encoded URL http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试.jpg will contain JPEG image of size 509x719
 		And Encoded URL http://@AWS_S3_TEST_BUCKET@.s3.amazonaws.com/test/图像/4006450256177f4a/测试-small.jpg will contain JPEG image of size 128x128
 
-	@compatibility @forward @test
+	@compatibility @forward
 	Scenario: Getting thumbanils requested with compatibility API from flexi bucket
 			Given test.jpg file content is stored in S3 under 1234567890123456.jpg
 		When I do GET request http://localhost:3000/thumbnail/1234567890123456/foobar-blah-square.jpg
