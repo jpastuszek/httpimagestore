@@ -123,7 +123,7 @@ module Configuration
 							io.write [header.length].pack('L') # header length
 							io.write header
 							io.write data
-						rescue => error
+						rescue
 							unlink # remove broken cache file
 							raise
 						end
@@ -301,10 +301,9 @@ module Configuration
 			public_access = false if public_access.nil?
 			prefix = '' if prefix.nil?
 
-			self.new(
+			s3 = self.new(
 				configuration.global,
 				image_name,
-				InclusionMatcher.new(image_name, if_image_name_on),
 				bucket,
 				path_spec,
 				public_access,
@@ -312,10 +311,12 @@ module Configuration
 				prefix,
 				cache_root
 			)
+			s3.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+			s3
 		end
 
-		def initialize(global, image_name, matcher, bucket, path_spec, public_access, cache_control, prefix, cache_root)
-			super global, image_name, matcher, path_spec
+		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, prefix, cache_root)
+			super(global, image_name, path_spec)
 			@bucket = bucket
 			@public_access = public_access
 			@cache_control = cache_control

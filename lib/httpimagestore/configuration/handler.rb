@@ -182,12 +182,13 @@ module Configuration
 
 	class InclusionMatcher
 		def initialize(value, template)
+			fail "no template or value for InclusionMatcher" if not template or not value
 			@value = value
 			@template = template.to_template if template
 		end
 
 		def included?(request_state)
-			return true if not @template
+			@template.render(request_state).split(',').include? @value
 			@template.render(request_state).split(',').include? @value
 		end
 	end
@@ -275,8 +276,8 @@ module Configuration
 		include PathSpec
 		include ConditionalInclusion
 
-		def initialize(global, image_name, matcher, path_spec)
-			super(global, image_name, path_spec, matcher)
+		def initialize(global, image_name, path_spec)
+			super(global, image_name, path_spec)
 		end
 
 		private

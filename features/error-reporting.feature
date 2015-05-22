@@ -8,16 +8,16 @@ Feature: Error handling
 		"""
 		s3 key="@AWS_ACCESS_KEY_ID@" secret="@AWS_SECRET_ACCESS_KEY@" ssl=false
 
-		path "uri_part"     "/thumbnails/#{input_digest}/#{name}.#{image_mime_extension}"
+		path "uri_part"         "/thumbnails/#{input_digest}/#{name}.#{image_mime_extension}"
 		path "structured-name"  "#{dirname}/#{input_digest}/#{basename}-#{image_name}.#{image_mime_extension}"
 		path "missing"          "blah"
 		path "zero"             "zero"
-		path "hash"     "#{input_digest}"
+		path "hash"             "#{input_digest}"
 
 		put "multipart" ":name_list" {
 			thumbnail "input" {
 				"small"             operation="crop"        width=128       height=128                              if-image-name-on="#{name_list}"
-				"tiny"							operation="crop"        width=10				height=10																if-image-name-on="#{name_list}"
+				"tiny"              operation="crop"        width=10        height=10                               if-image-name-on="#{name_list}"
 				"bad"               operation="crop"        width=0         height=0                                if-image-name-on="#{name_list}"
 				"bad_dim"           operation="crop"        width="128x"    height=128                              if-image-name-on="#{name_list}"
 				"superlarge"        operation="crop"        width=16000     height=16000                            if-image-name-on="#{name_list}"

@@ -69,8 +69,8 @@ module Configuration
 			include PathSpec
 			include ConditionalInclusion
 
-			def initialize(global, image_name, scheme, host, port, path_spec, matcher)
-				super(global, image_name, path_spec, matcher)
+			def initialize(global, image_name, scheme, host, port, path_spec)
+				super(global, image_name, path_spec)
 				@scheme = scheme && scheme.to_template
 				@host = host && host.to_template
 				@port = port && port.to_template
@@ -113,8 +113,9 @@ module Configuration
 			output_specs = nodes.map do |node|
 				image_name = node.grab_values('image name').first
 				scheme, host, port, path_spec, if_image_name_on = *node.grab_attributes('scheme', 'host', 'port', 'path', 'if-image-name-on')
-				matcher = InclusionMatcher.new(image_name, if_image_name_on)
-				OutputSpec.new(configuration.global, image_name, scheme, host, port, path_spec, matcher)
+				out = OutputSpec.new(configuration.global, image_name, scheme, host, port, path_spec)
+				out.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+				out
 			end
 
 			configuration.output and raise StatementCollisionError.new(node, 'output')

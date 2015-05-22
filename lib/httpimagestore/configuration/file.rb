@@ -30,19 +30,19 @@ module Configuration
 			image_name = node.grab_values('image name').first
 			node.required_attributes('root', 'path')
 			root_dir, path_spec, if_image_name_on = *node.grab_attributes('root', 'path', 'if-image-name-on')
-			matcher = InclusionMatcher.new(image_name, if_image_name_on)
 
-			self.new(
+			file = self.new(
 				configuration.global,
 				image_name,
-				matcher,
 				root_dir,
 				path_spec
 			)
+			file.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+			file
 		end
 
-		def initialize(global, image_name, matcher, root_dir, path_spec)
-			super global, image_name, matcher, path_spec
+		def initialize(global, image_name, root_dir, path_spec)
+			super(global, image_name, path_spec)
 			@root_dir = Pathname.new(root_dir).cleanpath
 		end
 

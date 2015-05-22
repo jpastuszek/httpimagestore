@@ -86,6 +86,9 @@ module Configuration
 		end
 
 		class ThumbnailSpec < HandlerStatement
+			include ImageName
+			include ConditionalInclusion
+
 			class EditSpec
 				include HandlerStatement::ConditionalInclusion
 
@@ -100,7 +103,7 @@ module Configuration
 					end
 				end
 
-				def render(request_state)
+				def render(request_state = {})
 					args = @args.map.with_index do |arg, arg_no|
 						arg.render(request_state)
 					end
@@ -112,9 +115,6 @@ module Configuration
 					HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.new(@name, args, options)
 				end
 			end
-
-			include ImageName
-			include ConditionalInclusion
 
 			def initialize(image_name, method, width, height, format, options = {}, edits = [])
 				super(nil, image_name)
@@ -130,7 +130,7 @@ module Configuration
 				@edits = edits
 			end
 
-			def render(request_state)
+			def render(request_state = {})
 				options = @options.inject({}){|h, v| h[v.first] = v.last.render(request_state); h}
 
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
@@ -203,11 +203,11 @@ module Configuration
 				subnodes = node.children.group_by{|node| node.name}
 				edit_nodes = subnodes.delete('edit')
 				edit_nodes and edit_nodes.each.with_index do |node, edit_no|
-					if_variable_matches, remaining = *node.grab_attributes_with_remaining('if-variable-matches')
+					if_variable_matches, edits_remaining = *node.grab_attributes_with_remaining('if-variable-matches')
 
 					vals = node.values.dup
 
-					edit = ThumbnailSpec::EditSpec.new(vals.shift, vals, remaining, edit_no)
+					edit = ThumbnailSpec::EditSpec.new(vals.shift, vals, edits_remaining, edit_no)
 					edit.push_inclusion_matchers(VariableMatcher.new(if_variable_matches)) if if_variable_matches
 
 					edits << edit
@@ -226,24 +226,19 @@ module Configuration
 				).push_inclusion_matchers(*matchers)
 			end
 
-			#TODO
-			matcher = InclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
-
-			configuration.processors << self.new(
+			thum = self.new(
 				configuration.global,
 				source_image_name,
 				specs,
 				use_multipart_api,
-				matcher
 			)
+			configuration.processors << thum
 		end
 
-		include ConditionalInclusion
-
-		def initialize(global, source_image_name, specs, use_multipart_api, matcher)
-			super(global, matcher)
+		def initialize(global, source_image_name, specs, use_multipart_api)
+			super(global)
 			@source_image_name = source_image_name
-			@specs = specs
+			@specs = specs.freeze
 			@use_multipart_api = use_multipart_api
 		end
 
@@ -253,7 +248,13 @@ module Configuration
 			specs = @specs.select do |spec|
 				spec.included?(request_state.with_locals(spec.config_locals))
 			end
-			specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
+
+			if specs.empty?
+				# in single part form we are OK to skip the thumbnailing all thogether
+				return if not @use_multipart_api
+				# in multipart for at least one thumbnail spec should be selected
+				raise NoSpecSelectedError.new(@specs.map(&:image_name))
+			end
 
 			rendered_specs = specs.map do |spec|
 				spec.render(request_state.with_locals(spec.config_locals))
@@ -266,7 +267,7 @@ module Configuration
 			input_width = nil
 			input_height = nil
 
-			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs.map(&:name)}"
+			log.info "thumbnailing '#{@source_image_name}' to specs: #{rendered_specs.map{|s| "#{s.name} -> #{s.spec}"}.join('; ')}"
 			Thumbnail.stats.incr_total_thumbnail_requests
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
 

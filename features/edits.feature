@@ -27,7 +27,7 @@ Feature: Applying multiple edits to thumbnails
 		}
 
 		post "edit_condition" "&:rot?" {
-		thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" {
+			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" {
 				edit "rotate" "-90" if-variable-matches="rot:left"
 				edit "rotate" "95" if-variable-matches="rot:right"
 			}
