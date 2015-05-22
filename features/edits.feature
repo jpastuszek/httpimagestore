@@ -17,6 +17,14 @@ Feature: Applying multiple edits to thumbnails
 			}
 			output_image "thumbnail"
 		}
+
+		post "edit_config_param" "&:angle?30" "&:color?red" {
+			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="png" {
+				edit "rotate" "90"
+				edit "rotate" "#{angle}" background-color="#{color}"
+			}
+			output_image "thumbnail"
+		}
 		"""
 
 	@edits @options
@@ -67,4 +75,24 @@ Feature: Applying multiple edits to thumbnails
 		Then response status will be 200
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 90x82
+
+	@edits @config @param
+	Scenario: Passing parameters to pre-configured edits
+		Given test.jpg file content as request body
+		When I do POST request http://localhost:3000/edit_config_param
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 100x91
+		And that image pixel at 4x4 should be of color red
+		When I do POST request http://localhost:3000/edit_config_param?color=blue
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 100x91
+		And that image pixel at 4x4 should be of color blue
+		When I do POST request http://localhost:3000/edit_config_param?color=blue&angle=10
+		Then response status will be 200
+		And response content type will be image/png
+		Then response body will contain PNG image of size 100x79
+		And that image pixel at 4x4 should be of color blue
+
 
