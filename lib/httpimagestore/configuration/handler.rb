@@ -183,12 +183,28 @@ module Configuration
 	class InclusionMatcher
 		def initialize(value, template)
 			@value = value
-			@template = RubyStringTemplate.new(template) if template
+			@template = template.to_template if template
 		end
 
 		def included?(request_state)
 			return true if not @template
 			@template.render(request_state).split(',').include? @value
+		end
+	end
+
+	class VariableMatcher
+		def initialize(value)
+			param_name, template = value.split(':', 2)
+			@param_name = param_name.to_sym if param_name
+			@template = template.to_template if template
+		end
+
+		def included?(request_state)
+			return false if not @param_name
+			return request_state[@param_name] == 'true' if not @template
+			@template.render(request_state) == request_state[@param_name]
+		rescue Configuration::VariableNotDefinedError
+			false
 		end
 	end
 
@@ -220,19 +236,14 @@ module Configuration
 		end
 
 		module ConditionalInclusion
-			def initialize(global, *args)
-				@matchers = []
-				matcher = args.pop
-				@matchers << matcher if matcher
-				super(global, *args)
-			end
-
-			def inclusion_matcher(matcher)
-				@matchers << matcher
+			def push_inclusion_matchers(*matchers)
+				@matchers ||= []
+				@matchers.push(*matchers)
+				self
 			end
 
 			def included?(request_state)
-				return true if @matchers.empty?
+				return true if not @matchers or @matchers.empty?
 				@matchers.any? do |matcher|
 					matcher.included?(request_state)
 				end

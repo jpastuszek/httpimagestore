@@ -86,11 +86,38 @@ module Configuration
 		end
 
 		class ThumbnailSpec < HandlerStatement
+			class EditSpec
+				include HandlerStatement::ConditionalInclusion
+
+				def initialize(name, args, options, edit_no)
+					@name = name
+					@args = args.map.with_index do |arg, arg_no|
+						arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
+					end
+
+					@options = options.merge(options) do |option, old, template|
+						template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
+					end
+				end
+
+				def render(request_state)
+					args = @args.map.with_index do |arg, arg_no|
+						arg.render(request_state)
+					end
+
+					options = @options.merge(@options) do |option, old, template|
+						template.render(request_state)
+					end
+
+					HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.new(@name, args, options)
+				end
+			end
+
 			include ImageName
 			include ConditionalInclusion
 
-			def initialize(image_name, method, width, height, format, options = {}, edits = [], matcher = nil)
-				super(nil, image_name, matcher)
+			def initialize(image_name, method, width, height, format, options = {}, edits = [])
+				super(nil, image_name)
 				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
 				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
 				@height = height.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'height', key, height)}
@@ -100,21 +127,11 @@ module Configuration
 					template.to_s.to_template.with_missing_resolver{|locals, field| raise NoValueForSpecTemplatePlaceholderError.new(image_name, option, field, template)}
 				end
 
-				@edits = edits.map.with_index do |edit, edit_no|
-					edit.map.with_index do |arg, arg_no|
-						if arg.kind_of? Hash
-							arg.merge(arg) do |option, old, template|
-								template.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} option '#{option}' value", key, arg)}
-							end
-						else
-							arg.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, "edit #{edit_no + 1} argument #{arg_no + 1}", key, arg)}
-						end
-					end
-				end
+				@edits = edits
 			end
 
-			def render(locals = {})
-				options = @options.inject({}){|h, v| h[v.first] = v.last.render(locals); h}
+			def render(request_state)
+				options = @options.inject({}){|h, v| h[v.first] = v.last.render(request_state); h}
 
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
 				nested_options = begin
@@ -132,29 +149,18 @@ module Configuration
 					end
 				end
 
-				edits = @edits.map.with_index do |edit, edit_no|
-					edit.map.with_index do |arg, arg_no|
-						if arg.kind_of? Hash
-							arg.merge(arg) do |option, old, template|
-								template.render(locals)
-							end
-						else
-							arg.render(locals)
-						end
-					end
-				end
-				edits.map! do |edit|
-					name = edit.shift
-					options = edit.pop
-					HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.new(name, edit, options)
+				edits = @edits.select do |edit|
+					edit.included?(request_state)
+				end.map do |edit|
+					edit.render(request_state)
 				end
 
 				spec = begin
 					HTTPThumbnailerClient::ThumbnailingSpec.new(
-						@method.render(locals),
-						@width.render(locals),
-						@height.render(locals),
-						@format.render(locals),
+						@method.render(request_state),
+						@width.render(request_state),
+						@height.render(request_state),
+						@format.render(request_state),
 						nested_options.merge(options),
 						edits | edits_option
 					)
@@ -171,13 +177,13 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
+			# if we don't have any subnodes use this node as single subnode and parse as if they were subnodes
 			use_multipart_api = node.values.length == 1 ? true : false
 
 			nodes = use_multipart_api ? node.children : [node]
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
-			matcher = nil
 
 			specs = nodes.map do |node|
 				if use_multipart_api
@@ -186,20 +192,28 @@ module Configuration
 					source_image_name, image_name = *node.grab_values('source image name', 'thumbnail image name')
 				end
 
-				operation, width, height, format, if_image_name_on, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on')
+				operation, width, height, format, if_image_name_on, if_variable_matches, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on', 'if-variable-matches')
 
-				matcher = InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
+				matchers = []
+				matchers << InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
+				matchers << VariableMatcher.new(if_variable_matches) if if_variable_matches
 
 				edits = []
-				# check for edits
-				node.children.each do |node|
-					case node.name
-					when 'edit'
-						edits << (node.values.dup << node.attributes.dup)
-					else
-						raise UnknownThumbnailingDirectiveError.new(source_image_name, image_name, node.name)
-					end
+				# check for subnodes
+				subnodes = node.children.group_by{|node| node.name}
+				edit_nodes = subnodes.delete('edit')
+				edit_nodes and edit_nodes.each.with_index do |node, edit_no|
+					if_variable_matches, remaining = *node.grab_attributes_with_remaining('if-variable-matches')
+
+					vals = node.values.dup
+
+					edit = ThumbnailSpec::EditSpec.new(vals.shift, vals, remaining, edit_no)
+					edit.push_inclusion_matchers(VariableMatcher.new(if_variable_matches)) if if_variable_matches
+
+					edits << edit
 				end
+
+				subnodes.keys.empty? or raise UnknownThumbnailingDirectiveError.new(source_image_name, image_name, subnodes.keys.join(' and '))
 
 				ThumbnailSpec.new(
 					image_name,
@@ -208,11 +222,11 @@ module Configuration
 					height || 'input',
 					format || 'input',
 					remaining || {},
-					edits,
-					matcher
-				)
+					edits
+				).push_inclusion_matchers(*matchers)
 			end
 
+			#TODO
 			matcher = InclusionMatcher.new(source_image_name, node.grab_attributes('if-image-name-on').first) if use_multipart_api
 
 			configuration.processors << self.new(
@@ -237,12 +251,12 @@ module Configuration
 			client = @global.thumbnailer or fail 'thumbnailer configuration'
 
 			specs = @specs.select do |spec|
-				spec.included?(request_state)
+				spec.included?(request_state.with_locals(spec.config_locals))
 			end
 			specs.empty? and raise NoSpecSelectedError.new(@specs.map(&:image_name))
 
 			rendered_specs = specs.map do |spec|
-				spec.render(request_state)
+				spec.render(request_state.with_locals(spec.config_locals))
 			end
 
 			source_image = request_state.images[@source_image_name]

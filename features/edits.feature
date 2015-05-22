@@ -10,7 +10,7 @@ Feature: Applying multiple edits to thumbnails
 			output_image "thumbnail"
 		}
 
-		post "edit_config"  "&:edits?" {
+		post "edit_config" "&:edits?" {
 			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" edits="#{edits}" {
 				edit "rotate" "90"
 				edit "rotate" "30" background-color="blue"
@@ -22,6 +22,14 @@ Feature: Applying multiple edits to thumbnails
 			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="png" {
 				edit "rotate" "90"
 				edit "rotate" "#{angle}" background-color="#{color}"
+			}
+			output_image "thumbnail"
+		}
+
+		post "edit_condition" "&:rot?" {
+		thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" {
+				edit "rotate" "-90" if-variable-matches="rot:left"
+				edit "rotate" "95" if-variable-matches="rot:right"
 			}
 			output_image "thumbnail"
 		}
@@ -67,7 +75,6 @@ Feature: Applying multiple edits to thumbnails
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 100x91
 
-
 	@edits @config @option
 	Scenario: Pre-configured edits go before option provided edits
 		Given test.jpg file content as request body
@@ -95,4 +102,19 @@ Feature: Applying multiple edits to thumbnails
 		Then response body will contain PNG image of size 100x79
 		And that image pixel at 4x4 should be of color blue
 
+	@edits @config @condition
+	Scenario: Getting thumbnail with multiple pre-configured edits matching query param condition
+		Given test.jpg file content as request body
+		When I do POST request http://localhost:3000/edit_condition
+		Then response status will be 200
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 71x100
+		When I do POST request http://localhost:3000/edit_condition?rot=left
+		Then response status will be 200
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 100x71
+		When I do POST request http://localhost:3000/edit_condition?rot=right
+		Then response status will be 200
+		And response content type will be image/jpeg
+		Then response body will contain JPEG image of size 100x75
 
