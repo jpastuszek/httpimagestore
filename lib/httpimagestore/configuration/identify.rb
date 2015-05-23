@@ -5,6 +5,10 @@ require 'httpimagestore/configuration/handler'
 module Configuration
 	class Identify < HandlerStatement
 		include ClassLogging
+		include ImageName
+		include LocalConfiguration
+		include GlobalConfiguration
+		include ConditionalInclusion
 
 		extend Stats
 		def_stats(
@@ -21,16 +25,14 @@ module Configuration
 			if_image_name_on = node.grab_attributes('if-image-name-on').first
 
 			iden = self.new(configuration.global, image_name)
-			iden.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+			iden.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
 
 			configuration.processors << iden
 		end
 
-		include ImageName
-		include ConditionalInclusion
-
 		def initialize(global, image_name)
-			super(global, image_name)
+			with_global_configuration(global)
+			with_image_name(image_name)
 		end
 
 		def realize(request_state)

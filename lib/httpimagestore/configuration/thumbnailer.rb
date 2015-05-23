@@ -1,6 +1,6 @@
 require 'httpthumbnailer-client'
 require 'httpimagestore/ruby_string_template'
-require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/handler/statement'
 
 module Configuration
 	class Thumnailer
@@ -63,6 +63,10 @@ module Configuration
 
 	class Thumbnail < HandlerStatement
 		include ClassLogging
+		include ImageName
+		include LocalConfiguration
+		include GlobalConfiguration
+		include ConditionalInclusion
 
 		extend Stats
 		def_stats(
@@ -87,6 +91,7 @@ module Configuration
 
 		class ThumbnailSpec < HandlerStatement
 			include ImageName
+			include LocalConfiguration
 			include ConditionalInclusion
 
 			class EditSpec
@@ -117,7 +122,7 @@ module Configuration
 			end
 
 			def initialize(image_name, method, width, height, format, options = {}, edits = [])
-				super(nil, image_name)
+				with_image_name(image_name)
 				@method = method.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'method', key, method)}
 				@width =  width.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'width', key, width)}
 				@height = height.to_s.to_template.with_missing_resolver{|locals, key| raise NoValueForSpecTemplatePlaceholderError.new(image_name, 'height', key, height)}
@@ -183,6 +188,12 @@ module Configuration
 			nodes = use_multipart_api ? node.children : [node]
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
+			general_matchers = []
+			if use_multipart_api
+				if_image_name_on = node.attributes['if-image-name-on']
+				general_matchers << ConditionalInclusion::ImageNameOn.new(if_image_name_on) if if_image_name_on
+			end
+
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
 
 			specs = nodes.map do |node|
@@ -195,8 +206,8 @@ module Configuration
 				operation, width, height, format, if_image_name_on, if_variable_matches, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on', 'if-variable-matches')
 
 				matchers = []
-				matchers << InclusionMatcher.new(image_name, if_image_name_on) if if_image_name_on
-				matchers << VariableMatcher.new(if_variable_matches) if if_variable_matches
+				matchers << ConditionalInclusion::ImageNameOn.new(if_image_name_on) if if_image_name_on
+				matchers << ConditionalInclusion::VariableMatches.new(if_variable_matches) if if_variable_matches
 
 				edits = []
 				# check for subnodes
@@ -208,7 +219,7 @@ module Configuration
 					vals = node.values.dup
 
 					edit = ThumbnailSpec::EditSpec.new(vals.shift, vals, edits_remaining, edit_no)
-					edit.push_inclusion_matchers(VariableMatcher.new(if_variable_matches)) if if_variable_matches
+					edit.with_inclusion_matchers(ConditionalInclusion::VariableMatches.new(if_variable_matches)) if if_variable_matches
 
 					edits << edit
 				end
@@ -223,7 +234,7 @@ module Configuration
 					format || 'input',
 					remaining || {},
 					edits
-				).push_inclusion_matchers(*matchers)
+				).with_inclusion_matchers(*matchers)
 			end
 
 			thum = self.new(
@@ -232,11 +243,13 @@ module Configuration
 				specs,
 				use_multipart_api,
 			)
+			thum.with_inclusion_matchers(*general_matchers)
 			configuration.processors << thum
 		end
 
 		def initialize(global, source_image_name, specs, use_multipart_api)
-			super(global)
+			with_global_configuration(global)
+			with_image_name(source_image_name)
 			@source_image_name = source_image_name
 			@specs = specs.freeze
 			@use_multipart_api = use_multipart_api
@@ -246,7 +259,7 @@ module Configuration
 			client = @global.thumbnailer or fail 'thumbnailer configuration'
 
 			specs = @specs.select do |spec|
-				spec.included?(request_state.with_locals(spec.config_locals))
+				spec.included?(request_state)
 			end
 
 			if specs.empty?
@@ -257,7 +270,7 @@ module Configuration
 			end
 
 			rendered_specs = specs.map do |spec|
-				spec.render(request_state.with_locals(spec.config_locals))
+				spec.render(request_state)
 			end
 
 			source_image = request_state.images[@source_image_name]
@@ -313,6 +326,17 @@ module Configuration
 			source_image.height = input_height if input_height
 
 			request_state.images.merge! thumbnails
+		end
+
+		def included?(request_state)
+			# TODO this is to complicated!
+			if @use_multipart_api
+				super(request_state)
+			else
+				@specs.any? do |spec|
+					spec.included?(request_state)
+				end
+			end
 		end
 	end
 

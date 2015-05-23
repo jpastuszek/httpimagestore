@@ -4,7 +4,7 @@ require 'msgpack'
 require 'addressable/uri'
 require 'httpimagestore/aws_sdk_regions_hack'
 require 'httpimagestore/configuration/path'
-require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/handler/source_store_base'
 require 'httpimagestore/configuration/source_failover'
 
 module Configuration
@@ -311,12 +311,13 @@ module Configuration
 				prefix,
 				cache_root
 			)
-			s3.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+			s3.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
 			s3
 		end
 
 		def initialize(global, image_name, bucket, path_spec, public_access, cache_control, prefix, cache_root)
 			super(global, image_name, path_spec)
+
 			@bucket = bucket
 			@public_access = public_access
 			@cache_control = cache_control

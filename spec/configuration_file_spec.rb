@@ -242,9 +242,9 @@ describe Configuration do
 			end
 
 			it 'should mark stores to ib included when image name match if-image-name-on list' do
-				subject.handlers[0].stores[0].excluded?(state).should be_false
-				subject.handlers[0].stores[1].excluded?(state).should be_true
-				subject.handlers[0].stores[2].excluded?(state).should be_false
+				subject.handlers[0].stores[0].excluded?(state.with_locals(image_name: 'input1')).should be_false
+				subject.handlers[0].stores[1].excluded?(state.with_locals(image_name: 'input2')).should be_true
+				subject.handlers[0].stores[2].excluded?(state.with_locals(image_name: 'input3')).should be_false
 			end
 		end
 

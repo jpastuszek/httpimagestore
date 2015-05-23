@@ -1,4 +1,4 @@
-require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/handler/statement'
 require 'httpimagestore/ruby_string_template'
 require 'addressable/uri'
 require 'base64'
@@ -16,7 +16,7 @@ module Configuration
 		end
 	end
 
-	class OutputText
+	class OutputText < HandlerStatement
 		def self.match(node)
 			node.name == 'output_text'
 		end
@@ -65,12 +65,16 @@ module Configuration
 
 	class OutputMultiBase
 		class OutputSpec < HandlerStatement
+			include GlobalConfiguration
 			include ImageName
 			include PathSpec
 			include ConditionalInclusion
+			include LocalConfiguration
 
 			def initialize(global, image_name, scheme, host, port, path_spec)
-				super(global, image_name, path_spec)
+				with_global_configuration(global)
+				with_image_name(image_name)
+				with_path_spec(path_spec)
 				@scheme = scheme && scheme.to_template
 				@host = host && host.to_template
 				@port = port && port.to_template
@@ -80,7 +84,7 @@ module Configuration
 				store_path = request_state.images[@image_name].store_path or raise StorePathNotSetForImage.new(@image_name)
 				return store_path unless @path_spec
 
-				path_template.render(request_state.with_locals(config_locals, path: store_path))
+				path_template.render(request_state.with_locals(local_configuration, path: store_path))
 			end
 
 			def store_url(request_state)
@@ -96,7 +100,7 @@ module Configuration
 				request_locals[:host] = url.host if url.host
 				request_locals[:port] = url.port if url.port
 
-				request_state = request_state.with_locals(config_locals, request_locals)
+				request_state = request_state.with_locals(local_configuration, request_locals)
 
 				# optional rewrites
 				url.scheme = @scheme.render(request_state) if @scheme
@@ -114,7 +118,7 @@ module Configuration
 				image_name = node.grab_values('image name').first
 				scheme, host, port, path_spec, if_image_name_on = *node.grab_attributes('scheme', 'host', 'port', 'path', 'if-image-name-on')
 				out = OutputSpec.new(configuration.global, image_name, scheme, host, port, path_spec)
-				out.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+				out.with_inclusion_matchers(HandlerStatement::ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
 				out
 			end
 
@@ -128,8 +132,10 @@ module Configuration
 	end
 	Handler::register_node_parser OutputOK
 
-	class OutputImage
+	class OutputImage < HandlerStatement
 		include ClassLogging
+		include ImageName
+		include LocalConfiguration
 
 		def self.match(node)
 			node.name == 'output_image'
@@ -145,6 +151,7 @@ module Configuration
 		def initialize(name, cache_control)
 			@name = name
 			@cache_control = cache_control
+			with_image_name(name)
 		end
 
 		def realize(request_state)

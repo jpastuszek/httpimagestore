@@ -1,5 +1,5 @@
 require 'httpimagestore/configuration/path'
-require 'httpimagestore/configuration/handler'
+require 'httpimagestore/configuration/handler/source_store_base'
 require 'httpimagestore/configuration/source_failover'
 require 'pathname'
 require 'addressable/uri'
@@ -37,7 +37,7 @@ module Configuration
 				root_dir,
 				path_spec
 			)
-			file.push_inclusion_matchers(InclusionMatcher.new(image_name, if_image_name_on)) if if_image_name_on
+			file.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
 			file
 		end
 

@@ -789,9 +789,10 @@ else
 				end
 
 				it 'should mark sores to be included when image name match if-image-name-on list' do
-					subject.handlers[0].stores[0].excluded?(state).should be_false
-					subject.handlers[0].stores[1].excluded?(state).should be_true
-					subject.handlers[0].stores[2].excluded?(state).should be_false
+					# TODO: giveing image_name with state does not look right
+					subject.handlers[0].stores[0].excluded?(state.with_locals(image_name: 'input')).should be_false
+					subject.handlers[0].stores[1].excluded?(state.with_locals(image_name: 'input1')).should be_true
+					subject.handlers[0].stores[2].excluded?(state.with_locals(image_name: 'input2')).should be_false
 				end
 			end
 
