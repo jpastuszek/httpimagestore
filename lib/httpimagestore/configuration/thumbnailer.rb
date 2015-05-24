@@ -188,10 +188,10 @@ module Configuration
 			nodes = use_multipart_api ? node.children : [node]
 			source_image_name = use_multipart_api ? node.grab_values('source image name').first : nil # parsed later
 
-			general_matchers = []
+			general_conditions = []
 			if use_multipart_api
-				if_image_name_on = node.attributes['if-image-name-on']
-				general_matchers << ConditionalInclusion::ImageNameOn.new(if_image_name_on) if if_image_name_on
+				general_conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(node.attributes)
+				remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 			end
 
 			nodes.empty? and raise NoValueError.new(node, 'thumbnail image name')
@@ -203,23 +203,21 @@ module Configuration
 					source_image_name, image_name = *node.grab_values('source image name', 'thumbnail image name')
 				end
 
-				operation, width, height, format, if_image_name_on, if_variable_matches, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format', 'if-image-name-on', 'if-variable-matches')
+				operation, width, height, format, remaining = *node.grab_attributes_with_remaining('operation', 'width', 'height', 'format')
 
-				matchers = []
-				matchers << ConditionalInclusion::ImageNameOn.new(if_image_name_on) if if_image_name_on
-				matchers << ConditionalInclusion::VariableMatches.new(if_variable_matches) if if_variable_matches
+				conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 
 				edits = []
 				# check for subnodes
 				subnodes = node.children.group_by{|node| node.name}
 				edit_nodes = subnodes.delete('edit')
 				edit_nodes and edit_nodes.each.with_index do |node, edit_no|
-					if_variable_matches, edits_remaining = *node.grab_attributes_with_remaining('if-variable-matches')
+					edit_conditions, edit_options = *ConditionalInclusion.grab_conditions_with_remaining(node.attributes)
 
-					vals = node.values.dup
+					args = node.values.dup
 
-					edit = ThumbnailSpec::EditSpec.new(vals.shift, vals, edits_remaining, edit_no)
-					edit.with_inclusion_matchers(ConditionalInclusion::VariableMatches.new(if_variable_matches)) if if_variable_matches
+					edit = ThumbnailSpec::EditSpec.new(args.shift, args, edit_options, edit_no)
+					edit.with_conditions(edit_conditions)
 
 					edits << edit
 				end
@@ -234,7 +232,7 @@ module Configuration
 					format || 'input',
 					remaining || {},
 					edits
-				).with_inclusion_matchers(*matchers)
+				).with_conditions(conditions)
 			end
 
 			thum = self.new(
@@ -243,7 +241,7 @@ module Configuration
 				specs,
 				use_multipart_api,
 			)
-			thum.with_inclusion_matchers(*general_matchers)
+			thum.with_conditions(general_conditions)
 			configuration.processors << thum
 		end
 

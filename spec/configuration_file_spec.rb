@@ -223,28 +223,73 @@ describe Configuration do
 		end
 
 		describe 'conditional inclusion support' do
-			subject do
-				Configuration.read(<<-'EOF')
-				path {
-					"out"	"test.out"
-				}
+			describe 'if-image-name-on' do
+				subject do
+					Configuration.read(<<-'EOF')
+					path {
+						"out"	"test.out"
+					}
 
-				post "small" {
-					store_file "input1" root="/tmp" path="out" if-image-name-on="#{list}"
-					store_file "input2" root="/tmp" path="out" if-image-name-on="#{list}"
-					store_file "input3" root="/tmp" path="out" if-image-name-on="#{list}"
-				}
-				EOF
+					post "small" {
+						store_file "input1" root="/tmp" path="out" if-image-name-on="#{list}"
+						store_file "input2" root="/tmp" path="out" if-image-name-on="#{list}"
+						store_file "input3" root="/tmp" path="out" if-image-name-on="#{list}"
+					}
+					EOF
+				end
+
+				let :state do
+					Configuration::RequestState.new('abc', {list: 'input1,input3'})
+				end
+
+				it 'should mark stores to ib included when image name match if-image-name-on list' do
+					subject.handlers[0].stores[0].excluded?(state).should be_false
+					subject.handlers[0].stores[1].excluded?(state).should be_true
+					subject.handlers[0].stores[2].excluded?(state).should be_false
+				end
 			end
 
-			let :state do
-				Configuration::RequestState.new('abc', {list: 'input1,input3'})
-			end
+			describe 'if-variable-matches' do
+				subject do
+					Configuration.read(<<-'EOF')
+					path {
+						"out"	"test.out"
+					}
 
-			it 'should mark stores to ib included when image name match if-image-name-on list' do
-				subject.handlers[0].stores[0].excluded?(state.with_locals(image_name: 'input1')).should be_false
-				subject.handlers[0].stores[1].excluded?(state.with_locals(image_name: 'input2')).should be_true
-				subject.handlers[0].stores[2].excluded?(state.with_locals(image_name: 'input3')).should be_false
+					post "small" {
+						store_file "input1" root="/tmp" path="out" if-variable-matches="hello:world"
+						store_file "input2" root="/tmp" path="out" if-variable-matches="hello:blah"
+						store_file "input3" root="/tmp" path="out" if-variable-matches="xyz"
+
+					}
+					EOF
+				end
+
+				let :state do
+					Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+				end
+
+				it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					subject.handlers[0].stores[0].excluded?(state).should be_false
+					subject.handlers[0].stores[1].excluded?(state).should be_true
+					subject.handlers[0].stores[2].excluded?(state).should be_false
+				end
+			end
+		end
+
+		context 'with extra attributes' do
+			it 'should raise UnexpectedAttributesError' do
+				expect {
+					Configuration.read(<<-'EOF')
+					path {
+						"out"	"test.out"
+					}
+
+					post "small" {
+						store_file "input1" root="/tmp" path="out" blah="fddf"
+					}
+					EOF
+				}.to raise_error Configuration::UnexpectedAttributesError, %q{syntax error while parsing 'store_file "input1" blah="fddf" path="out" root="/tmp"': unexpected attributes: 'blah'}
 			end
 		end
 

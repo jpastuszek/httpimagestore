@@ -22,10 +22,12 @@ module Configuration
 
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
-			if_image_name_on = node.grab_attributes('if-image-name-on').first
+
+			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(node.attributes)
+			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
 			iden = self.new(configuration.global, image_name)
-			iden.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
+			iden.with_conditions(conditions)
 
 			configuration.processors << iden
 		end

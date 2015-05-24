@@ -317,6 +317,20 @@ describe Configuration do
 				end
 			end
 		end
+
+		context 'with extra attributes' do
+			it 'should raise UnexpectedAttributesError' do
+				expect {
+					Configuration.read(<<-'EOF')
+					put {
+						thumbnail "input4" blah="xyz" {
+							"thumbnail5"
+						}
+					}
+					EOF
+				}.to raise_error Configuration::UnexpectedAttributesError
+			end
+		end
 	end
 
 	describe 'thumbnail source image' do
@@ -730,6 +744,7 @@ describe Configuration do
 					}
 					EOF
 				end
+
 				it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
 					subject.handlers[0].processors[0].excluded?(state).should be_false
 					subject.handlers[0].processors[1].excluded?(state).should be_true

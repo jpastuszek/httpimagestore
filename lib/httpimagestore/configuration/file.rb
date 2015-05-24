@@ -29,7 +29,11 @@ module Configuration
 		def self.parse(configuration, node)
 			image_name = node.grab_values('image name').first
 			node.required_attributes('root', 'path')
-			root_dir, path_spec, if_image_name_on = *node.grab_attributes('root', 'path', 'if-image-name-on')
+
+			# TODO: it should be possible to compact that
+			root_dir, path_spec, remaining = *node.grab_attributes_with_remaining('root', 'path')
+			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
+			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
 			file = self.new(
 				configuration.global,
@@ -37,7 +41,7 @@ module Configuration
 				root_dir,
 				path_spec
 			)
-			file.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
+			file.with_conditions(conditions)
 			file
 		end
 

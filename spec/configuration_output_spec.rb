@@ -37,7 +37,7 @@ describe Configuration do
 		it 'should output hello world with default 200 status' do
 			subject.handlers[0].output.realize(state)
 			env = CubaResponseEnv.new
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.status.should == 200
 			env.res.data.should == "hello world\r\n"
 			env.res['Content-Type'].should == 'text/plain'
@@ -47,7 +47,7 @@ describe Configuration do
 		it 'should output bad stuff with 500 status' do
 			subject.handlers[1].output.realize(state)
 			env = CubaResponseEnv.new
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.status.should == 500
 			env.res.data.should == "bad stuff\r\n"
 			env.res['Content-Type'].should == 'text/plain'
@@ -57,7 +57,7 @@ describe Configuration do
 		it 'should output welcome with public cache control' do
 			subject.handlers[2].output.realize(state)
 			env = CubaResponseEnv.new
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.status.should == 200
 			env.res.data.should == "welcome\r\n"
 			env.res['Content-Type'].should == 'text/plain'
@@ -71,7 +71,7 @@ describe Configuration do
 
 			subject.handlers[3].output.realize(state)
 			env = CubaResponseEnv.new
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.data.should == "test1: abc test2: xyz\r\n"
 		end
 	end
@@ -94,7 +94,7 @@ describe Configuration do
 			subject.handlers[0].output.realize(state)
 
 			env = CubaResponseEnv.new
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.status.should == 200
 			env.res.data.should == "OK\r\n"
 			env.res['Content-Type'].should == 'text/plain'
@@ -118,7 +118,7 @@ describe Configuration do
 			subject.handlers[0].output.should be_a Configuration::OutputImage
 			subject.handlers[0].output.realize(state)
 
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res.status.should == 200
 			env.res.data.should == 'abc'
 		end
@@ -126,7 +126,7 @@ describe Configuration do
 		it 'should use default content type if not defined on image' do
 			subject.handlers[0].output.realize(state)
 
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res['Content-Type'].should == 'application/octet-stream'
 		end
 
@@ -135,7 +135,7 @@ describe Configuration do
 
 			subject.handlers[0].output.realize(state)
 
-			env.instance_eval &state.output_callback
+			env.instance_eval(&state.output_callback)
 			env.res['Content-Type'].should == 'image/jpeg'
 		end
 
@@ -151,7 +151,7 @@ describe Configuration do
 			it 'should allow setting Cache-Control header' do
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Cache-Control'].should == 'public, max-age=999, s-maxage=666'
 			end
 		end
@@ -223,7 +223,7 @@ describe Configuration do
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/plain'
 				env.res.data.should == "test.out\r\n"
 			end
@@ -255,54 +255,101 @@ describe Configuration do
 				subject.handlers[0].stores[1].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/plain'
 				env.res.data.should == "test.out\r\ntest.out2\r\n"
 			end
 
 			describe 'conditional inclusion support' do
-				let :state do
-					Configuration::RequestState.new('abc', {list: 'input,image2'})
-				end
+				describe 'if-image-name-on' do
+					let :state do
+						Configuration::RequestState.new('abc', {list: 'input,image2'})
+					end
 
-				subject do
-					Configuration.read(<<-'EOF')
-					path {
-						"in"		"test.in"
-						"out1"	"test.out1"
-						"out2"	"test.out2"
-						"out3"	"test.out3"
-					}
-
-					post "multi" {
-						source_file "image1" root="/tmp" path="in"
-						source_file "image2" root="/tmp" path="in"
-
-						store_file "input" root="/tmp" path="out1"
-						store_file "image1" root="/tmp" path="out2"
-						store_file "image2" root="/tmp" path="out3"
-
-						output_store_path {
-							"input"		if-image-name-on="#{list}"
-							"image1"	if-image-name-on="#{list}"
-							"image2"	if-image-name-on="#{list}"
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
 						}
-					}
-					EOF
+
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_path {
+								"input"		if-image-name-on="#{list}"
+								"image1"	if-image-name-on="#{list}"
+								"image2"	if-image-name-on="#{list}"
+							}
+						}
+						EOF
+					end
+
+					it 'should output store path only for images that names match if-image-name-on list' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/plain'
+						env.res.data.should == "test.out1\r\ntest.out3\r\n"
+					end
 				end
+				describe 'if-variable-matches' do
+					let :state do
+						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+					end
 
-				it 'should output store path only for images that names match if-image-name-on list' do
-					subject.handlers[0].sources[0].realize(state)
-					subject.handlers[0].sources[1].realize(state)
-					subject.handlers[0].sources[2].realize(state)
-					subject.handlers[0].stores[0].realize(state)
-					subject.handlers[0].stores[1].realize(state)
-					subject.handlers[0].stores[2].realize(state)
-					subject.handlers[0].output.realize(state)
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
+						}
 
-					env.instance_eval &state.output_callback
-					env.res['Content-Type'].should == 'text/plain'
-					env.res.data.should == "test.out1\r\ntest.out3\r\n"
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_path {
+								"input"		if-variable-matches="hello:world"
+								"image1"	if-variable-matches="hello:blah"
+								"image2"	if-variable-matches="xyz"
+							}
+						}
+						EOF
+					end
+
+					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/plain'
+						env.res.data.should == "test.out1\r\ntest.out3\r\n"
+					end
 				end
 			end
 
@@ -323,7 +370,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/plain'
 					env.res.data.should == "hello/abc/world/test-xyz.out\r\n"
 				end
@@ -356,7 +403,7 @@ describe Configuration do
 					subject.handlers[0].stores[1].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/plain'
 					env.res.data.should == "hello/abc/world/test-xyz.out\r\nba7816bf8f01cfea.out2\r\n"
 				end
@@ -375,6 +422,26 @@ describe Configuration do
 					expect {
 						subject.handlers[0].output.realize(state)
 					}.to raise_error Configuration::StorePathNotSetForImage, %{store path not set for image 'input'}
+				end
+
+				context 'with extra attributes' do
+					it 'should raise UnexpectedAttributesError' do
+						expect {
+							Configuration.read(<<-'EOF')
+							path  "out"         "abc/#{name}.out"
+							path  "formatted"   "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+							post "single" {
+								store_file "input" root="/tmp" path="out"
+
+								output_store_path {
+									"input" blah="xyz"
+									"input" path="formatted"
+								}
+							}
+							EOF
+						}.to raise_error Configuration::UnexpectedAttributesError, %q{syntax error while parsing '"input" blah="xyz"': unexpected attributes: 'blah'}
+					end
 				end
 			end
 		end
@@ -397,7 +464,7 @@ describe Configuration do
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "file:/test.out\r\n"
 			end
@@ -429,54 +496,101 @@ describe Configuration do
 				subject.handlers[0].stores[1].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "file:/test.out\r\nfile:/test.out2\r\n"
 			end
 
 			describe 'conditional inclusion support' do
-				let :state do
-					Configuration::RequestState.new('abc', list: 'input,image2')
-				end
+				describe 'if-image-name-on' do
+					let :state do
+						Configuration::RequestState.new('abc', list: 'input,image2')
+					end
 
-				subject do
-					Configuration.read(<<-'EOF')
-					path {
-						"in"		"test.in"
-						"out1"	"test.out1"
-						"out2"	"test.out2"
-						"out3"	"test.out3"
-					}
-
-					post "multi" {
-						source_file "image1" root="/tmp" path="in"
-						source_file "image2" root="/tmp" path="in"
-
-						store_file "input" root="/tmp" path="out1"
-						store_file "image1" root="/tmp" path="out2"
-						store_file "image2" root="/tmp" path="out3"
-
-						output_store_url {
-							"input"		if-image-name-on="#{list}"
-							"image1"	if-image-name-on="#{list}"
-							"image2"	if-image-name-on="#{list}"
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
 						}
-					}
-					EOF
+
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_url {
+								"input"		if-image-name-on="#{list}"
+								"image1"	if-image-name-on="#{list}"
+								"image2"	if-image-name-on="#{list}"
+							}
+						}
+						EOF
+					end
+
+					it 'should output store url only for images that names match if-image-name-on list' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/uri-list'
+						env.res.data.should == "file:/test.out1\r\nfile:/test.out3\r\n"
+					end
 				end
+				describe 'if-variable-matches' do
+					let :state do
+						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+					end
 
-				it 'should output store url only for images that names match if-image-name-on list' do
-					subject.handlers[0].sources[0].realize(state)
-					subject.handlers[0].sources[1].realize(state)
-					subject.handlers[0].sources[2].realize(state)
-					subject.handlers[0].stores[0].realize(state)
-					subject.handlers[0].stores[1].realize(state)
-					subject.handlers[0].stores[2].realize(state)
-					subject.handlers[0].output.realize(state)
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
+						}
 
-					env.instance_eval &state.output_callback
-					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "file:/test.out1\r\nfile:/test.out3\r\n"
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_url {
+								"input"		if-variable-matches="hello:world"
+								"image1"	if-variable-matches="hello:blah"
+								"image2"	if-variable-matches="xyz"
+							}
+						}
+						EOF
+					end
+
+					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/uri-list'
+						env.res.data.should == "file:/test.out1\r\nfile:/test.out3\r\n"
+					end
 				end
 			end
 
@@ -498,7 +612,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file:/hello/abc/world/test-xyz.out\r\n"
 				end
@@ -518,7 +632,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "ftp:/abc/test.out\r\n"
 				end
@@ -538,7 +652,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file://localhost/abc/test.out\r\n"
 				end
@@ -558,7 +672,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file://localhost:21/abc/test.out\r\n"
 				end
@@ -584,7 +698,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "ftp://example.com:421/hello/abc/world/test-xyz.out\r\n"
 				end
@@ -610,7 +724,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "file:/abc/t%20e%20s%20t.out\r\nfile:/hello/abc/world/t%20e%20s%20t-xyz.out\r\n"
 				end
@@ -629,6 +743,26 @@ describe Configuration do
 					expect {
 						subject.handlers[0].output.realize(state)
 					}.to raise_error Configuration::StoreURLNotSetForImage, %{store URL not set for image 'input'}
+				end
+
+				context 'with extra attributes' do
+					it 'should raise UnexpectedAttributesError' do
+						expect {
+							Configuration.read(<<-'EOF')
+							path  "out"         "abc/#{name}.out"
+							path  "formatted"   "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+							post "single" {
+								store_file "input" root="/tmp" path="out"
+
+								output_store_url {
+									"input" blah="xyz"
+									"input" path="formatted"
+								}
+							}
+							EOF
+						}.to raise_error Configuration::UnexpectedAttributesError, %q{syntax error while parsing '"input" blah="xyz"': unexpected attributes: 'blah'}
+					end
 				end
 			end
 		end
@@ -651,7 +785,7 @@ describe Configuration do
 				subject.handlers[0].stores[0].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "/test.out\r\n"
 			end
@@ -683,54 +817,102 @@ describe Configuration do
 				subject.handlers[0].stores[1].realize(state)
 				subject.handlers[0].output.realize(state)
 
-				env.instance_eval &state.output_callback
+				env.instance_eval(&state.output_callback)
 				env.res['Content-Type'].should == 'text/uri-list'
 				env.res.data.should == "/test.out\r\n/test.out2\r\n"
 			end
 
 			describe 'conditional inclusion support' do
-				let :state do
-					Configuration::RequestState.new('abc', list: 'input,image2')
-				end
+				describe 'if-image-name-on' do
+					let :state do
+						Configuration::RequestState.new('abc', list: 'input,image2')
+					end
 
-				subject do
-					Configuration.read(<<-'EOF')
-					path {
-						"in"		"test.in"
-						"out1"	"test.out1"
-						"out2"	"test.out2"
-						"out3"	"test.out3"
-					}
-
-					post "multi" {
-						source_file "image1" root="/tmp" path="in"
-						source_file "image2" root="/tmp" path="in"
-
-						store_file "input" root="/tmp" path="out1"
-						store_file "image1" root="/tmp" path="out2"
-						store_file "image2" root="/tmp" path="out3"
-
-						output_store_uri {
-							"input"		if-image-name-on="#{list}"
-							"image1"	if-image-name-on="#{list}"
-							"image2"	if-image-name-on="#{list}"
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
 						}
-					}
-					EOF
+
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_uri {
+								"input"		if-image-name-on="#{list}"
+								"image1"	if-image-name-on="#{list}"
+								"image2"	if-image-name-on="#{list}"
+							}
+						}
+						EOF
+					end
+
+					it 'should output store url only for images that names match if-image-name-on list' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/uri-list'
+						env.res.data.should == "/test.out1\r\n/test.out3\r\n"
+					end
 				end
 
-				it 'should output store url only for images that names match if-image-name-on list' do
-					subject.handlers[0].sources[0].realize(state)
-					subject.handlers[0].sources[1].realize(state)
-					subject.handlers[0].sources[2].realize(state)
-					subject.handlers[0].stores[0].realize(state)
-					subject.handlers[0].stores[1].realize(state)
-					subject.handlers[0].stores[2].realize(state)
-					subject.handlers[0].output.realize(state)
+				describe 'if-variable-matches' do
+					let :state do
+						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+					end
 
-					env.instance_eval &state.output_callback
-					env.res['Content-Type'].should == 'text/uri-list'
-					env.res.data.should == "/test.out1\r\n/test.out3\r\n"
+					subject do
+						Configuration.read(<<-'EOF')
+						path {
+							"in"		"test.in"
+							"out1"	"test.out1"
+							"out2"	"test.out2"
+							"out3"	"test.out3"
+						}
+
+						post "multi" {
+							source_file "image1" root="/tmp" path="in"
+							source_file "image2" root="/tmp" path="in"
+
+							store_file "input" root="/tmp" path="out1"
+							store_file "image1" root="/tmp" path="out2"
+							store_file "image2" root="/tmp" path="out3"
+
+							output_store_uri {
+								"input"		if-variable-matches="hello:world"
+								"image1"	if-variable-matches="hello:blah"
+								"image2"	if-variable-matches="xyz"
+							}
+						}
+						EOF
+					end
+
+					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+						subject.handlers[0].sources[0].realize(state)
+						subject.handlers[0].sources[1].realize(state)
+						subject.handlers[0].sources[2].realize(state)
+						subject.handlers[0].stores[0].realize(state)
+						subject.handlers[0].stores[1].realize(state)
+						subject.handlers[0].stores[2].realize(state)
+						subject.handlers[0].output.realize(state)
+
+						env.instance_eval(&state.output_callback)
+						env.res['Content-Type'].should == 'text/uri-list'
+						env.res.data.should == "/test.out1\r\n/test.out3\r\n"
+					end
 				end
 			end
 
@@ -752,7 +934,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "/hello/abc/world/test-xyz.out\r\n"
 				end
@@ -782,7 +964,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					env.res.data.should == "/abc/t%20e%20s%20t.out\r\n/hello/abc/world/t%20e%20s%20t-xyz.out\r\n"
 				end
@@ -793,7 +975,7 @@ describe Configuration do
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)
 
-					env.instance_eval &state.output_callback
+					env.instance_eval(&state.output_callback)
 					env.res['Content-Type'].should == 'text/uri-list'
 					l1, l2 = *env.res.data.split("\r\n")
 					URI.utf_decode(l1).should == "/abc/#{utf_string}.out"
@@ -814,6 +996,26 @@ describe Configuration do
 					expect {
 						subject.handlers[0].output.realize(state)
 					}.to raise_error Configuration::StoreURLNotSetForImage, %{store URL not set for image 'input'}
+				end
+
+				context 'with extra attributes' do
+					it 'should raise UnexpectedAttributesError' do
+						expect {
+							Configuration.read(<<-'EOF')
+							path  "out"         "abc/#{name}.out"
+							path  "formatted"   "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
+
+							post "single" {
+								store_file "input" root="/tmp" path="out"
+
+								output_store_uri {
+									"input" blah="xyz"
+									"input" path="formatted"
+								}
+							}
+							EOF
+						}.to raise_error Configuration::UnexpectedAttributesError, %q{syntax error while parsing '"input" blah="xyz"': unexpected attributes: 'blah'}
+					end
 				end
 			end
 		end

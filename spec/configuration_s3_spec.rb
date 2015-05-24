@@ -774,25 +774,48 @@ else
 			end
 
 			describe 'conditional inclusion support' do
-				let :state do
-					Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg', list: 'input,input2'})
+				describe 'if-image-name-on' do
+					let :state do
+						Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg', list: 'input,input2'})
+					end
+
+					subject do
+						Configuration.read(<<-EOF)
+						post {
+							store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+							store_s3 "input1" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+							store_s3 "input2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
+						}
+						EOF
+					end
+
+					it 'should mark sores to be included when image name match if-image-name-on list' do
+						subject.handlers[0].stores[0].excluded?(state).should be_false
+						subject.handlers[0].stores[1].excluded?(state).should be_true
+						subject.handlers[0].stores[2].excluded?(state).should be_false
+					end
 				end
 
-				subject do
-					Configuration.read(<<-EOF)
-					post {
-						store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
-						store_s3 "input1" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
-						store_s3 "input2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-image-name-on="\#{list}"
-					}
-					EOF
-				end
+				describe 'if-variable-matches' do
+					let :state do
+						Configuration::RequestState.new(@test_data, {hello: 'world', xyz: 'true'})
+					end
 
-				it 'should mark sores to be included when image name match if-image-name-on list' do
-					# TODO: giveing image_name with state does not look right
-					subject.handlers[0].stores[0].excluded?(state.with_locals(image_name: 'input')).should be_false
-					subject.handlers[0].stores[1].excluded?(state.with_locals(image_name: 'input1')).should be_true
-					subject.handlers[0].stores[2].excluded?(state.with_locals(image_name: 'input2')).should be_false
+					subject do
+						Configuration.read(<<-EOF)
+						post {
+							store_s3 "input" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-variable-matches="hello:world"
+							store_s3 "input1" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-variable-matches="hello:blah"
+							store_s3 "input2" bucket="#{ENV['AWS_S3_TEST_BUCKET']}" path="hash" if-variable-matches="xyz"
+						}
+						EOF
+					end
+
+					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+						subject.handlers[0].stores[0].excluded?(state).should be_false
+						subject.handlers[0].stores[1].excluded?(state).should be_true
+						subject.handlers[0].stores[2].excluded?(state).should be_false
+					end
 				end
 			end
 
@@ -904,6 +927,18 @@ else
 					expect {
 						subject.handlers[0].stores[0].realize(state)
 					}.to raise_error Configuration::S3AccessDenied, %{access to S3 bucket 'blah' or key 'test_out.jpg' was denied}
+				end
+
+				context 'with extra attributes' do
+					it 'should raise UnexpectedAttributesError' do
+						expect {
+							Configuration.read(<<-EOF)
+							post {
+								store_s3 "input2" bucket="buck" path="hash" blah="xyz"
+							}
+							EOF
+						}.to raise_error Configuration::UnexpectedAttributesError, %q{syntax error while parsing 'store_s3 "input2" blah="xyz" bucket="buck" path="hash"': unexpected attributes: 'blah'}
+					end
 				end
 			end
 		end

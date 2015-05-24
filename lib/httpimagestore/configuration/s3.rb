@@ -296,8 +296,11 @@ module Configuration
 			node.required_attributes('bucket', 'path')
 			node.valid_attribute_values('public_access', true, false, nil)
 
-			bucket, path_spec, public_access, cache_control, prefix, cache_root, if_image_name_on =
-				*node.grab_attributes('bucket', 'path', 'public', 'cache-control', 'prefix', 'cache-root', 'if-image-name-on')
+			bucket, path_spec, public_access, cache_control, prefix, cache_root, remaining =
+				*node.grab_attributes_with_remaining('bucket', 'path', 'public', 'cache-control', 'prefix', 'cache-root')
+			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
+			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
+
 			public_access = false if public_access.nil?
 			prefix = '' if prefix.nil?
 
@@ -311,7 +314,7 @@ module Configuration
 				prefix,
 				cache_root
 			)
-			s3.with_inclusion_matchers(ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
+			s3.with_conditions(conditions)
 			s3
 		end
 

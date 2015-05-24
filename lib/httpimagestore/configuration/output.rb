@@ -116,9 +116,12 @@ module Configuration
 			nodes = node.values.empty? ? node.children : [node]
 			output_specs = nodes.map do |node|
 				image_name = node.grab_values('image name').first
-				scheme, host, port, path_spec, if_image_name_on = *node.grab_attributes('scheme', 'host', 'port', 'path', 'if-image-name-on')
+				scheme, host, port, path_spec, remaining = *node.grab_attributes_with_remaining('scheme', 'host', 'port', 'path')
+				conditions, remaining = *HandlerStatement::ConditionalInclusion.grab_conditions_with_remaining(remaining)
+				remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
+
 				out = OutputSpec.new(configuration.global, image_name, scheme, host, port, path_spec)
-				out.with_inclusion_matchers(HandlerStatement::ConditionalInclusion::ImageNameOn.new(if_image_name_on)) if if_image_name_on
+				out.with_conditions(conditions)
 				out
 			end
 

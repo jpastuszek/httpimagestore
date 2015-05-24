@@ -77,17 +77,30 @@ module Configuration
 				end
 			end
 
-			def with_inclusion_matchers(*matchers)
-				@matchers ||= []
-				@matchers.push(*matchers)
+			def self.grab_conditions_with_remaining(attributes)
+				conditions = []
+				attributes = attributes.dup
+
+				if_image_name_on = attributes.delete('if-image-name-on')
+				conditions << ConditionalInclusion::ImageNameOn.new(if_image_name_on) if if_image_name_on
+
+				if_image_name_on = attributes.delete('if-variable-matches')
+				conditions << ConditionalInclusion::VariableMatches.new(if_image_name_on) if if_image_name_on
+
+				[conditions, attributes]
+			end
+
+			def with_conditions(conditions)
+				@conditions ||= []
+				@conditions.push(*conditions)
 				self
 			end
 
 			def included?(request_state)
-				return true if not @matchers or @matchers.empty?
-				# some matchers may use local_configuration vars
+				return true if not @conditions or @conditions.empty?
+				# some conditions may use local_configuration vars
 				request_state = request_state.with_locals(local_configuration) if @local_configuration
-				@matchers.all? do |matcher|
+				@conditions.all? do |matcher|
 					matcher.included?(request_state)
 				end
 			end
