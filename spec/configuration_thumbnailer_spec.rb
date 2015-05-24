@@ -636,43 +636,108 @@ describe Configuration do
 	end
 
 	describe 'conditional inclusion support' do
-		let :state do
-			Configuration::RequestState.new(
-				(support_dir + 'compute.jpg').read,
-				{
-					list: 'thumbnail1,input4,thumbnail5,input6'
+		describe 'if-image-name-on' do
+			let :state do
+				Configuration::RequestState.new(
+					(support_dir + 'compute.jpg').read,
+					{
+						list: 'thumbnail1,input4,thumbnail5,input6'
+					}
+				)
+			end
+
+			subject do
+				Configuration.read(<<-'EOF')
+				put {
+					thumbnail "input1" "thumbnail1" if-image-name-on="#{list}"
+					thumbnail "input2" "thumbnail2" if-image-name-on="#{list}"
+					thumbnail "input3" if-image-name-on="#{list}" {
+						"thumbnail3"
+					}
+					thumbnail "input4" if-image-name-on="#{list}" {
+						"thumbnail4"
+					}
+					thumbnail "input5" if-image-name-on="#{list}" {
+						"thumbnail5" if-image-name-on="#{list}"
+					}
+					thumbnail "input6" if-image-name-on="#{list}" {
+						"thumbnail6" if-image-name-on="#{list}"
+					}
 				}
-			)
+				EOF
+			end
+
+			it 'should mark source to be included when output image name in oneline and destination image name in multiline statement match if-image-name-on list' do
+				subject.handlers[0].processors[0].excluded?(state).should be_false
+				subject.handlers[0].processors[1].excluded?(state).should be_true
+				subject.handlers[0].processors[2].excluded?(state).should be_true
+				subject.handlers[0].processors[3].excluded?(state).should be_false
+				subject.handlers[0].processors[4].excluded?(state).should be_true
+				subject.handlers[0].processors[5].excluded?(state).should be_false
+			end
 		end
 
-		subject do
-			Configuration.read(<<-'EOF')
-			put {
-				thumbnail "input1" "thumbnail1" if-image-name-on="#{list}"
-				thumbnail "input2" "thumbnail2" if-image-name-on="#{list}"
-				thumbnail "input3" if-image-name-on="#{list}" {
-					"thumbnail3"
-				}
-				thumbnail "input4" if-image-name-on="#{list}" {
-					"thumbnail4"
-				}
-				thumbnail "input5" if-image-name-on="#{list}" {
-					"thumbnail5" if-image-name-on="#{list}"
-				}
-				thumbnail "input6" if-image-name-on="#{list}" {
-					"thumbnail6" if-image-name-on="#{list}"
-				}
-			}
-			EOF
-		end
+		describe 'if-variable-matches' do
+			let :state do
+				Configuration::RequestState.new(
+					(support_dir + 'compute.jpg').read,
+					{
+						hello: 'world',
+						xyz: 'true'
+					}
+				)
+			end
 
-		it 'should mark source to be included when output image name in oneline and destination image name in multiline statement match if-image-name-on list' do
-			subject.handlers[0].processors[0].excluded?(state).should be_false
-			subject.handlers[0].processors[1].excluded?(state).should be_true
-			subject.handlers[0].processors[2].excluded?(state).should be_true
-			subject.handlers[0].processors[3].excluded?(state).should be_false
-			subject.handlers[0].processors[4].excluded?(state).should be_true
-			subject.handlers[0].processors[5].excluded?(state).should be_false
+			subject do
+				Configuration.read(<<-'EOF')
+				put {
+					thumbnail "input1" "thumbnail1" if-variable-matches="hello:world"
+					thumbnail "input2" "thumbnail2" if-variable-matches="hello:blah"
+					thumbnail "input1" "thumbnail1" if-variable-matches="xyz"
+					thumbnail "input1" "thumbnail1" if-variable-matches="hello"
+					thumbnail "input1" "thumbnail1" if-variable-matches="blah"
+				}
+				EOF
+			end
+
+			it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+				subject.handlers[0].processors[0].excluded?(state).should be_false
+				subject.handlers[0].processors[1].excluded?(state).should be_true
+				subject.handlers[0].processors[2].excluded?(state).should be_false
+				subject.handlers[0].processors[3].excluded?(state).should be_true
+				subject.handlers[0].processors[4].excluded?(state).should be_true
+			end
+
+			context 'with multi thumbnail configuration form' do
+				subject do
+					Configuration.read(<<-'EOF')
+					put {
+						thumbnail "input1" if-variable-matches="hello:world" {
+							"thumbnail3"
+						}
+						thumbnail "input2" if-variable-matches="hello:blah" {
+							"thumbnail3"
+						}
+						thumbnail "input3" if-variable-matches="xyz" {
+							"thumbnail4"
+						}
+						thumbnail "input4" if-variable-matches="hello:world" {
+							"thumbnail5" if-variable-matches="hello:world"
+						}
+						thumbnail "input5" if-variable-matches="hello:world" {
+							"thumbnail6" if-variable-matches="blah"
+						}
+					}
+					EOF
+				end
+				it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					subject.handlers[0].processors[0].excluded?(state).should be_false
+					subject.handlers[0].processors[1].excluded?(state).should be_true
+					subject.handlers[0].processors[2].excluded?(state).should be_false
+					subject.handlers[0].processors[3].excluded?(state).should be_false
+					subject.handlers[0].processors[4].excluded?(state).should be_false
+				end
+			end
 		end
 	end
 end
