@@ -76,29 +76,63 @@ describe Configuration do
 
 					describe '#edits' do
 						context 'when edits are provided as already parsed' do
-							next pending
+							let :edit1 do
+								Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('pad', ['0.1', '0.1', '0.8', '0.8'], {}, 1)
+							end
+
+							let :edit2 do
+								Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('rotate', ['32'], {'background-color' => 'red'}, 2)
+							end
+
 							subject do
-								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]).render
+								Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {}, [edit1, edit2]).render.spec
 							end
 
 							it 'should provide list of edits to apply for to' do
-								subject.edits.should == [['rotate', '30', 'background-color' => 'red'], ['crop', '0.1', '0.1', '0.8', '0.8']]
+								subject.edits.should have(2).edits
+
+								subject.edits[0].name.should == 'pad'
+								subject.edits[0].args.should have(4).argument
+								subject.edits[0].args.should == ['0.1', '0.1', '0.8', '0.8']
+								subject.edits[0].options.should == {}
+
+								subject.edits[1].name.should == 'rotate'
+								subject.edits[1].args.should have(1).argument
+								subject.edits[1].args[0].should == '32'
+								subject.edits[1].options.should == {'background-color' => 'red'}
 							end
 
 							context 'with arguments containing placeholders with existing locals' do
+								let :edit1 do
+									Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('fit', ['0.1', '0.1', '#{width}', '#{height}'], {}, 1)
+								end
+
+								let :edit2 do
+									Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('rotate', ['#{angle}'], {'background-color' => '#{color}'}, 2)
+								end
+
 								subject do
 									locals = {
 										angle: 90,
 										color: 'blue',
-										edit: 'fit',
 										width: 0.42,
 										height: 0.34
 									}
-									Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {'background-color' => 'red'}, [['rotate', '#{angle}', 'background-color' => '#{color}'], ['#{edit}', '0.1', '0.1', '#{width}', '#{height}']]).render(locals)
+									Configuration::Thumbnail::ThumbnailSpec.new('small', 'pad', 100, 100, 'jpeg', {}, [edit1, edit2]).render(locals).spec
 								end
 
 								it 'should provide list of edits to apply for to with placeholders filled' do
-									subject.edits.should == [['rotate', '90', 'background-color' => 'blue'], ['fit', '0.1', '0.1', '0.42', '0.34']]
+									subject.edits.should have(2).edits
+
+									subject.edits[0].name.should == 'fit'
+									subject.edits[0].args.should have(4).argument
+									subject.edits[0].args.should == ['0.1', '0.1', '0.42', '0.34']
+									subject.edits[0].options.should == {}
+
+									subject.edits[1].name.should == 'rotate'
+									subject.edits[1].args.should have(1).argument
+									subject.edits[1].args[0].should == '90'
+									subject.edits[1].options.should == {'background-color' => 'blue'}
 								end
 							end
 						end
@@ -156,12 +190,12 @@ describe Configuration do
 								height: 66,
 								format: 'png',
 								opts: 'background-color:blue,quality:100'
-							)
+							).spec
 						end
 
 						describe '#spec' do
 							it 'should provide thumbnailing spec with options taken from filled options key that will not replace already provided values' do
-								subject.spec.options.should == {'background-color' => 'blue', 'quality' => '100'}
+								subject.options.should == {'background-color' => 'blue', 'quality' => '100'}
 							end
 
 							context 'with existing key' do
@@ -172,10 +206,10 @@ describe Configuration do
 										height: 66,
 										format: 'png',
 										opts: 'background-color:blue,quality:100'
-									)
+									).spec
 								end
 								it 'should not replace existing value' do
-									subject.spec.options.should == {'background-color' => 'red', 'quality' => '100'}
+									subject.options.should == {'background-color' => 'red', 'quality' => '100'}
 								end
 							end
 						end
@@ -208,8 +242,48 @@ describe Configuration do
 									subject.edits[1].options.should == {}
 								end
 
-								context 'with existing key' do
-									pending
+								context 'with already parsed edits' do
+									let :edit1 do
+										Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('pad', ['0.1', '0.1', '0.8', '0.8'], {}, 1)
+									end
+
+									let :edit2 do
+										Configuration::Thumbnail::ThumbnailSpec::EditSpec.new('rotate', ['32'], {'background-color' => 'blue'}, 2)
+									end
+
+									subject do
+										Configuration::Thumbnail::ThumbnailSpec.new('small', '#{operation}', '#{width}', '#{height}', '#{format}', {'edits' => '#{ed}', 'background-color' => 'red'}, [edit1, edit2]).render(
+											operation: 'fit',
+											width: 99,
+											height: 66,
+											format: 'png',
+											ed: 'rotate,30,background-color:red!crop,0.1,0.1,0.8,0.8'
+										).spec
+									end
+
+									it 'should add options provided edits after already parsed edits' do
+										subject.edits.should have(4).edits
+
+										subject.edits[0].name.should == 'pad'
+										subject.edits[0].args.should have(4).argument
+										subject.edits[0].args.should == ['0.1', '0.1', '0.8', '0.8']
+										subject.edits[0].options.should == {}
+
+										subject.edits[1].name.should == 'rotate'
+										subject.edits[1].args.should have(1).argument
+										subject.edits[1].args[0].should == '32'
+										subject.edits[1].options.should == {'background-color' => 'blue'}
+
+										subject.edits[2].name.should == 'rotate'
+										subject.edits[2].args.should have(1).argument
+										subject.edits[2].args[0].should == '30'
+										subject.edits[2].options.should == {'background-color' => 'red'}
+
+										subject.edits[3].name.should == 'crop'
+										subject.edits[3].args.should have(4).argument
+										subject.edits[3].args.should == ['0.1', '0.1', '0.8', '0.8']
+										subject.edits[3].options.should == {}
+									end
 								end
 							end
 						end
