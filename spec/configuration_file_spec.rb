@@ -260,19 +260,22 @@ describe Configuration do
 						store_file "input1" root="/tmp" path="out" if-variable-matches="hello:world"
 						store_file "input2" root="/tmp" path="out" if-variable-matches="hello:blah"
 						store_file "input3" root="/tmp" path="out" if-variable-matches="xyz"
-
+						store_file "input3" root="/tmp" path="out" if-variable-matches="bbb"
+						store_file "input3" root="/tmp" path="out" if-variable-matches="aaa"
 					}
 					EOF
 				end
 
 				let :state do
-					Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+					Configuration::RequestState.new('abc', {hello: 'world', xyz: 'blah', bbb: ''})
 				end
 
-				it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+				it 'should mark source to be included when variable value matches or when no value is expected it is not empty' do
 					subject.handlers[0].stores[0].excluded?(state).should be_false
 					subject.handlers[0].stores[1].excluded?(state).should be_true
 					subject.handlers[0].stores[2].excluded?(state).should be_false
+					subject.handlers[0].stores[3].excluded?(state).should be_true
+					subject.handlers[0].stores[4].excluded?(state).should be_true
 				end
 			end
 		end

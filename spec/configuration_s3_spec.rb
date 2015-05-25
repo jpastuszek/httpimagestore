@@ -811,7 +811,7 @@ else
 						EOF
 					end
 
-					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					it 'should mark source to be included when variable value matches or when no value is expected is not empty' do
 						subject.handlers[0].stores[0].excluded?(state).should be_false
 						subject.handlers[0].stores[1].excluded?(state).should be_true
 						subject.handlers[0].stores[2].excluded?(state).should be_false

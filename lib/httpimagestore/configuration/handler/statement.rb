@@ -70,7 +70,7 @@ module Configuration
 
 				def included?(request_state)
 					return false if not @param_name
-					return request_state[@param_name] == 'true' if not @template
+					return !request_state[@param_name].empty? if not @template
 					@template.render(request_state) == request_state[@param_name]
 				rescue Configuration::VariableNotDefinedError
 					false

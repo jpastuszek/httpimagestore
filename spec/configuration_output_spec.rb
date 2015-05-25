@@ -337,7 +337,7 @@ describe Configuration do
 						EOF
 					end
 
-					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					it 'should mark source to be included when variable value matches or when no value is expected is not empty' do
 						subject.handlers[0].sources[0].realize(state)
 						subject.handlers[0].sources[1].realize(state)
 						subject.handlers[0].sources[2].realize(state)
@@ -578,7 +578,7 @@ describe Configuration do
 						EOF
 					end
 
-					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					it 'should mark source to be included when variable value matches or when no value is expected is not empty' do
 						subject.handlers[0].sources[0].realize(state)
 						subject.handlers[0].sources[1].realize(state)
 						subject.handlers[0].sources[2].realize(state)
@@ -900,7 +900,7 @@ describe Configuration do
 						EOF
 					end
 
-					it 'should mark source to be included when variable value matches or when no value is expected it matches true' do
+					it 'should mark source to be included when variable value matches or when no value is expected is not empty' do
 						subject.handlers[0].sources[0].realize(state)
 						subject.handlers[0].sources[1].realize(state)
 						subject.handlers[0].sources[2].realize(state)
