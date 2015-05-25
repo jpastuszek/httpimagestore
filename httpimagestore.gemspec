@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Jakub Pastuszek"]
-  s.date = "2015-05-24"
+  s.date = "2015-05-25"
   s.description = "Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)"
   s.email = "jpastuszek@gmail.com"
   s.executables = ["httpimagestore"]
@@ -21,7 +21,6 @@ Gem::Specification.new do |s|
   ]
   s.files = [
     ".document",
-    ".rspec",
     "Gemfile",
     "Gemfile.lock",
     "LICENSE.txt",
@@ -29,29 +28,6 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "bin/httpimagestore",
-    "features/cache-control.feature",
-    "features/compatibility.feature",
-    "features/data-uri.feature",
-    "features/edits.feature",
-    "features/encoding.feature",
-    "features/error-reporting.feature",
-    "features/flexi.feature",
-    "features/health-check.feature",
-    "features/request-matching.feature",
-    "features/rewrite.feature",
-    "features/s3-store-and-thumbnail.feature",
-    "features/source-failover.feature",
-    "features/step_definitions/httpimagestore_steps.rb",
-    "features/storage.feature",
-    "features/support/env.rb",
-    "features/support/test-large.jpg",
-    "features/support/test.empty",
-    "features/support/test.jpg",
-    "features/support/test.png",
-    "features/support/test.txt",
-    "features/support/tiny.png",
-    "features/xid-forwarding.feature",
-    "httpimagestore.gemspec",
     "lib/httpimagestore/aws_sdk_regions_hack.rb",
     "lib/httpimagestore/configuration.rb",
     "lib/httpimagestore/configuration/file.rb",
@@ -66,27 +42,7 @@ Gem::Specification.new do |s|
     "lib/httpimagestore/configuration/source_failover.rb",
     "lib/httpimagestore/configuration/thumbnailer.rb",
     "lib/httpimagestore/error_reporter.rb",
-    "lib/httpimagestore/ruby_string_template.rb",
-    "load_test/load_test.1k.23a022f6e.m1.small-comp.csv",
-    "load_test/load_test.1k.ec9bde794.m1.small.csv",
-    "load_test/load_test.jmx",
-    "load_test/thumbnail_specs.csv",
-    "load_test/thumbnail_specs_v2.csv",
-    "spec/configuration_file_spec.rb",
-    "spec/configuration_handler_spec.rb",
-    "spec/configuration_identify_spec.rb",
-    "spec/configuration_output_spec.rb",
-    "spec/configuration_path_spec.rb",
-    "spec/configuration_s3_spec.rb",
-    "spec/configuration_source_failover_spec.rb",
-    "spec/configuration_spec.rb",
-    "spec/configuration_thumbnailer_spec.rb",
-    "spec/ruby_string_template_spec.rb",
-    "spec/spec_helper.rb",
-    "spec/support/compute.jpg",
-    "spec/support/cuba_response_env.rb",
-    "spec/support/full.cfg",
-    "spec/support/utf_string.txt"
+    "lib/httpimagestore/ruby_string_template.rb"
   ]
   s.homepage = "http://github.com/jpastuszek/httpimagestore"
   s.licenses = ["MIT"]
