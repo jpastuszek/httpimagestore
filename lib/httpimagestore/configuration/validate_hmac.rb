@@ -71,7 +71,7 @@ module Configuration
 			uri = @exclude.inject(uri) do |uri, ex|
 				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
 			end
-			uri.sub!(/\?$/, '')
+			uri.sub!(/(\?|&)$/, '')
 
 			digest = OpenSSL::Digest::Digest.new(@digest)
 

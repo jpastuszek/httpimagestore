@@ -214,6 +214,21 @@ describe Configuration do
 					}.to_not raise_error
 				end
 			end
+
+			context 'with URI containing also other query string parameters (last)' do
+				let :state do
+					request_state do |rs|
+						rs.matches hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+						rs.request_uri '/hello/world?abc=xyz&foo=bar&zzz=abc&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+					end
+				end
+
+				it 'should validate against URI with removed query string parameter' do
+					expect {
+						subject.handlers[0].validators[0].realize(state)
+					}.to_not raise_error
+				end
+			end
 		end
 
 		describe 'conditional inclusion support' do
