@@ -10,6 +10,12 @@ module Configuration
 			end
 		end
 
+		class UnsupportedDigestError < ConfigurationError
+			def initialize(digest)
+				super "digest '#{digest}' is not supported"
+			end
+		end
+
 		class HMACAuthenticationFailedError < ArgumentError
 			def initialize(expected_hmac, uri, digest)
 				super "HMAC URI authentication with digest '#{digest}' failed: provided HMAC '#{expected_hmac}' for URI '#{uri}' is not valid"
@@ -46,6 +52,13 @@ module Configuration
 			@secret = secret
 			@digest = digest || 'sha1'
 			@exclude = (exclude || '').split(/ *, */)
+
+			begin
+				# see if digest is valid
+				OpenSSL::Digest.digest(@digest, 'blah')
+			rescue
+				raise UnsupportedDigestError.new(@digest)
+			end
 		end
 
 		def realize(request_state)
