@@ -1,3 +1,7 @@
+require 'mime/types'
+require 'digest/sha2'
+require 'securerandom'
+
 module Configuration
 	class RequestState < Hash
 		include ClassLogging

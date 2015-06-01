@@ -1,7 +1,5 @@
-require 'mime/types'
-require 'digest/sha2'
-require 'securerandom'
 require 'httpimagestore/configuration/request_state'
+require 'httpimagestore/ruby_string_template'
 
 module Configuration
 	class ImageNotLoadedError < ConfigurationError
@@ -106,6 +104,7 @@ module Configuration
 					:global,
 					:http_method,
 					:uri_matchers,
+					:validators,
 					:sources,
 					:processors,
 					:stores,
@@ -178,6 +177,7 @@ module Configuration
 					end
 				end
 			end
+			handler_configuration.validators = []
 			handler_configuration.sources = []
 			handler_configuration.processors = []
 			handler_configuration.stores = []
@@ -202,6 +202,54 @@ module Configuration
 	end
 	RequestState.logger = Global.logger_for(RequestState)
 
+	class OutputText < Scope
+		def self.match(node)
+			node.name == 'output_text'
+		end
+
+		def self.parse(configuration, node)
+			configuration.output and raise StatementCollisionError.new(node, 'output')
+			text = node.grab_values('text').first
+			status, cache_control = *node.grab_attributes('status', 'cache-control')
+			configuration.output = OutputText.new(text, status || 200, cache_control)
+		end
+
+		def initialize(text, status, cache_control)
+			@text = RubyStringTemplate.new(text || fail("no text?!"))
+			@status = status || 200
+			@cache_control = cache_control
+		end
+
+		def realize(request_state)
+			# make sure variables are available in request context
+			status = @status
+			text = @text.render(request_state)
+			cache_control = @cache_control
+			request_state.output do
+				res['Cache-Control'] = cache_control if cache_control
+				write_plain status.to_i, text.to_s
+			end
+		end
+	end
+
+	class OutputOK < OutputText
+		def self.match(node)
+			node.name == 'output_ok'
+		end
+
+		def self.parse(configuration, node)
+			configuration.output and raise StatementCollisionError.new(node, 'output')
+			cache_control = node.grab_attributes('cache-control').first
+			configuration.output = OutputOK.new(cache_control)
+		end
+
+		def initialize(cache_control = nil)
+			super 'OK', 200, cache_control
+		end
+	end
+
 	Global.register_node_parser Handler
+	Handler::register_node_parser OutputText
+	Handler::register_node_parser OutputOK
 end
 

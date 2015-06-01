@@ -98,6 +98,9 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit, env['xid'] || {})
 
+						handler.validators.each do |validator|
+							validator.realize(state) unless validator.respond_to? :excluded? and validator.excluded?(state)
+						end
 						handler.sources.each do |source|
 							source.realize(state) unless source.respond_to? :excluded? and source.excluded?(state)
 						end
