@@ -1,7 +1,7 @@
 require_relative 'spec_helper'
 require 'httpimagestore/configuration'
 MemoryLimit.logger = RootLogger.new('/dev/null')
-#Configuration::Scope.logger = RootLogger.new('/dev/null')
+Configuration::Scope.logger = RootLogger.new('/dev/null')
 
 require 'httpimagestore/configuration/validate_hmac'
 
@@ -84,6 +84,80 @@ describe Configuration do
 				expect {
 					subject.handlers[0].validators[0].realize(state)
 				}.to raise_error Configuration::ValidateHMAC::HMACAuthenticationFailedError, "HMAC URI authentication with digest 'sha1' failed: provided HMAC 'blah' for URI 'The quick brown fox jumps over the lazy dog' is not valid"
+			end
+		end
+
+		context 'when excluding HMAC query string parameter' do
+			subject do
+				Configuration.read(<<-'EOF')
+				get {
+					validate_hmac "#{hmac}" secret="key" exclude="hmac"
+				}
+				EOF
+			end
+
+			context 'with URI containing only HMAC query string parameter ' do
+				let :state do
+					state = Configuration::RequestState.new(
+						'', {
+							hmac: '6917ed5233daf7fbbbb5827687c023a790cfc1f5'
+						}
+					)
+					state[:request_uri] = '/hello/world?hmac=6917ed5233daf7fbbbb5827687c023a790cfc1f5' # REQUEST_URI
+					state
+				end
+
+				it 'should validate against URI without query string' do
+					expect {
+						subject.handlers[0].validators[0].realize(state)
+					}.to_not raise_error
+				end
+
+				context 'with URI containing also other query string parameters' do
+					let :state do
+						state = Configuration::RequestState.new(
+							'', {
+								hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+							}
+						)
+						state[:request_uri] = '/hello/world?abc=xyz&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc' # REQUEST_URI
+						state
+					end
+
+					it 'should validate against URI with removed query string parameter' do
+						expect {
+							subject.handlers[0].validators[0].realize(state)
+						}.to_not raise_error
+					end
+				end
+			end
+		end
+
+		context 'when excluding HMAC and some other query string parameters' do
+			subject do
+				Configuration.read(<<-'EOF')
+				get {
+					validate_hmac "#{hmac}" secret="key" exclude="hmac,foo"
+				}
+				EOF
+			end
+
+			context 'with URI containing also other query string parameters' do
+				let :state do
+					state = Configuration::RequestState.new(
+						'', {
+							hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+						}
+					)
+					state[:request_uri] = '/hello/world?abc=xyz&foo=bar&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc' # REQUEST_URI
+					state
+				end
+
+				it 'should validate against URI with removed query string parameter' do
+					expect {
+						subject.handlers[0].validators[0].realize(state)
+					}.to_not raise_error
+				end
 			end
 		end
 	end

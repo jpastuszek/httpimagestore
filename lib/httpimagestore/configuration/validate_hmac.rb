@@ -29,22 +29,23 @@ module Configuration
 
 		def self.parse(configuration, node)
 			expected_hmac = node.grab_values('hmac').first
-			secret, digest, remaining = *node.grab_attributes_with_remaining('secret', 'digest')
+			secret, digest, exclude, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude')
 			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
 			secret or raise NoSecretKeySpecifiedError
 
-			obj = self.new(expected_hmac.to_template, secret, digest)
+			obj = self.new(expected_hmac.to_template, secret, digest, exclude)
 			obj.with_conditions(conditions)
 
 			configuration.validators << obj
 		end
 
-		def initialize(expected_hmac, secret, digest)
+		def initialize(expected_hmac, secret, digest, exclude)
 			@expected_hmac = expected_hmac
 			@secret = secret
 			@digest = digest || 'sha1'
+			@exclude = (exclude || '').split(/ *, */)
 		end
 
 		def realize(request_state)
@@ -53,6 +54,12 @@ module Configuration
 			ValidateHMAC.stats.incr_total_hmac_validations
 
 			uri = request_state[:request_uri]
+
+			uri = @exclude.inject(uri) do |uri, ex|
+				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
+			end
+			uri.sub!(/\?$/, '')
+
 			digest = OpenSSL::Digest::Digest.new(@digest)
 
 			log.debug "validating URI '#{uri}' HMAC with digest '#{@digest}': expected HMAC '#{expected_hmac}'"
