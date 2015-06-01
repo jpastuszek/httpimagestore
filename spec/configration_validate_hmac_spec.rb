@@ -160,6 +160,37 @@ describe Configuration do
 				end
 			end
 		end
+
+		describe 'conditional inclusion support' do
+			let :state do
+				state = Configuration::RequestState.new(
+					'', {
+						hmac: 'blah',
+						hello: 'world',
+						xyz: 'true'
+					}
+				)
+				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
+				state
+			end
+
+			describe 'if-variable-matches' do
+				subject do
+					Configuration.read(<<-'EOF')
+					get {
+						validate_hmac "#{hmac}" secret="key" if-variable-matches="hello:world"
+						validate_hmac "#{hmac}" secret="key" if-variable-matches="hello:blah"
+						validate_hmac "#{hmac}" secret="key" if-variable-matches="xyz"
+					}
+					EOF
+				end
+				it 'should perform validation if variable value matches or when no value is expected is not empty' do
+					subject.handlers[0].validators[0].excluded?(state).should be_false
+					subject.handlers[0].validators[1].excluded?(state).should be_true
+					subject.handlers[0].validators[2].excluded?(state).should be_false
+				end
+			end
+		end
 	end
 end
 
