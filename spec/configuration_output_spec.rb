@@ -9,7 +9,9 @@ require 'httpimagestore/configuration/file'
 
 describe Configuration do
 	let :state do
-		Configuration::RequestState.new('abc')
+		request_state do |rs|
+			rs.body 'abc'
+		end
 	end
 
 	let :env do
@@ -65,9 +67,10 @@ describe Configuration do
 		end
 
 		it 'should output text interpolated with variable values' do
-			state = Configuration::RequestState.new
-			state[:test1] = 'abc'
-			state[:test2] = 'xyz'
+			state = request_state do |rs|
+				rs[:test1] = 'abc'
+				rs[:test2] = 'xyz'
+			end
 
 			subject.handlers[3].output.realize(state)
 			env = CubaResponseEnv.new
@@ -90,7 +93,9 @@ describe Configuration do
 		end
 
 		it 'should output 200 with OK text/plain message when realized' do
-			state = Configuration::RequestState.new('abc')
+			state = request_state do |rs|
+				rs.body 'abc'
+			end
 			subject.handlers[0].output.realize(state)
 
 			env = CubaResponseEnv.new
@@ -263,7 +268,10 @@ describe Configuration do
 			describe 'conditional inclusion support' do
 				describe 'if-image-name-on' do
 					let :state do
-						Configuration::RequestState.new('abc', {list: 'input,image2'})
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches list: 'input,image2'
+						end
 					end
 
 					subject do
@@ -308,7 +316,10 @@ describe Configuration do
 				end
 				describe 'if-variable-matches' do
 					let :state do
-						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches hello: 'world', xyz: 'true'
+						end
 					end
 
 					subject do
@@ -504,7 +515,10 @@ describe Configuration do
 			describe 'conditional inclusion support' do
 				describe 'if-image-name-on' do
 					let :state do
-						Configuration::RequestState.new('abc', list: 'input,image2')
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches list: 'input,image2'
+						end
 					end
 
 					subject do
@@ -549,7 +563,10 @@ describe Configuration do
 				end
 				describe 'if-variable-matches' do
 					let :state do
-						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches hello: 'world', xyz: 'true'
+						end
 					end
 
 					subject do
@@ -678,11 +695,14 @@ describe Configuration do
 				end
 
 				it 'should allow using variables for all supported rewrites' do
-					state = Configuration::RequestState.new('abc',
-						remote: 'example.com',
-						remote_port: 421,
-						proto: 'ftp'
-					)
+					state = request_state do |rs|
+						rs.body 'abc'
+						rs.matches(
+							remote: 'example.com',
+							remote_port: 421,
+							proto: 'ftp'
+						)
+					end
 					subject = Configuration.read(<<-'EOF')
 					path  "out"	  "abc/test.out"
 					path  "formatted"	  "hello/#{dirname}/world/#{basename}-xyz.#{extension}"
@@ -825,7 +845,10 @@ describe Configuration do
 			describe 'conditional inclusion support' do
 				describe 'if-image-name-on' do
 					let :state do
-						Configuration::RequestState.new('abc', list: 'input,image2')
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches list: 'input,image2'
+						end
 					end
 
 					subject do
@@ -871,7 +894,10 @@ describe Configuration do
 
 				describe 'if-variable-matches' do
 					let :state do
-						Configuration::RequestState.new('abc', {hello: 'world', xyz: 'true'})
+						request_state do |rs|
+							rs.body 'abc'
+							rs.matches hello: 'world', xyz: 'true'
+						end
 					end
 
 					subject do
@@ -958,7 +984,10 @@ describe Configuration do
 				end
 
 				it 'should provide properly encoded file store URI' do
-					state = Configuration::RequestState.new('abc', name: 't e s t')
+					state = request_state do |rs|
+						rs.body 'abc'
+						rs.matches name: 't e s t'
+					end
 
 					subject.handlers[0].sources[0].realize(state)
 					subject.handlers[0].stores[0].realize(state)
@@ -970,7 +999,10 @@ describe Configuration do
 				end
 
 				it 'should handle UTF-8 characters' do
-					state = Configuration::RequestState.new('abc', name: utf_string)
+					state = request_state do |rs|
+						rs.body 'abc'
+						rs.matches name: utf_string
+					end
 					subject.handlers[0].sources[0].realize(state)
 					subject.handlers[0].stores[0].realize(state)
 					subject.handlers[0].output.realize(state)

@@ -89,14 +89,17 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						end
 
 						# decode remaining URI components
-						path = (env["PATH_INFO"][1..-1] || '').split('/').map do |part|
+						path = (env['PATH_INFO'][1..-1] || '').split('/').map do |part|
 							URI.utf_decode(part)
 						end.join('/')
 
 						# query string already decoded by Rack
 						query_string = req.GET
 
-						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, memory_limit, env['xid'] || {})
+						# actual request URI
+						p request_uri = env['REQUEST_URI']
+
+						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, request_uri, memory_limit, env['xid'] || {})
 
 						handler.validators.each do |validator|
 							validator.realize(state) unless validator.respond_to? :excluded? and validator.excluded?(state)
@@ -147,6 +150,7 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 		require 'httpimagestore/configuration/file'
 		require 'httpimagestore/configuration/output'
 		require 'httpimagestore/configuration/s3'
+		require 'httpimagestore/configuration/validate_hmac'
 
 		HTTPImageStore.use Configurator, Configuration.from_file(settings.config)
 		HTTPImageStore

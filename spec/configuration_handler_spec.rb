@@ -43,7 +43,10 @@ describe Configuration do
 					'test',
 					{operation: 'pad'},
 					'/hello/world.jpg',
-					{width: '123', height: '321'}
+					{width: '123', height: '321'},
+					'/hello/world.jpg?width=123&height=321',
+					MemoryLimit.new,
+					{}
 				)
 			end
 
@@ -136,7 +139,10 @@ describe Configuration do
 							'',
 							{operation: 'pad'},
 							'/hello/world.jpg',
-							{width: '123', height: '321'}
+							{width: '123', height: '321'},
+							'/hello/world.jpg?width=123&height=321',
+							MemoryLimit.new,
+							{}
 						)
 
 						expect {
@@ -185,13 +191,13 @@ describe Configuration do
 
 			it 'should raise ImageNotLoadedError if image lookup fails' do
 				expect {
-					Configuration::RequestState.new.images['test']
+					Configuration::RequestState.new('', {}, '', {}, '', MemoryLimit.new, {}).images['test']
 				}.to raise_error Configuration::ImageNotLoadedError, "image 'test' not loaded"
 			end
 
 			it 'should free memory limit if overwritting image' do
 				limit = MemoryLimit.new(2)
-				request_state = Configuration::RequestState.new('abc', {}, '', {}, limit)
+				request_state = Configuration::RequestState.new('abc', {}, '', {}, '', limit, {})
 
 				limit.borrow 1
 				request_state.images['test'] = Configuration::Image.new('x')
@@ -222,20 +228,21 @@ describe Configuration do
 			end
 
 			describe Configuration::InputSource do
+				let :state do
+				 	Configuration::RequestState.new('abc', {}, '', {}, '', MemoryLimit.new, {})
+				end
+
 				it 'should copy input data to "input" image when realized' do
-					state = Configuration::RequestState.new('abc')
 					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].data.should == 'abc'
 				end
 
 				it 'should have nil mime type' do
-					state = Configuration::RequestState.new('abc')
 					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].mime_type.should be_nil
 				end
 
 				it 'should have nil source path and url' do
-					state = Configuration::RequestState.new('abc')
 					input_source = subject.handlers[1].sources[0].realize(state)
 					state.images['input'].source_path.should be_nil
 					state.images['input'].source_url.should be_nil

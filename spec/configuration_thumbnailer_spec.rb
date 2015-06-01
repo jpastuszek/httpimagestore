@@ -345,15 +345,15 @@ describe Configuration do
 		end
 
 		let :state do
-			Configuration::RequestState.new(
-				(support_dir + 'compute.jpg').read,
-				{
+			request_state do |rs|
+				rs.body((support_dir + 'compute.jpg').read)
+				rs.matches(
 					operation: 'pad',
 					width: '10',
 					height: '10',
 					options: 'background-color:green'
-				}
-			)
+				)
+			end
 		end
 
 		before :each do
@@ -397,18 +397,16 @@ describe Configuration do
 
 			describe 'memory limit' do
 				let :state do
-					Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '10',
 							height: '10',
 							options: 'background-color:green'
-						},
-						'',
-						{},
-						MemoryLimit.new(10)
-					)
+						)
+						rs.memory_limit MemoryLimit.new(10)
+					end
 				end
 
 				it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
@@ -424,17 +422,16 @@ describe Configuration do
 				end
 
 				let :state do
-					Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '10',
 							height: '10',
 							options: 'background-color:green'
-						},
-						'', {}, MemoryLimit.new,
-						{'XID' => xid}
-					)
+						)
+						rs.headers 'XID' => xid
+					end
 				end
 
 				it 'should pass headers provided with request state' do
@@ -446,15 +443,15 @@ describe Configuration do
 
 			describe 'error handling' do
 				it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
-					state = Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					state = request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '0',
 							height: '10',
 							options: 'background-color:green'
-						}
-					)
+						)
+					end
 
 					expect {
 						subject.handlers[0].sources[0].realize(state)
@@ -533,18 +530,16 @@ describe Configuration do
 
 			describe 'memory limit' do
 				let :state do
-					Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '10',
 							height: '10',
 							options: 'background-color:green'
-						},
-						'',
-						{},
-						MemoryLimit.new(10)
-					)
+						)
+						rs.memory_limit MemoryLimit.new(10)
+					end
 				end
 
 				it 'should raise MemoryLimit::MemoryLimitedExceededError when limit is exceeded' do
@@ -568,16 +563,16 @@ describe Configuration do
 				end
 
 				let :state do
-					Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '10',
 							height: '10',
 							options: 'background-color:green',
 							list: 'small,padded'
-						}
-					)
+						)
+					end
 				end
 
 				it 'should provide thumbnails that name match if-image-name-on list' do
@@ -594,17 +589,16 @@ describe Configuration do
 				end
 
 				let :state do
-					Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '10',
 							height: '10',
 							options: 'background-color:green'
-						},
-						'', {}, MemoryLimit.new,
-						{'XID' => xid}
-					)
+						)
+						rs.headers 'XID' => xid
+					end
 				end
 
 				it 'should pass headers provided with request state' do
@@ -618,15 +612,15 @@ describe Configuration do
 
 			describe 'error handling' do
 				it 'should raise Thumbnail::ThumbnailingError on realization of bad thumbnail sepc' do
-					state = Configuration::RequestState.new(
-						(support_dir + 'compute.jpg').read,
-						{
+					state = request_state do |rs|
+						rs.body((support_dir + 'compute.jpg').read)
+						rs.matches(
 							operation: 'pad',
 							width: '0',
 							height: '10',
 							options: 'background-color:green'
-						}
-					)
+						)
+					end
 
 					subject.handlers[0].sources[0].realize(state)
 
@@ -652,12 +646,10 @@ describe Configuration do
 	describe 'conditional inclusion support' do
 		describe 'if-image-name-on' do
 			let :state do
-				Configuration::RequestState.new(
-					(support_dir + 'compute.jpg').read,
-					{
-						list: 'thumbnail1,input4,thumbnail5,input6'
-					}
-				)
+				request_state do |rs|
+					rs.body((support_dir + 'compute.jpg').read)
+					rs.matches list: 'thumbnail1,input4,thumbnail5,input6'
+				end
 			end
 
 			subject do
@@ -693,13 +685,10 @@ describe Configuration do
 
 		describe 'if-variable-matches' do
 			let :state do
-				Configuration::RequestState.new(
-					(support_dir + 'compute.jpg').read,
-					{
-						hello: 'world',
-						xyz: 'true'
-					}
-				)
+				request_state do |rs|
+					rs.body((support_dir + 'compute.jpg').read)
+					rs.matches hello: 'world', xyz: 'true'
+				end
 			end
 
 			subject do

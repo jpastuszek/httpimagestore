@@ -19,9 +19,9 @@ describe Configuration do
 		end
 
 		let :state do
-			Configuration::RequestState.new(
-				(support_dir + 'compute.jpg').read
-			)
+			request_state do |rs|
+				rs.body((support_dir + 'compute.jpg').read)
+			end
 		end
 
 		subject do
@@ -46,11 +46,10 @@ describe Configuration do
 			end
 
 			let :state do
-				Configuration::RequestState.new(
-					(support_dir + 'compute.jpg').read,
-					{}, '', {}, MemoryLimit.new,
-					{'XID' => xid}
-				)
+				request_state do |rs|
+					rs.body((support_dir + 'compute.jpg').read)
+					rs.headers 'XID' => xid
+				end
 			end
 
 			it 'should pass headers provided with request state' do

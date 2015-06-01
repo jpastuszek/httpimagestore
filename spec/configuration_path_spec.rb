@@ -67,12 +67,12 @@ describe Configuration do
 
 		describe 'rendering from RequestState' do
 			let :state do
-				Configuration::RequestState.new(
-					'test',
-					{operation: 'pad'},
-					'test/abc.jpg',
-					{width: '123', height: '321'}
-				)
+				request_state do |rs|
+					rs.body 'test'
+					rs.matches operation: 'pad'
+					rs.path 'test/abc.jpg'
+					rs.query_string width: '123', height: '321'
+				end
 			end
 
 			subject do
@@ -100,12 +100,12 @@ describe Configuration do
 
 			describe 'error handling' do
 				let :state do
-					Configuration::RequestState.new(
-						'',
-						{operation: 'pad'},
-						'test/abc.jpg',
-						{width: '123', height: '321'}
-					)
+					request_state do |rs|
+						rs.body ''
+						rs.matches operation: 'pad'
+						rs.path 'test/abc.jpg'
+						rs.query_string width: '123', height: '321'
+					end
 				end
 
 				it 'should raise PathRenderingError if body was expected but not provided' do
@@ -121,12 +121,12 @@ describe Configuration do
 				end
 
 				it 'should raise PathRenderingError if meta variable dependent variable not defined' do
-					state = Configuration::RequestState.new(
-						'',
-						{operation: 'pad'},
-						nil,
-						{width: '123', height: '321'}
-					)
+					state = request_state do |rs|
+						rs.body ''
+						rs.matches operation: 'pad'
+						rs.path nil
+						rs.query_string width: '123', height: '321'
+					end
 					expect {
 						subject.paths['base'].render(state)
 					}.to raise_error Configuration::PathRenderingError, %q{cannot generate path 'base' from template '#{basename}': need 'path' variable to generate value for 'basename'}

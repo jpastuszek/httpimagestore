@@ -91,7 +91,10 @@ else
 
 		describe Configuration::S3Source do
 			let :state do
-				Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
+				request_state do |rs|
+					rs.body 'abc'
+					rs.matches test_image: 'test.jpg'
+				end
 			end
 
 			subject do
@@ -167,7 +170,10 @@ else
 
 			describe 'object cache' do
 				let :state do
-					Configuration::RequestState.new('abc', {test_image: 'test/ghost.jpg'})
+					request_state do |rs|
+						rs.body 'abc'
+						rs.matches test_image: 'test/ghost.jpg'
+					end
 				end
 
 				subject do
@@ -237,11 +243,16 @@ else
 				end
 
 				describe 'read-through' do
+					let :state do
+					 	request_state do |rs|
+							rs.body 'abc'
+							rs.matches test_image: 'test.jpg'
+						end
+					end
+
 					it 'shluld use object stored in S3 when not found in the cache' do
 						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
 						cache_file.unlink if cache_file.exist?
-
-						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 						subject.handlers[0].sources[0].realize(state)
 
 						cache_file.should exist
@@ -251,7 +262,6 @@ else
 						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
 						cache_file.unlink if cache_file.exist?
 
-						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 						subject.handlers[0].sources[0].realize(state)
 
 						cache_file.should exist
@@ -268,8 +278,6 @@ else
 					it 'should update cached object with new properties read from S3' do
 						cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
 						cache_file.unlink if cache_file.exist?
-
-						state = Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
 
 						## cache with private URL
 						subject.handlers[0].sources[0].realize(state)
@@ -298,10 +306,6 @@ else
 					end
 
 					describe 'error handling' do
-						let :state do
-							Configuration::RequestState.new('abc', {test_image: 'test.jpg'})
-						end
-
 						before :each do
 							@cache_file = Pathname.new('/tmp/af/a3/5eaf0a614693e2d1ed455ac1cedb')
 							@cache_file.dirname.mkpath
@@ -354,7 +358,10 @@ else
 							cache_file = Pathname.new('/tmp/a2/fd/4261e9a7586ed772d0c78bb51c9d')
 							cache_file.unlink if cache_file.exist?
 
-							state = Configuration::RequestState.new('abc', {test_image: 'bogus.jpg'})
+							state = request_state do |rs|
+								rs.body 'abc'
+								rs.matches test_image: 'bogus.jpg'
+							end
 
 							expect {
 								subject.handlers[0].sources[0].realize(state)
@@ -367,7 +374,10 @@ else
 
 				describe 'write-through' do
 					let :state do
-						Configuration::RequestState.new(@test_data, {test_image: 'test_cache.jpg'})
+						request_state do |rs|
+							rs.body @test_data
+							rs.matches test_image: 'test_cache.jpg'
+						end
 					end
 
 					before :each do
@@ -389,7 +399,10 @@ else
 						s3_test_bucket = s3_client.buckets[ENV['AWS_S3_TEST_BUCKET']]
 						s3_test_bucket.objects['test_cache.jpg'].delete
 
-						state = Configuration::RequestState.new('', {test_image: 'test_cache.jpg'})
+						state = request_state do |rs|
+							rs.body ''
+							rs.matches test_image: 'test_cache.jpg'
+						end
 						expect {
 							subject.handlers[0].sources[0].realize(state)
 						}.not_to raise_error
@@ -544,7 +557,11 @@ else
 
 			describe 'memory limit' do
 				let :state do
-					Configuration::RequestState.new('abc', {test_image: 'test.jpg'}, '', {}, MemoryLimit.new(10))
+					request_state do |rs|
+						rs.body 'abc'
+						rs.matches test_image: 'test.jpg'
+						rs.memory_limit MemoryLimit.new(10)
+					end
 				end
 
 				it 'should raise MemoryLimit::MemoryLimitedExceededError when sourcing bigger image than limit' do
@@ -582,7 +599,10 @@ else
 
 		describe Configuration::S3Store do
 			let :state do
-				Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg'})
+				request_state do |rs|
+					rs.body @test_data
+					rs.matches test_image: 'test_out.jpg'
+				end
 			end
 
 			subject do
@@ -776,7 +796,10 @@ else
 			describe 'conditional inclusion support' do
 				describe 'if-image-name-on' do
 					let :state do
-						Configuration::RequestState.new(@test_data, {test_image: 'test_out.jpg', list: 'input,input2'})
+						request_state do |rs|
+							rs.body @test_data
+							rs.matches test_image: 'test_out.jpg', list: 'input,input2'
+						end
 					end
 
 					subject do
@@ -798,7 +821,10 @@ else
 
 				describe 'if-variable-matches' do
 					let :state do
-						Configuration::RequestState.new(@test_data, {hello: 'world', xyz: 'true'})
+						request_state do |rs|
+							rs.body @test_data
+							rs.matches hello: 'world', xyz: 'true'
+						end
 					end
 
 					subject do

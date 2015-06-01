@@ -7,7 +7,9 @@ require 'httpimagestore/configuration/output'
 
 describe Configuration do
 	let :state do
-		Configuration::RequestState.new('abc')
+		request_state do |rs|
+			rs.body 'abc'
+		end
 	end
 
 	describe Configuration::FileSource do
@@ -146,7 +148,10 @@ describe Configuration do
 
 		describe 'memory limit' do
 			let :state do
-				Configuration::RequestState.new('abc', {}, '', {}, MemoryLimit.new(1))
+				request_state do |rs|
+					rs.body 'abc'
+					rs.memory_limit MemoryLimit.new(1)
+				end
 			end
 
 			it 'should rais MemoryLimit::MemoryLimitedExceededError error if limit exceeded runing file sourcing' do
@@ -239,7 +244,10 @@ describe Configuration do
 				end
 
 				let :state do
-					Configuration::RequestState.new('abc', {list: 'input1,input3'})
+					request_state do |rs|
+						rs.body 'abc'
+						rs.matches list: 'input1,input3'
+					end
 				end
 
 				it 'should mark stores to ib included when image name match if-image-name-on list' do
@@ -267,7 +275,10 @@ describe Configuration do
 				end
 
 				let :state do
-					Configuration::RequestState.new('abc', {hello: 'world', xyz: 'blah', bbb: ''})
+					request_state do |rs|
+						rs.body 'abc'
+						rs.matches hello: 'world', xyz: 'blah', bbb: ''
+					end
 				end
 
 				it 'should mark source to be included when variable value matches or when no value is expected it is not empty' do

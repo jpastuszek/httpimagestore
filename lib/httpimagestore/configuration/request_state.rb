@@ -24,15 +24,16 @@ module Configuration
 			end
 		end
 
-		def initialize(body = '', matches = {}, path = '', query_string = {}, memory_limit = MemoryLimit.new, headers = {})
+		def initialize(body, matches, path, query_string, request_uri, memory_limit, headers)
 			super() do |request_state, name|
 				# note that request_state may be different object when useing with_locals that creates duplicate
 				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
 			end
 
 			self[:path] = path
+			self[:query_string] = query_string
+			self[:request_uri] = request_uri
 			merge! matches
-			self[:query_string_options] = query_string.sort.map{|kv| kv.join(':')}.join(',')
 
 			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{map{|k,v| "#{k}: '#{v}'"}.join(', ')}"
 
@@ -110,6 +111,8 @@ module Configuration
 				@images[image_name].height or raise NoImageDataForVariableError.new(image_name, name)
 			when :uuid
 				SecureRandom.uuid
+			when :query_string_options
+				self[:query_string].sort.map{|kv| kv.join(':')}.join(',')
 			end
 			if val
 				log.debug  "generated meta variable '#{name}': #{val}"

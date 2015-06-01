@@ -87,3 +87,66 @@ def stop_server(pid_file)
 	end
 end
 
+class RequestStateBuilder
+	def initialize
+		@vals = {}
+		@body = ''
+		@matches = {}
+		@path = ''
+		@query_string = {}
+		@request_uri = '/'
+		@memory_limit = MemoryLimit.new
+		@headers = {}
+
+		yield self if block_given?
+	end
+
+	def body(body)
+		@body = body
+	end
+
+	def matches(matches)
+		@matches.merge! matches
+	end
+
+	def path(path)
+		@path = path
+	end
+
+	def query_string(query_string)
+		@query_string.merge! query_string
+	end
+
+	def request_uri(request_uri)
+		@request_uri = request_uri
+	end
+
+	def memory_limit(memory_limit)
+		@memory_limit = memory_limit
+	end
+
+	def headers(headers)
+		@headers.merge! headers
+	end
+
+	def []=(key, val)
+		@vals[key] = val
+	end
+
+	def get
+		rs = Configuration::RequestState.new(@body, @matches, @path, @query_string, @request_uri, @memory_limit, @headers)
+		@vals.each do |key, value|
+			rs[key] = value
+		end
+		rs
+	end
+end
+
+def request_state(&block)
+	if block
+		RequestStateBuilder.new(&block).get
+	else
+		RequestStateBuilder.new
+	end
+end
+

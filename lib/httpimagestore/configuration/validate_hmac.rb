@@ -1,26 +1,26 @@
 require 'httpimagestore/configuration/handler/statement'
 
 module Configuration
+	class NoSecretKeySpecifiedError < ConfigurationError
+		def initialize
+			super 'no secret key given for validate_hmac (like secret="0f0f0...")'
+		end
+	end
+
+	class UnsupportedDigestError < ConfigurationError
+		def initialize(digest)
+			super "digest '#{digest}' is not supported"
+		end
+	end
+
+	class HMACAuthenticationFailedError < ArgumentError
+		def initialize(expected_hmac, uri, digest)
+			super "HMAC URI authentication with digest '#{digest}' failed: provided HMAC '#{expected_hmac}' for URI '#{uri}' is not valid"
+		end
+	end
+
 	class ValidateHMAC < HandlerStatement
 		include ConditionalInclusion
-
-		class NoSecretKeySpecifiedError < ConfigurationError
-			def initialize
-				super 'no secret key given for validate_hmac (like secret="0f0f0...")'
-			end
-		end
-
-		class UnsupportedDigestError < ConfigurationError
-			def initialize(digest)
-				super "digest '#{digest}' is not supported"
-			end
-		end
-
-		class HMACAuthenticationFailedError < ArgumentError
-			def initialize(expected_hmac, uri, digest)
-				super "HMAC URI authentication with digest '#{digest}' failed: provided HMAC '#{expected_hmac}' for URI '#{uri}' is not valid"
-			end
-		end
 
 		extend Stats
 		def_stats(

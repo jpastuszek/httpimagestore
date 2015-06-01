@@ -24,6 +24,10 @@ class ErrorReporter < Controller
 			write_error 400, error
 		end
 
+		on error(Configuration::HMACAuthenticationFailedError) do |error|
+			write_error 403, error
+		end
+
 		on error Configuration::SourceFailoverAllFailedError do |error|
 			if [Configuration::S3NoSuchKeyError, Configuration::NoSuchFileError].member? error.errors.first.class
 				write_error 404, error

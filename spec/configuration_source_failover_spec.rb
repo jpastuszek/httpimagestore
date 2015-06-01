@@ -9,7 +9,9 @@ MemoryLimit.logger = Logger.new('/dev/null')
 
 describe Configuration do
 	let :state do
-		Configuration::RequestState.new('abc')
+		request_state do |rs|
+			rs.body 'abc'
+		end
 	end
 
 	describe Configuration::FileSource do

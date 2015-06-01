@@ -17,13 +17,10 @@ describe Configuration do
 			end
 
 			let :state do
-				state = Configuration::RequestState.new(
-					'', {
-						hmac: 'de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9'
-					}
-				)
-				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
-				state
+				request_state do |rs|
+					rs.matches hmac: 'de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9'
+					rs.request_uri 'The quick brown fox jumps over the lazy dog'
+				end
 			end
 
 			it 'should pass validation' do
@@ -65,13 +62,10 @@ describe Configuration do
 			end
 
 			let :state do
-				state = Configuration::RequestState.new(
-					'', {
-						hmac: 'f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8'
-					}
-				)
-				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
-				state
+				request_state do |rs|
+					rs.matches hmac: 'f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8'
+					rs.request_uri 'The quick brown fox jumps over the lazy dog'
+				end
 			end
 
 			it 'should pass validation' do
@@ -94,13 +88,10 @@ describe Configuration do
 			end
 
 			let :state do
-				state = Configuration::RequestState.new(
-					'', {
-						hmac: '80070713463e7749b90c2dc24911e275'
-					}
-				)
-				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
-				state
+				request_state do |rs|
+					rs.matches hmac: '80070713463e7749b90c2dc24911e275'
+					rs.request_uri 'The quick brown fox jumps over the lazy dog'
+				end
 			end
 
 			it 'should pass validation' do
@@ -123,19 +114,16 @@ describe Configuration do
 			end
 
 			let :state do
-				state = Configuration::RequestState.new(
-					'', {
-						hmac: 'blah'
-					}
-				)
-				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
-				state
+				request_state do |rs|
+					rs.matches hmac: 'blah'
+					rs.request_uri 'The quick brown fox jumps over the lazy dog'
+				end
 			end
 
 			it 'should fail validation' do
 				expect {
 					subject.handlers[0].validators[0].realize(state)
-				}.to raise_error Configuration::ValidateHMAC::HMACAuthenticationFailedError, "HMAC URI authentication with digest 'sha1' failed: provided HMAC 'blah' for URI 'The quick brown fox jumps over the lazy dog' is not valid"
+				}.to raise_error Configuration::HMACAuthenticationFailedError, "HMAC URI authentication with digest 'sha1' failed: provided HMAC 'blah' for URI 'The quick brown fox jumps over the lazy dog' is not valid"
 			end
 		end
 
@@ -147,7 +135,7 @@ describe Configuration do
 						validate_hmac "#{hmac}"
 					}
 					EOF
-				}.to raise_error Configuration::ValidateHMAC::NoSecretKeySpecifiedError
+				}.to raise_error Configuration::NoSecretKeySpecifiedError
 			end
 		end
 
@@ -159,7 +147,7 @@ describe Configuration do
 						validate_hmac "#{hmac}" secret="key" digest="blah"
 					}
 					EOF
-				}.to raise_error Configuration::ValidateHMAC::UnsupportedDigestError, "digest 'blah' is not supported"
+				}.to raise_error Configuration::UnsupportedDigestError, "digest 'blah' is not supported"
 			end
 		end
 
@@ -174,13 +162,10 @@ describe Configuration do
 
 			context 'with URI containing only HMAC query string parameter ' do
 				let :state do
-					state = Configuration::RequestState.new(
-						'', {
-							hmac: '6917ed5233daf7fbbbb5827687c023a790cfc1f5'
-						}
-					)
-					state[:request_uri] = '/hello/world?hmac=6917ed5233daf7fbbbb5827687c023a790cfc1f5' # REQUEST_URI
-					state
+					request_state do |rs|
+						rs.matches hmac: '6917ed5233daf7fbbbb5827687c023a790cfc1f5'
+						rs.request_uri '/hello/world?hmac=6917ed5233daf7fbbbb5827687c023a790cfc1f5'
+					end
 				end
 
 				it 'should validate against URI without query string' do
@@ -191,13 +176,10 @@ describe Configuration do
 
 				context 'with URI containing also other query string parameters' do
 					let :state do
-						state = Configuration::RequestState.new(
-							'', {
-								hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
-							}
-						)
-						state[:request_uri] = '/hello/world?abc=xyz&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc' # REQUEST_URI
-						state
+						request_state do |rs|
+							rs.matches hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+							rs.request_uri '/hello/world?abc=xyz&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc'
+						end
 					end
 
 					it 'should validate against URI with removed query string parameter' do
@@ -220,13 +202,10 @@ describe Configuration do
 
 			context 'with URI containing also other query string parameters' do
 				let :state do
-					state = Configuration::RequestState.new(
-						'', {
-							hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
-						}
-					)
-					state[:request_uri] = '/hello/world?abc=xyz&foo=bar&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc' # REQUEST_URI
-					state
+					request_state do |rs|
+						rs.matches hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+						rs.request_uri '/hello/world?abc=xyz&foo=bar&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9&zzz=abc'
+					end
 				end
 
 				it 'should validate against URI with removed query string parameter' do
@@ -239,15 +218,14 @@ describe Configuration do
 
 		describe 'conditional inclusion support' do
 			let :state do
-				state = Configuration::RequestState.new(
-					'', {
+				request_state do |rs|
+					rs.matches(
 						hmac: 'blah',
 						hello: 'world',
 						xyz: 'true'
-					}
-				)
-				state[:request_uri] = 'The quick brown fox jumps over the lazy dog' # REQUEST_URI
-				state
+					)
+					rs.request_uri 'The quick brown fox jumps over the lazy dog'
+				end
 			end
 
 			describe 'if-variable-matches' do
