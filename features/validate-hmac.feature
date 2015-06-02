@@ -5,24 +5,24 @@ Feature: Validating URI HMAC
 		Given httpthumbnailer server is running at http://localhost:3100/health_check
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
-		get "hello" "&:bar?" "&:hmac?" "&:foo?" {
-			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" remove="hmac,nonce"
+		get "hello" {
+		validate_hmac "hmac" secret="pass123" exclude="baz" remove="hmac,nonce"
 			output_text "valid"
 		}
 
-		post "test" "&:hmac?" {
-			validate_hmac "#{hmac}" secret="pass123" exclude="hmac"
+		post "test" {
+			validate_hmac "hmac" secret="pass123"
 			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" options="#{query_string_options}"
 			output_image "thumbnail"
 		}
 
-		get "fake" "&:bar?" "&:hmac?" "&:request_uri?" {
-			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" remove="hmac,nonce"
+		get "fake" "&:request_uri?" {
+			validate_hmac "hmac" secret="pass123" remove="hmac,nonce"
 			output_text "valid"
 		}
 
 		get "conditional" "&:hmac?" {
-			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" if-variable-matches="hmac"
+			validate_hmac "hmac" secret="pass123" if-variable-matches="hmac"
 			output_text "valid"
 		}
 		"""
@@ -30,6 +30,33 @@ Feature: Validating URI HMAC
 	@validate-hmac
 	Scenario: Properly authenticated URI
 		When I do GET request http://localhost:3000/hello?hmac=cc67210148307affa1465ee5d146978b1f3278cb
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+
+	@validate-hmac
+	Scenario: Properly authenticated URI with excluded query stirng parameter
+		When I do GET request http://localhost:3000/hello?baz=1&hmac=cc67210148307affa1465ee5d146978b1f3278cb
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/hello?baz=42&hmac=cc67210148307affa1465ee5d146978b1f3278cb
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+
+	@validate-hmac
+	Scenario: Properly authenticated URI with extra query stirng parameter
+		When I do GET request http://localhost:3000/hello?foo=bar&hmac=d1aad080f8e744d6e60536b30a87d8ac2f76cb02
 		Then response status will be 200
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
@@ -54,7 +81,7 @@ Feature: Validating URI HMAC
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		HMAC URI authentication with digest 'sha1' failed: provided HMAC '' for URI '/hello' is not valid
+		HMAC URI authentication with digest 'sha1' failed: HMAC query string parameter 'hmac' not found
 		"""
 		When I do GET request http://localhost:3000/hello?hmac=
 		Then response status will be 403

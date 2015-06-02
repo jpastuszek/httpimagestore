@@ -14,8 +14,20 @@ module Configuration
 	end
 
 	class HMACAuthenticationFailedError < ArgumentError
+		def initialize(digest, msg)
+			super "HMAC URI authentication with digest '#{digest}' failed: #{msg}"
+		end
+	end
+
+	class HMACMismatchError < HMACAuthenticationFailedError
 		def initialize(expected_hmac, uri, digest)
-			super "HMAC URI authentication with digest '#{digest}' failed: provided HMAC '#{expected_hmac}' for URI '#{uri}' is not valid"
+			super digest, "provided HMAC '#{expected_hmac}' for URI '#{uri}' is not valid"
+		end
+	end
+
+	class HMACMissingError < HMACAuthenticationFailedError
+		def initialize(hmac_qs_param_name, digest)
+			super digest, "HMAC query string parameter '#{hmac_qs_param_name}' not found"
 		end
 	end
 
@@ -34,31 +46,37 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			expected_hmac = node.grab_values('hmac').first
+			hmac_qs_param_name = node.grab_values('hmac').first
 			secret, digest, exclude, remove, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude', 'remove')
 			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
 			secret or raise NoSecretKeySpecifiedError
 
-			obj = self.new(expected_hmac.to_template, secret, digest, exclude, remove)
+			obj = self.new(hmac_qs_param_name.to_template, secret, digest, exclude, remove)
 			obj.with_conditions(conditions)
 
 			configuration.validators << obj
 		end
 
-		def initialize(expected_hmac, secret, digest, exclude, remove)
-			@expected_hmac = expected_hmac
+		def initialize(hmac_qs_param_name, secret, digest, exclude, remove)
+			@hmac_qs_param_name = hmac_qs_param_name
 			@secret = secret
 			@digest = digest || 'sha1'
+
 			@exclude = (exclude || '').split(/ *, */)
-			if remove
-				@remove = remove.split(/ *, */)
+			# always exclude hmac from hash computation
+			@exclude << @hmac_qs_param_name
+
+			# by default remove hmac for qs params but can be kept if remove=""
+			@remove = if remove
+				remove.split(/ *, */)
 			else
-				@remove = @exclude
+				[@hmac_qs_param_name]
 			end
+
+			# check if digest is valid
 			begin
-				# see if digest is valid
 				OpenSSL::Digest.digest(@digest, 'blah')
 			rescue
 				raise UnsupportedDigestError.new(@digest)
@@ -66,7 +84,7 @@ module Configuration
 		end
 
 		def realize(request_state)
-			expected_hmac = @expected_hmac.render(request_state)
+			expected_hmac = request_state[:query_string][@hmac_qs_param_name] or raise HMACMissingError.new(@hmac_qs_param_name, @digest)
 
 			ValidateHMAC.stats.incr_total_hmac_validations
 
@@ -90,7 +108,7 @@ module Configuration
 			if actual_hmac != expected_hmac
 				log.warn "invalid HMAC with digest '#{@digest}' for URI '#{uri}'; expected HMAC '#{expected_hmac}'"
 				ValidateHMAC.stats.incr_total_invalid_hmac
-				raise HMACAuthenticationFailedError.new(expected_hmac, uri, @digest)
+				raise HMACMismatchError.new(expected_hmac, uri, @digest)
 			else
 				ValidateHMAC.stats.incr_total_valid_hmac
 			end
