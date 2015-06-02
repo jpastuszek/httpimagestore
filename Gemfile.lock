@@ -1,10 +1,3 @@
-PATH
-  remote: ../httpthumbnailer
-  specs:
-    httpthumbnailer (1.3.0)
-      rmagick (~> 2)
-      unicorn-cuba-base (~> 1.5.0)
-
 GEM
   remote: http://rubygems.org/
   specs:
@@ -42,6 +35,9 @@ GEM
     highline (1.6.20)
     httpauth (0.2.0)
     httpclient (2.6.0.1)
+    httpthumbnailer (1.3.0)
+      rmagick (~> 2)
+      unicorn-cuba-base (~> 1.5.0)
     httpthumbnailer-client (1.3.0)
       cli (~> 1.3)
       httpclient (>= 2.3)
@@ -116,11 +112,11 @@ PLATFORMS
 DEPENDENCIES
   addressable (~> 2.3)
   aws-sdk (~> 1.10)
-  cucumber
+  cucumber (~> 1.3)
   daemon (~> 1)
-  faraday (>= 0.8)
-  httpthumbnailer!
-  httpthumbnailer-client (~> 1.3.0)
+  faraday (~> 0.8)
+  httpthumbnailer (~> 1.3)
+  httpthumbnailer-client (~> 1.3)
   jeweler (~> 1.8, >= 1.8.8)
   mime-types (~> 1.17)
   msgpack (~> 0.5)
@@ -128,4 +124,4 @@ DEPENDENCIES
   rdoc (~> 3.9)
   rspec (~> 2.13)
   sdl4r (~> 0.9)
-  unicorn-cuba-base (~> 1.5.0)
+  unicorn-cuba-base (~> 1.5)
