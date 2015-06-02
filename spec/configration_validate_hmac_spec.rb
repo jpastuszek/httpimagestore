@@ -264,12 +264,12 @@ describe Configuration do
 					EOF
 				end
 
-				it 'should remove excluded parameters from request state' do
+				it 'should remove onlyd hmac parameter from query string' do
 					state[:query_string].should include('hmac')
 					state[:query_string].should include('foo')
 					subject.handlers[0].validators[0].realize(state)
 					state[:query_string].should_not include('hmac')
-					state[:query_string].should_not include('foo')
+					state[:query_string].should include('foo')
 				end
 			end
 		end
