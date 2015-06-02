@@ -30,6 +30,11 @@ Feature: Validating URI HMAC
 			validate_header_hmac "X-Forwarded-URI" "hmac" secret="pass123"
 			output_text "valid"
 		}
+
+		get "lockpicks" {
+			validate_header_hmac "X-Forwarded-URI" "hmac" secret="pass123" lockpicks="foo,bar"
+			output_text "valid"
+		}
 		"""
 
 	@validate-hmac
@@ -167,5 +172,37 @@ Feature: Validating URI HMAC
 		And response body will be CRLF ended lines
 		"""
 		HMAC URI authentication with digest 'sha1' failed: header 'X-FORWARDED-URI' not found in request body for HMAC verificaton
+		"""
+
+	@validate-hmac @header @lockpicks
+	Scenario: Bypassing validation with lockpick HMAC
+		Given X-FORWARDED-URI header set to /lockpicks
+		When I do GET request http://localhost:3000/lockpicks?hmac=a4c3fe2c9856f5df6412a04a3be877487f61d7d2
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/lockpicks?hmac=foo
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/lockpicks?hmac=bar
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/lockpicks?hmac=baz
+		Then response status will be 403
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		HMAC URI authentication with digest 'sha1' failed: provided HMAC 'baz' for URI '/lockpicks' is not valid
 		"""
 

@@ -44,25 +44,27 @@ module Configuration
 		def_stats(
 			:total_hmac_validations,
 			:total_valid_hmac,
-			:total_invalid_hmac
+			:total_invalid_hmac,
+			:total_lockpick_hmac
 		)
 
 		def self.new_with_common_options(configuration, node, hmac_qs_param_name, uri_source)
-			secret, digest, exclude, remove, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude', 'remove')
+			secret, digest, exclude, remove, lockpicks, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude', 'remove', 'lockpicks')
 			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
-			obj = ValidateHMAC.new(hmac_qs_param_name, secret, digest, exclude, remove, uri_source)
+			obj = ValidateHMAC.new(hmac_qs_param_name, secret, lockpicks, digest, exclude, remove, uri_source)
 			obj.with_conditions(conditions)
 			obj
 		end
 
-		def initialize(hmac_qs_param_name, secret, digest, exclude, remove, uri_source)
+		def initialize(hmac_qs_param_name, secret, lockpicks, digest, exclude, remove, uri_source)
 			@hmac_qs_param_name = hmac_qs_param_name
 			@secret = secret or raise NoSecretKeySpecifiedError
 			@digest = digest || 'sha1'
 
 			@exclude = (exclude || '').split(/ *, */)
+			@lockpicks = (lockpicks || '').split(/ *, */)
 			# always exclude hmac from hash computation
 			@exclude << @hmac_qs_param_name
 
@@ -101,6 +103,12 @@ module Configuration
 				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
 			end
 			uri.sub!(/(\?|&)$/, '')
+
+			if @lockpicks.any?{|lp| lp == expected_hmac}
+				log.warn "skipping URI '#{uri}' HMAC validation: valid lockpick provided!"
+				ValidateHMAC.stats.incr_total_lockpick_hmac
+				return
+			end
 
 			digest = OpenSSL::Digest::Digest.new(@digest)
 
