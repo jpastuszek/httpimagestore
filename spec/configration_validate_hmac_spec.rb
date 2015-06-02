@@ -231,6 +231,50 @@ describe Configuration do
 			end
 		end
 
+		describe 'removing related query string parameters' do
+			subject do
+				Configuration.read(<<-'EOF')
+				get {
+					validate_hmac "#{hmac}" secret="key" exclude="hmac,foo" remove="hmac"
+				}
+				EOF
+			end
+
+			let :state do
+				request_state do |rs|
+					rs.matches hmac: '10f99ef4d2a176447a49c4a85a52423ae8e108b9', foo: 'bar'
+					rs.query_string 'hmac' => '10f99ef4d2a176447a49c4a85a52423ae8e108b9', 'foo' => 'bar'
+					rs.request_uri '/hello/world?abc=xyz&foo=bar&zzz=abc&hmac=10f99ef4d2a176447a49c4a85a52423ae8e108b9'
+				end
+			end
+
+			it 'should remove removed parameters from request state' do
+				state[:query_string].should include('hmac')
+				state[:query_string].should include('foo')
+				subject.handlers[0].validators[0].realize(state)
+				state[:query_string].should_not include('hmac')
+				state[:query_string].should include('foo')
+			end
+
+			context 'with default removal of excluded parameters' do
+				subject do
+					Configuration.read(<<-'EOF')
+					get {
+						validate_hmac "#{hmac}" secret="key" exclude="hmac,foo"
+					}
+					EOF
+				end
+
+				it 'should remove excluded parameters from request state' do
+					state[:query_string].should include('hmac')
+					state[:query_string].should include('foo')
+					subject.handlers[0].validators[0].realize(state)
+					state[:query_string].should_not include('hmac')
+					state[:query_string].should_not include('foo')
+				end
+			end
+		end
+
 		describe 'conditional inclusion support' do
 			let :state do
 				request_state do |rs|

@@ -35,24 +35,28 @@ module Configuration
 
 		def self.parse(configuration, node)
 			expected_hmac = node.grab_values('hmac').first
-			secret, digest, exclude, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude')
+			secret, digest, exclude, remove, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude', 'remove')
 			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
 			secret or raise NoSecretKeySpecifiedError
 
-			obj = self.new(expected_hmac.to_template, secret, digest, exclude)
+			obj = self.new(expected_hmac.to_template, secret, digest, exclude, remove)
 			obj.with_conditions(conditions)
 
 			configuration.validators << obj
 		end
 
-		def initialize(expected_hmac, secret, digest, exclude)
+		def initialize(expected_hmac, secret, digest, exclude, remove)
 			@expected_hmac = expected_hmac
 			@secret = secret
 			@digest = digest || 'sha1'
 			@exclude = (exclude || '').split(/ *, */)
-
+			if remove
+				@remove = remove.split(/ *, */)
+			else
+				@remove = @exclude
+			end
 			begin
 				# see if digest is valid
 				OpenSSL::Digest.digest(@digest, 'blah')
@@ -66,8 +70,13 @@ module Configuration
 
 			ValidateHMAC.stats.incr_total_hmac_validations
 
-			uri = request_state[:request_uri]
+			# we need to remove related query string params so we don't pass them as thumbnailer options
+			@remove.each do |rm|
+				log.debug "removing query string parameter '#{rm}' used for URI authentication"
+				request_state[:query_string].delete(rm)
+			end
 
+			uri = request_state[:request_uri]
 			uri = @exclude.inject(uri) do |uri, ex|
 				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
 			end

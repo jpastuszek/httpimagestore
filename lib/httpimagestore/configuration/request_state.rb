@@ -30,10 +30,14 @@ module Configuration
 				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
 			end
 
+			# it is OK to overwrite path with a match
 			self[:path] = path
+
+			merge! matches
+
+			# this need to stay authentic
 			self[:query_string] = query_string
 			self[:request_uri] = request_uri
-			merge! matches
 
 			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{map{|k,v| "#{k}: '#{v}'"}.join(', ')}"
 
@@ -69,7 +73,6 @@ module Configuration
 		end
 
 		def generate_meta_variable(name)
-			log.debug  "generating meta variable: #{name}"
 			val = case name
 			when :basename
 				path = Pathname.new(fetch_base_variable(name, :path))
