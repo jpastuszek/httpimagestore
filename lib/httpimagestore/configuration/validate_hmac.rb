@@ -104,7 +104,7 @@ module Configuration
 				# without need to set custom headers
 				lockpick_no = @lockpicks.find_index(lockpick) + 1
 				uri = @uri_source.call(self, request_state) rescue request_state.request_uri
-				uri = uri.gsub(/#{@exclude.last}=#{lockpick}/, "#{@exclude.last}=<lockpick #{lockpick_no} used>\1")
+				uri = uri.gsub(/#{@exclude.last}=#{lockpick}/, "#{@exclude.last}=<lockpick #{lockpick_no} used>")
 
 				log.warn "valid lockpick provided! skipping URI HMAC validation for URI '#{uri}'"
 				ValidateHMAC.stats.incr_total_lockpick_hmac
