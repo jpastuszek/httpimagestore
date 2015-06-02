@@ -6,8 +6,8 @@ Feature: Validating URI HMAC
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
 		get "hello" {
-		validate_hmac "hmac" secret="pass123" exclude="baz" remove="hmac,nonce"
-			output_text "valid"
+			validate_hmac "hmac" secret="pass123" exclude="baz" remove="hmac,nonce"
+			output_text "valid qs: '#{query_string_options}'"
 		}
 
 		post "test" {
@@ -34,7 +34,7 @@ Feature: Validating URI HMAC
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		valid
+		valid qs: ''
 		"""
 
 	@validate-hmac
@@ -44,14 +44,14 @@ Feature: Validating URI HMAC
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		valid
+		valid qs: 'baz:1'
 		"""
 		When I do GET request http://localhost:3000/hello?baz=42&hmac=cc67210148307affa1465ee5d146978b1f3278cb
 		Then response status will be 200
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		valid
+		valid qs: 'baz:42'
 		"""
 
 	@validate-hmac
@@ -61,7 +61,7 @@ Feature: Validating URI HMAC
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		valid
+		valid qs: 'foo:bar'
 		"""
 
 	@validate-hmac
@@ -98,7 +98,7 @@ Feature: Validating URI HMAC
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		valid
+		valid qs: ''
 		"""
 
 	@validate-hmac @fake
