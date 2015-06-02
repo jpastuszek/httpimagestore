@@ -20,6 +20,11 @@ Feature: Validating URI HMAC
 			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" remove="hmac,nonce"
 			output_text "valid"
 		}
+
+		get "conditional" "&:hmac?" {
+			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" if-variable-matches="hmac"
+			output_text "valid"
+		}
 		"""
 
 	@validate-hmac
@@ -40,6 +45,23 @@ Feature: Validating URI HMAC
 		And response body will be CRLF ended lines
 		"""
 		HMAC URI authentication with digest 'sha1' failed: provided HMAC '0067210148307affa1465ee5d146978b1f3278cb' for URI '/hello' is not valid
+		"""
+
+	@validate-hmac
+	Scenario: Missing HMAC URI
+		When I do GET request http://localhost:3000/hello
+		Then response status will be 403
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		HMAC URI authentication with digest 'sha1' failed: provided HMAC '' for URI '/hello' is not valid
+		"""
+		When I do GET request http://localhost:3000/hello?hmac=
+		Then response status will be 403
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		HMAC URI authentication with digest 'sha1' failed: provided HMAC '' for URI '/hello' is not valid
 		"""
 
 	@validate-hmac
@@ -69,4 +91,28 @@ Feature: Validating URI HMAC
 		Then response status will be 200
 		And response content type will be image/jpeg
 		Then response body will contain JPEG image of size 71x100
+
+	@validate-hmac @condition
+	Scenario: Properly authenticated URI with improved security
+		When I do GET request http://localhost:3000/conditional
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/conditional?hmac=28d8a485111af7f6a68791f3afabe55d7b0ac63d
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/conditional?hmac=00d8a485111af7f6a68791f3afabe55d7b0ac63d
+		Then response status will be 403
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		HMAC URI authentication with digest 'sha1' failed: provided HMAC '00d8a485111af7f6a68791f3afabe55d7b0ac63d' for URI '/conditional' is not valid
+		"""
 
