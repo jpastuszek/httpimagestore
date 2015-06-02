@@ -206,3 +206,20 @@ Feature: Validating URI HMAC
 		HMAC URI authentication with digest 'sha1' failed: provided HMAC 'baz' for URI '/lockpicks' is not valid
 		"""
 
+	@validate-hmac @header @lockpicks
+	Scenario: Bypassing validation with lockpick HMAC also skips header lookup
+		When I do GET request http://localhost:3000/lockpicks?hmac=foo
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+		When I do GET request http://localhost:3000/lockpicks?hmac=bar&baz=xyz
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+

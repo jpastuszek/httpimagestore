@@ -98,17 +98,24 @@ module Configuration
 				request_state.query_string.delete(rm)
 			end
 
+			if lockpick = @lockpicks.detect{|lockpick| lockpick == expected_hmac}
+				# we try to get the URI if possible or else fail back to request_uri
+				# this is to help tracking where lockpicks are being used but still allow playing with APIs directly
+				# without need to set custom headers
+				lockpick_no = @lockpicks.find_index(lockpick) + 1
+				uri = @uri_source.call(self, request_state) rescue request_state.request_uri
+				uri = uri.gsub(/#{@exclude.last}=#{lockpick}/, "#{@exclude.last}=<lockpick #{lockpick_no} used>\1")
+
+				log.warn "valid lockpick provided! skipping URI HMAC validation for URI '#{uri}'"
+				ValidateHMAC.stats.incr_total_lockpick_hmac
+				return
+			end
+
 			uri = @uri_source.call(self, request_state) or fail "nil URI"
 			uri = @exclude.inject(uri) do |uri, ex|
 				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
 			end
 			uri.sub!(/(\?|&)$/, '')
-
-			if @lockpicks.any?{|lp| lp == expected_hmac}
-				log.warn "skipping URI '#{uri}' HMAC validation: valid lockpick provided!"
-				ValidateHMAC.stats.incr_total_lockpick_hmac
-				return
-			end
 
 			digest = OpenSSL::Digest::Digest.new(@digest)
 
