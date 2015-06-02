@@ -11,7 +11,7 @@ Feature: Validating URI HMAC
 		}
 
 		post "test" "&:hmac?" {
-			validate_hmac "#{hmac}" secret="pass123" exclude="hmac" remove="hmac"
+			validate_hmac "#{hmac}" secret="pass123" exclude="hmac"
 			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" options="#{query_string_options}"
 			output_image "thumbnail"
 		}
