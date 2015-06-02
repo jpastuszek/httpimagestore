@@ -6,12 +6,12 @@ Configuration::Scope.logger = RootLogger.new('/dev/null')
 require 'httpimagestore/configuration/validate_hmac'
 
 describe Configuration do
-	describe 'validate_hmac' do
+	describe 'validate_uri_hmac' do
 		context 'given example secret and hash for SHA1' do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key" digest="sha1"
+					validate_uri_hmac "hmac" secret="key" digest="sha1"
 				}
 				EOF
 			end
@@ -36,7 +36,7 @@ describe Configuration do
 				subject do
 					Configuration.read(<<-'EOF')
 					get {
-						validate_hmac "hmac" secret="key"
+						validate_uri_hmac "hmac" secret="key"
 					}
 					EOF
 				end
@@ -56,7 +56,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key" digest="sha256"
+					validate_uri_hmac "hmac" secret="key" digest="sha256"
 				}
 				EOF
 			end
@@ -82,7 +82,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key" digest="md5"
+					validate_uri_hmac "hmac" secret="key" digest="md5"
 				}
 				EOF
 			end
@@ -108,7 +108,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key"
+					validate_uri_hmac "hmac" secret="key"
 				}
 				EOF
 			end
@@ -132,7 +132,7 @@ describe Configuration do
 				expect {
 					Configuration.read(<<-'EOF')
 					get {
-						validate_hmac "hmac"
+						validate_uri_hmac "hmac"
 					}
 					EOF
 				}.to raise_error Configuration::NoSecretKeySpecifiedError
@@ -144,7 +144,7 @@ describe Configuration do
 				expect {
 					Configuration.read(<<-'EOF')
 					get {
-						validate_hmac "hmac" secret="key" digest="blah"
+						validate_uri_hmac "hmac" secret="key" digest="blah"
 					}
 					EOF
 				}.to raise_error Configuration::UnsupportedDigestError, "digest 'blah' is not supported"
@@ -155,7 +155,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key"
+					validate_uri_hmac "hmac" secret="key"
 				}
 				EOF
 			end
@@ -195,7 +195,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key" exclude="foo"
+					validate_uri_hmac "hmac" secret="key" exclude="foo"
 				}
 				EOF
 			end
@@ -235,7 +235,7 @@ describe Configuration do
 			subject do
 				Configuration.read(<<-'EOF')
 				get {
-					validate_hmac "hmac" secret="key" exclude="foo" remove="hmac"
+					validate_uri_hmac "hmac" secret="key" exclude="foo" remove="hmac"
 				}
 				EOF
 			end
@@ -248,28 +248,28 @@ describe Configuration do
 			end
 
 			it 'should remove removed parameters from request state' do
-				state[:query_string].should include('hmac')
-				state[:query_string].should include('foo')
+				state.query_string.should include('hmac')
+				state.query_string.should include('foo')
 				subject.handlers[0].validators[0].realize(state)
-				state[:query_string].should_not include('hmac')
-				state[:query_string].should include('foo')
+				state.query_string.should_not include('hmac')
+				state.query_string.should include('foo')
 			end
 
 			context 'with default removal of excluded parameters' do
 				subject do
 					Configuration.read(<<-'EOF')
 					get {
-						validate_hmac "hmac" secret="key" exclude="foo"
+						validate_uri_hmac "hmac" secret="key" exclude="foo"
 					}
 					EOF
 				end
 
 				it 'should remove onlyd hmac parameter from query string' do
-					state[:query_string].should include('hmac')
-					state[:query_string].should include('foo')
+					state.query_string.should include('hmac')
+					state.query_string.should include('foo')
 					subject.handlers[0].validators[0].realize(state)
-					state[:query_string].should_not include('hmac')
-					state[:query_string].should include('foo')
+					state.query_string.should_not include('hmac')
+					state.query_string.should include('foo')
 				end
 			end
 		end
@@ -287,9 +287,9 @@ describe Configuration do
 				subject do
 					Configuration.read(<<-'EOF')
 					get {
-						validate_hmac "hmac" secret="key" if-variable-matches="hello:world"
-						validate_hmac "hmac" secret="key" if-variable-matches="hello:blah"
-						validate_hmac "hmac" secret="key" if-variable-matches="xyz"
+						validate_uri_hmac "hmac" secret="key" if-variable-matches="hello:world"
+						validate_uri_hmac "hmac" secret="key" if-variable-matches="hello:blah"
+						validate_uri_hmac "hmac" secret="key" if-variable-matches="xyz"
 					}
 					EOF
 				end
@@ -297,6 +297,48 @@ describe Configuration do
 					subject.handlers[0].validators[0].excluded?(state).should be_false
 					subject.handlers[0].validators[1].excluded?(state).should be_true
 					subject.handlers[0].validators[2].excluded?(state).should be_false
+				end
+			end
+		end
+	end
+
+	describe 'validate_header_hmac' do
+		context 'given example secret and hash for SHA1' do
+			subject do
+				Configuration.read(<<-'EOF')
+				get {
+					validate_header_hmac "X-ORIGINAL-URI" "hmac" secret="key"
+				}
+				EOF
+			end
+
+			let :state do
+				request_state do |rs|
+					rs.query_string 'hmac' => 'de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9'
+					rs.request_headers 'X-ORIGINAL-URI' => 'The quick brown fox jumps over the lazy dog'
+				end
+			end
+
+			it 'should pass validation' do
+				subject.handlers.should have(1).handler
+				subject.handlers[0].validators.should_not be_nil
+				subject.handlers[0].validators.should have(1).validator
+				expect {
+					subject.handlers[0].validators[0].realize(state)
+				}.to_not raise_error
+			end
+
+			context 'when no header is provided' do
+				let :state do
+					request_state do |rs|
+						rs.query_string 'hmac' => 'de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9'
+					end
+				end
+
+				it 'should fail with authentication error' do
+					expect {
+						subject.handlers[0].validators[0].realize(state)
+					}.to raise_error Configuration::HMACMissingHeaderError, "HMAC URI authentication with digest 'sha1' failed: header 'X-ORIGINAL-URI' not found in request body for HMAC verificaton"
 				end
 			end
 		end

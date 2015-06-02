@@ -97,9 +97,17 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 						query_string = req.GET
 
 						# actual request URI
-						p request_uri = env['REQUEST_URI']
+						request_uri = env['REQUEST_URI']
+						request_headers = env.select{|k,v| k.start_with? 'HTTP_'}.map do |pair|
+							[
+								pair[0].sub(/^HTTP_/, '').gsub('_', '-'),
+								pair[1]
+							]
+						end
+						request_headers = Hash[request_headers]
+						request_headers.delete('VERSION')
 
-						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, request_uri, memory_limit, env['xid'] || {})
+						state = Configuration::RequestState.new(req.body.read, matches, path, query_string, request_uri, request_headers, memory_limit, env['xid'] || {})
 
 						handler.validators.each do |validator|
 							validator.realize(state) unless validator.respond_to? :excluded? and validator.excluded?(state)

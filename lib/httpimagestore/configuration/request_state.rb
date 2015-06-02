@@ -24,7 +24,7 @@ module Configuration
 			end
 		end
 
-		def initialize(body, matches, path, query_string, request_uri, memory_limit, headers)
+		def initialize(body, matches, path, query_string, request_uri, request_headers, memory_limit, forward_headers)
 			super() do |request_state, name|
 				# note that request_state may be different object when useing with_locals that creates duplicate
 				request_state[name] = request_state.generate_meta_variable(name) or raise VariableNotDefinedError.new(name)
@@ -35,24 +35,26 @@ module Configuration
 
 			merge! matches
 
-			# this need to stay authentic
-			self[:query_string] = query_string
-			self[:request_uri] = request_uri
-
 			log.debug "processing request with body length: #{body.bytesize} bytes and variables: #{map{|k,v| "#{k}: '#{v}'"}.join(', ')}"
 
 			@body = body
 			@images = Images.new(memory_limit)
+			@query_string = query_string
+			@request_uri = request_uri
+			@request_headers = request_headers
 			@memory_limit = memory_limit
 			@output_callback = nil
 
-			@headers = headers
+			@forward_headers = forward_headers
 		end
 
 		attr_reader :body
 		attr_reader :images
 		attr_reader :memory_limit
-		attr_reader :headers
+		attr_reader :query_string
+		attr_reader :request_uri
+		attr_reader :request_headers
+		attr_reader :forward_headers
 
 		def with_locals(*locals)
 			locals = locals.reduce{|a, b| a.merge(b)}
@@ -115,7 +117,7 @@ module Configuration
 			when :uuid
 				SecureRandom.uuid
 			when :query_string_options
-				self[:query_string].sort.map{|kv| kv.join(':')}.join(',')
+				query_string.sort.map{|kv| kv.join(':')}.join(',')
 			end
 			if val
 				log.debug  "generated meta variable '#{name}': #{val}"

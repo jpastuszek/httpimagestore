@@ -6,23 +6,28 @@ Feature: Validating URI HMAC
 		Given httpimagestore server is running at http://localhost:3000/ with the following configuration
 		"""
 		get "hello" {
-			validate_hmac "hmac" secret="pass123" exclude="baz" remove="hmac,nonce"
+			validate_uri_hmac "hmac" secret="pass123" exclude="baz" remove="hmac,nonce"
 			output_text "valid qs: '#{query_string_options}'"
 		}
 
 		post "test" {
-			validate_hmac "hmac" secret="pass123"
+			validate_uri_hmac "hmac" secret="pass123"
 			thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" options="#{query_string_options}"
 			output_image "thumbnail"
 		}
 
 		get "fake" "&:request_uri?" {
-			validate_hmac "hmac" secret="pass123" remove="hmac,nonce"
+			validate_uri_hmac "hmac" secret="pass123" remove="hmac,nonce"
 			output_text "valid"
 		}
 
 		get "conditional" "&:hmac?" {
-			validate_hmac "hmac" secret="pass123" if-variable-matches="hmac"
+			validate_uri_hmac "hmac" secret="pass123" if-variable-matches="hmac"
+			output_text "valid"
+		}
+
+		get "header" {
+			validate_header_hmac "X-Forwarded-URI" "hmac" secret="pass123"
 			output_text "valid"
 		}
 		"""
@@ -141,5 +146,26 @@ Feature: Validating URI HMAC
 		And response body will be CRLF ended lines
 		"""
 		HMAC URI authentication with digest 'sha1' failed: provided HMAC '00d8a485111af7f6a68791f3afabe55d7b0ac63d' for URI '/conditional' is not valid
+		"""
+
+	@validate-hmac @header
+	Scenario: Properly authenticated URI via header
+		Given X-FORWARDED-URI header set to /hello
+		When I do GET request http://localhost:3000/header?hmac=cc67210148307affa1465ee5d146978b1f3278cb
+		Then response status will be 200
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		valid
+		"""
+
+	@validate-hmac @header
+	Scenario: Missing header for URI authentication
+		When I do GET request http://localhost:3000/header?hmac=cc67210148307affa1465ee5d146978b1f3278cb
+		Then response status will be 403
+		And response content type will be text/plain
+		And response body will be CRLF ended lines
+		"""
+		HMAC URI authentication with digest 'sha1' failed: header 'X-FORWARDED-URI' not found in request body for HMAC verificaton
 		"""
 

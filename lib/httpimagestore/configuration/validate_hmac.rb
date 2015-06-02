@@ -31,6 +31,12 @@ module Configuration
 		end
 	end
 
+	class HMACMissingHeaderError < HMACAuthenticationFailedError
+		def initialize(digest, header_name)
+			super digest, "header '#{header_name}' not found in request body for HMAC verificaton"
+		end
+	end
+
 	class ValidateHMAC < HandlerStatement
 		include ConditionalInclusion
 
@@ -41,27 +47,19 @@ module Configuration
 			:total_invalid_hmac
 		)
 
-		def self.match(node)
-			node.name == 'validate_hmac'
-		end
-
-		def self.parse(configuration, node)
-			hmac_qs_param_name = node.grab_values('hmac').first
+		def self.new_with_common_options(configuration, node, hmac_qs_param_name, uri_source)
 			secret, digest, exclude, remove, remaining = *node.grab_attributes_with_remaining('secret', 'digest', 'exclude', 'remove')
 			conditions, remaining = *ConditionalInclusion.grab_conditions_with_remaining(remaining)
 			remaining.empty? or raise UnexpectedAttributesError.new(node, remaining)
 
-			secret or raise NoSecretKeySpecifiedError
-
-			obj = self.new(hmac_qs_param_name.to_template, secret, digest, exclude, remove)
+			obj = ValidateHMAC.new(hmac_qs_param_name, secret, digest, exclude, remove, uri_source)
 			obj.with_conditions(conditions)
-
-			configuration.validators << obj
+			obj
 		end
 
-		def initialize(hmac_qs_param_name, secret, digest, exclude, remove)
+		def initialize(hmac_qs_param_name, secret, digest, exclude, remove, uri_source)
 			@hmac_qs_param_name = hmac_qs_param_name
-			@secret = secret
+			@secret = secret or raise NoSecretKeySpecifiedError
 			@digest = digest || 'sha1'
 
 			@exclude = (exclude || '').split(/ *, */)
@@ -75,6 +73,8 @@ module Configuration
 				[@hmac_qs_param_name]
 			end
 
+			@uri_source = uri_source
+
 			# check if digest is valid
 			begin
 				OpenSSL::Digest.digest(@digest, 'blah')
@@ -83,18 +83,20 @@ module Configuration
 			end
 		end
 
+		attr_reader :digest
+
 		def realize(request_state)
-			expected_hmac = request_state[:query_string][@hmac_qs_param_name] or raise HMACMissingError.new(@hmac_qs_param_name, @digest)
+			expected_hmac = request_state.query_string[@hmac_qs_param_name] or raise HMACMissingError.new(@hmac_qs_param_name, @digest)
 
 			ValidateHMAC.stats.incr_total_hmac_validations
 
 			# we need to remove related query string params so we don't pass them as thumbnailer options
 			@remove.each do |rm|
 				log.debug "removing query string parameter '#{rm}' used for URI authentication"
-				request_state[:query_string].delete(rm)
+				request_state.query_string.delete(rm)
 			end
 
-			uri = request_state[:request_uri]
+			uri = @uri_source.call(self, request_state) or fail "nil URI"
 			uri = @exclude.inject(uri) do |uri, ex|
 				uri.gsub(/(\?|&)#{ex}=.*?($|&)/, '\1')
 			end
@@ -114,7 +116,38 @@ module Configuration
 			end
 		end
 	end
-	Handler::register_node_parser ValidateHMAC
+
+	class ValidateURIHMAC < ValidateHMAC
+		def self.match(node)
+			node.name == 'validate_uri_hmac'
+		end
+
+		def self.parse(configuration, node)
+			hmac_qs_param_name = node.grab_values('hmac').first
+			obj = self.new_with_common_options(configuration, node, hmac_qs_param_name, ->(obj, request_state){
+				request_state.request_uri
+			})
+			configuration.validators << obj
+		end
+	end
+
+	class ValidateHeaderHMAC < ValidateHMAC
+		def self.match(node)
+			node.name == 'validate_header_hmac'
+		end
+
+		def self.parse(configuration, node)
+			header_name, hmac_qs_param_name = *node.grab_values('header name', 'hmac')
+			header_name = header_name.upcase.gsub('_', '-')
+			obj = self.new_with_common_options(configuration, node, hmac_qs_param_name, ->(obj, request_state){
+				request_state.request_headers[header_name] or raise HMACMissingHeaderError.new(obj.digest, header_name)
+			})
+			configuration.validators << obj
+		end
+	end
+
+	Handler::register_node_parser ValidateURIHMAC
+	Handler::register_node_parser ValidateHeaderHMAC
 	StatsReporter << ValidateHMAC.stats
 end
 

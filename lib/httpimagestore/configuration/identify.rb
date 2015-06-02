@@ -46,7 +46,7 @@ module Configuration
 			Identify.stats.incr_total_identify_requests
 			Identify.stats.incr_total_identify_requests_bytes image.data.bytesize
 
-			id = client.with_headers(request_state.headers).identify(image.data)
+			id = client.with_headers(request_state.forward_headers).identify(image.data)
 
 			image.mime_type = id.mime_type if id.mime_type
 			image.width = id.width if id.width

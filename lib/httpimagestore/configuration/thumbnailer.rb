@@ -283,7 +283,7 @@ module Configuration
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
 
 			thumbnails = begin
-				client.with_headers(request_state.headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
+				client.with_headers(request_state.forward_headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
 			rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 				log.warn 'got thumbnailer error', error
 				raise ThumbnailingError.new(@source_image_name, rendered_specs.length == 1 ? rendered_specs.first.name : nil, error)

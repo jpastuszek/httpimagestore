@@ -48,7 +48,7 @@ describe Configuration do
 			let :state do
 				request_state do |rs|
 					rs.body((support_dir + 'compute.jpg').read)
-					rs.headers 'XID' => xid
+					rs.forward_headers 'XID' => xid
 				end
 			end
 

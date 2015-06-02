@@ -430,7 +430,7 @@ describe Configuration do
 							height: '10',
 							options: 'background-color:green'
 						)
-						rs.headers 'XID' => xid
+						rs.forward_headers 'XID' => xid
 					end
 				end
 
@@ -597,7 +597,7 @@ describe Configuration do
 							height: '10',
 							options: 'background-color:green'
 						)
-						rs.headers 'XID' => xid
+						rs.forward_headers 'XID' => xid
 					end
 				end
 

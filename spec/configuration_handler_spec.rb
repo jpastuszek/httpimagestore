@@ -45,6 +45,7 @@ describe Configuration do
 					'/hello/world.jpg',
 					{width: '123', height: '321'},
 					'/hello/world.jpg?width=123&height=321',
+					{},
 					MemoryLimit.new,
 					{}
 				)
@@ -141,6 +142,7 @@ describe Configuration do
 							'/hello/world.jpg',
 							{width: '123', height: '321'},
 							'/hello/world.jpg?width=123&height=321',
+							{},
 							MemoryLimit.new,
 							{}
 						)
@@ -191,13 +193,13 @@ describe Configuration do
 
 			it 'should raise ImageNotLoadedError if image lookup fails' do
 				expect {
-					Configuration::RequestState.new('', {}, '', {}, '', MemoryLimit.new, {}).images['test']
+					Configuration::RequestState.new('', {}, '', {}, '', {}, MemoryLimit.new, {}).images['test']
 				}.to raise_error Configuration::ImageNotLoadedError, "image 'test' not loaded"
 			end
 
 			it 'should free memory limit if overwritting image' do
 				limit = MemoryLimit.new(2)
-				request_state = Configuration::RequestState.new('abc', {}, '', {}, '', limit, {})
+				request_state = Configuration::RequestState.new('abc', {}, '', {}, '', {}, limit, {})
 
 				limit.borrow 1
 				request_state.images['test'] = Configuration::Image.new('x')
@@ -229,7 +231,7 @@ describe Configuration do
 
 			describe Configuration::InputSource do
 				let :state do
-				 	Configuration::RequestState.new('abc', {}, '', {}, '', MemoryLimit.new, {})
+				 	Configuration::RequestState.new('abc', {}, '', {}, '', {}, MemoryLimit.new, {})
 				end
 
 				it 'should copy input data to "input" image when realized' do

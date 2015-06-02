@@ -95,8 +95,9 @@ class RequestStateBuilder
 		@path = ''
 		@query_string = {}
 		@request_uri = '/'
+		@request_headers = {}
 		@memory_limit = MemoryLimit.new
-		@headers = {}
+		@forward_headers = {}
 
 		yield self if block_given?
 	end
@@ -125,8 +126,12 @@ class RequestStateBuilder
 		@memory_limit = memory_limit
 	end
 
-	def headers(headers)
-		@headers.merge! headers
+	def forward_headers(forward_headers)
+		@forward_headers.merge! forward_headers
+	end
+
+	def request_headers(request_headers)
+		@request_headers.merge! request_headers
 	end
 
 	def []=(key, val)
@@ -134,7 +139,7 @@ class RequestStateBuilder
 	end
 
 	def get
-		rs = Configuration::RequestState.new(@body, @matches, @path, @query_string, @request_uri, @memory_limit, @headers)
+		rs = Configuration::RequestState.new(@body, @matches, @path, @query_string, @request_uri, @request_headers, @memory_limit, @forward_headers)
 		@vals.each do |key, value|
 			rs[key] = value
 		end
