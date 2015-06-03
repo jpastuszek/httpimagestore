@@ -70,8 +70,10 @@ module Configuration
 			@debug_value = case debug_value
 			when Regexp
 				"/#{debug_value.source}/"
+			when nil
+				nil
 			else
-				debug_value.inspect
+				debug_value.to_s
 			end
 		end
 
@@ -79,15 +81,38 @@ module Configuration
 		attr_reader :matcher
 
 		def to_s
-			if @names.empty?
-				"#{@debug_type}(#{@debug_value})"
+			if @debug_value
+				if @names.empty?
+					"#{@debug_type}(#{@debug_value})"
+				else
+					"#{@debug_type}(#{@names.join(',')} => #{@debug_value})"
+				end
 			else
-				"#{@debug_type}(#{@names.join(',')} => #{@debug_value})"
+				@debug_type
 			end
 		end
 	end
 
 	class Handler < Scope
+		class HandlerConfiguration
+			def initialize(global, http_method, uri_matchers)
+				@global = global
+				@http_method = http_method
+				@uri_matchers = uri_matchers
+				@validators = []
+				@sources = []
+				@processors = []
+				@stores = []
+				@output = nil
+			end
+
+			attr_accessor :global, :http_method, :uri_matchers, :validators, :sources, :processors, :stores, :output
+
+			def to_s
+				"#{@http_method} #{@uri_matchers.join(', ')}"
+			end
+		end
+
 		def self.match(node)
 			node.name == 'put' or
 			node.name == 'post' or
@@ -99,21 +124,7 @@ module Configuration
 		end
 
 		def self.parse(configuration, node)
-			handler_configuration =
-				Struct.new(
-					:global,
-					:http_method,
-					:uri_matchers,
-					:validators,
-					:sources,
-					:processors,
-					:stores,
-					:output
-				).new
-
-			handler_configuration.global = configuration
-			handler_configuration.http_method = node.name
-			handler_configuration.uri_matchers = node.values.map do |matcher|
+			uri_matchers = node.values.map do |matcher|
 				case matcher
 				# URI matchers
 				when %r{^:([^/]+)/(.*)/$} # :foobar/.*/
@@ -156,32 +167,29 @@ module Configuration
 				when /^\&([^=]+)=(.+)$/# ?foo=bar
 					name = $1.to_sym
 					value = $2
-					Matcher.new([name], 'QueryKeyValue', "#{name}=#{value}") do
+					Matcher.new([name], 'QueryKeyValue', "#{value}") do
 						->{req.GET[name.to_s] && req.GET[name.to_s] == value && captures.push(req.GET[name.to_s])}
 					end
 				when /^\&:(.+)\?(.*)$/# &:foo?bar
 					name = $1.to_sym
 					default = $2
-					Matcher.new([name], 'QueryKeyDefault', "#{name}=<key>|#{default}") do
+					Matcher.new([name], 'QueryKeyDefault', "<key>|#{default}") do
 						->{captures.push(req.GET[name.to_s] || default)}
 					end
 				when /^\&:(.+)$/# &:foo
 					name = $1.to_sym
-					Matcher.new([name], 'QueryKey', "#{name}=<key>") do
+					Matcher.new([name], 'QueryKey', "<key>") do
 						->{req.GET[name.to_s] && captures.push(req.GET[name.to_s])}
 					end
 				# Literal URI segment matcher
 				else # foobar
-					Matcher.new([], "Literal", matcher) do
+					Matcher.new([], matcher, nil) do
 						Regexp.escape(matcher)
 					end
 				end
 			end
-			handler_configuration.validators = []
-			handler_configuration.sources = []
-			handler_configuration.processors = []
-			handler_configuration.stores = []
-			handler_configuration.output = nil
+
+			handler_configuration = HandlerConfiguration.new(configuration, node.name, uri_matchers)
 
 			node.grab_attributes
 

@@ -69,75 +69,77 @@ Application.new('httpimagestore', port: 3000, processor_count_factor: 2) do
 
 				log.debug{"got request: #{env["REQUEST_METHOD"]} #{env["REQUEST_URI"]}"}
 				env['app.configuration'].handlers.each do |handler|
-					log.debug{"trying handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
+					log.debug{"trying handler: #{handler}"}
 					on eval(handler.http_method), *handler.uri_matchers.map{|m| instance_eval(&m.matcher)} do |*args|
-						log.debug{"matched handler: #{handler.http_method}, #{handler.uri_matchers.join(', ')}"}
-						measure "handling request", "#{handler.http_method}, #{handler.uri_matchers.join(', ')}" do
-							# map and decode matched URI segments
-							matches = {}
-							names = handler.uri_matchers
-							.map do |matcher|
-								matcher.names
-							end
-							.flatten
-
-							fail "matched more arguments than named (#{args.length} for #{names.length})" if args.length > names.length
-							fail "matched less arguments than named (#{args.length} for #{names.length})" if args.length < names.length
-
-							names.zip(args)
-							.each do |name, value|
-								fail "name should be a symbol" unless name.is_a? Symbol
-								matches[name] = URI.utf_decode(value)
-							end
-
-							# decode remaining URI components
-							path = (env['PATH_INFO'][1..-1] || '').split('/').map do |part|
-								URI.utf_decode(part)
-							end.join('/')
-
-							# query string already decoded by Rack
-							query_string = req.GET
-
-							# actual request URI
-							request_uri = env['REQUEST_URI']
-							request_headers = env.select{|k,v| k.start_with? 'HTTP_'}.map do |pair|
-								[
-									pair[0].sub(/^HTTP_/, '').gsub('_', '-'),
-									pair[1]
-								]
-							end
-							request_headers = Hash[request_headers]
-							request_headers.delete('VERSION')
-
-							body = measure "reading request body" do
-								req.body.read
-							end
-
-							state = Configuration::RequestState.new(body, matches, path, query_string, request_uri, request_headers, memory_limit, env['xid'] || {})
-
-							measure "validating request" do
-								handler.validators.each do |validator|
-									validator.realize(state) unless validator.respond_to? :excluded? and validator.excluded?(state)
+						log.debug{"matched handler: #{handler}"}
+						log.with_meta_context api_method: handler.http_method.upcase, api_handler: handler.to_s do
+							measure "handling request", handler.to_s do
+								# map and decode matched URI segments
+								matches = {}
+								names = handler.uri_matchers
+								.map do |matcher|
+									matcher.names
 								end
-							end unless handler.validators.empty?
-							measure "sourcing images" do
-								handler.sources.each do |source|
-									source.realize(state) unless source.respond_to? :excluded? and source.excluded?(state)
+								.flatten
+
+								fail "matched more arguments than named (#{args.length} for #{names.length})" if args.length > names.length
+								fail "matched less arguments than named (#{args.length} for #{names.length})" if args.length < names.length
+
+								names.zip(args)
+								.each do |name, value|
+									fail "name should be a symbol" unless name.is_a? Symbol
+									matches[name] = URI.utf_decode(value)
 								end
-							end
-							measure "processing images" do
-								handler.processors.each do |processor|
-									processor.realize(state) unless processor.respond_to? :excluded? and processor.excluded?(state)
+
+								# decode remaining URI components
+								path = (env['PATH_INFO'][1..-1] || '').split('/').map do |part|
+									URI.utf_decode(part)
+								end.join('/')
+
+								# query string already decoded by Rack
+								query_string = req.GET
+
+								# actual request URI
+								request_uri = env['REQUEST_URI']
+								request_headers = env.select{|k,v| k.start_with? 'HTTP_'}.map do |pair|
+									[
+										pair[0].sub(/^HTTP_/, '').gsub('_', '-'),
+										pair[1]
+									]
 								end
-							end unless handler.processors.empty?
-							measure "storing images" do
-								handler.stores.each do |store|
-									store.realize(state) unless store.respond_to? :excluded? and store.excluded?(state)
+								request_headers = Hash[request_headers]
+								request_headers.delete('VERSION')
+
+								body = measure "reading request body" do
+									req.body.read
 								end
-							end unless handler.stores.empty?
-							measure "sending response" do
-								handler.output.realize(state)
-								instance_eval(&state.output_callback)
+
+								state = Configuration::RequestState.new(body, matches, path, query_string, request_uri, request_headers, memory_limit, env['xid'] || {})
+
+								measure "validating request" do
+									handler.validators.each do |validator|
+										validator.realize(state) unless validator.respond_to? :excluded? and validator.excluded?(state)
+									end
+								end unless handler.validators.empty?
+								measure "sourcing images" do
+									handler.sources.each do |source|
+										source.realize(state) unless source.respond_to? :excluded? and source.excluded?(state)
+									end
+								end
+								measure "processing images" do
+									handler.processors.each do |processor|
+										processor.realize(state) unless processor.respond_to? :excluded? and processor.excluded?(state)
+									end
+								end unless handler.processors.empty?
+								measure "storing images" do
+									handler.stores.each do |store|
+										store.realize(state) unless store.respond_to? :excluded? and store.excluded?(state)
+									end
+								end unless handler.stores.empty?
+								measure "sending response" do
+									handler.output.realize(state)
+									instance_eval(&state.output_callback)
+								end
 							end
 						end
 					end
