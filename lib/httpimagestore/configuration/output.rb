@@ -123,7 +123,7 @@ module Configuration
 			cache_control = @cache_control
 			_context = self
 			request_state.output do
-				_context.measure "sending response image data", "mime type: #{mime_type} (image #{image.data.length} bytes)" do
+				_context.measure "sending response image data", "mime type: #{mime_type} (image #{image.data.bytesize} bytes)" do
 					res['Cache-Control'] = cache_control if cache_control
 					write 200, mime_type, image.data
 				end
@@ -146,7 +146,7 @@ module Configuration
 			cache_control = @cache_control
 			_context = self
 			request_state.output do
-				_context.measure "sending response image data with data URI encoding", "mime type: #{image.mime_type} (image #{image.data.length} bytes)" do
+				_context.measure "sending response image data with data URI encoding", "mime type: #{image.mime_type} (image #{image.data.bytesize} bytes)" do
 					res['Cache-Control'] = cache_control if cache_control
 					write 200, 'text/uri-list', "data:#{image.mime_type};base64,#{Base64.strict_encode64(image.data)}"
 				end
