@@ -91,6 +91,7 @@ module Configuration
 		include ClassLogging
 		include ImageName
 		include LocalConfiguration
+		include PerfStats
 
 		def self.match(node)
 			node.name == 'output_image'
@@ -120,15 +121,20 @@ module Configuration
 				end
 
 			cache_control = @cache_control
+			_context = self
 			request_state.output do
-				res['Cache-Control'] = cache_control if cache_control
-				write 200, mime_type, image.data
+				_context.measure "sending response image data", "mime type: #{mime_type} (image #{image.data.length} bytes)" do
+					res['Cache-Control'] = cache_control if cache_control
+					write 200, mime_type, image.data
+				end
 			end
 		end
 	end
 	Handler::register_node_parser OutputImage
 
 	class OutputDataURIImage < OutputImage
+		include PerfStats
+
 		def self.match(node)
 			node.name == 'output_data_uri_image'
 		end
@@ -138,9 +144,12 @@ module Configuration
 			fail "image '#{@name}' needs to be identified first to be used in data URI output" unless image.mime_type
 
 			cache_control = @cache_control
+			_context = self
 			request_state.output do
-				res['Cache-Control'] = cache_control if cache_control
-				write 200, 'text/uri-list', "data:#{image.mime_type};base64,#{Base64.strict_encode64(image.data)}"
+				_context.measure "sending response image data with data URI encoding", "mime type: #{image.mime_type} (image #{image.data.length} bytes)" do
+					res['Cache-Control'] = cache_control if cache_control
+					write 200, 'text/uri-list', "data:#{image.mime_type};base64,#{Base64.strict_encode64(image.data)}"
+				end
 			end
 		end
 	end

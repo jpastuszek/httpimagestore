@@ -1,7 +1,7 @@
 source 'http://rubygems.org'
 ruby '1.9.3'
 
-gem 'unicorn-cuba-base', '~> 1.5'
+gem 'unicorn-cuba-base', '~> 1.6'
 #gem 'unicorn-cuba-base', path: '../unicorn-cuba-base'
 gem 'httpthumbnailer-client', '~> 1.3'
 #gem 'httpthumbnailer-client', path: '../httpthumbnailer-client'

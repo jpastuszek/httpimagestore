@@ -18,6 +18,7 @@ module Configuration
 	end
 
 	class FileSourceStoreBase < SourceStoreBase
+		include PerfStats
 		extend Stats
 		def_stats(
 			:total_file_store,
@@ -87,9 +88,11 @@ module Configuration
 
 				log.info "sourcing '#{image_name}' from file '#{storage_path}'"
 				begin
-					data = storage_path.open('rb') do |io|
-						request_state.memory_limit.io io
-						io.read
+					data = measure "sourcing image from file", image_name do
+						storage_path.open('rb') do |io|
+							request_state.memory_limit.io io
+							io.read
+						end
 					end
 					FileSourceStoreBase.stats.incr_total_file_source
 					FileSourceStoreBase.stats.incr_total_file_source_bytes(data.bytesize)
@@ -124,7 +127,9 @@ module Configuration
 				image.store_url = file_url(rendered_path)
 
 				log.info "storing '#{image_name}' in file '#{storage_path}' (#{image.data.length} bytes)"
-				storage_path.open('wb'){|io| io.write image.data}
+				measure "storing image in file", image_name do
+					storage_path.open('wb'){|io| io.write image.data}
+				end
 				FileSourceStoreBase.stats.incr_total_file_store
 				FileSourceStoreBase.stats.incr_total_file_store_bytes(image.data.bytesize)
 			end

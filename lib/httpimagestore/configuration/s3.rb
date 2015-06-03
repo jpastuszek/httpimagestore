@@ -384,6 +384,8 @@ module Configuration
 	end
 
 	class S3Source < S3SourceStoreBase
+		include PerfStats
+
 		def self.match(node)
 			node.name == 'source_s3'
 		end
@@ -396,16 +398,18 @@ module Configuration
 			put_sourced_named_image(request_state) do |image_name, rendered_path|
 				log.info "sourcing '#{image_name}' image from S3 '#{@bucket}' bucket under '#{rendered_path}' key"
 
-				object(rendered_path) do |object|
-					data = request_state.memory_limit.get do |limit|
-						object.read(limit + 1)
-					end
-					S3SourceStoreBase.stats.incr_total_s3_source
-					S3SourceStoreBase.stats.incr_total_s3_source_bytes(data.bytesize)
+				measure "sourcing image from S3", "image: '#{image_name}' bucket: '#{@bucket}'" do
+					object(rendered_path) do |object|
+						data = request_state.memory_limit.get do |limit|
+							object.read(limit + 1)
+						end
+						S3SourceStoreBase.stats.incr_total_s3_source
+						S3SourceStoreBase.stats.incr_total_s3_source_bytes(data.bytesize)
 
-					image = Image.new(data, object.content_type)
-					image.source_url = url(object)
-					image
+						image = Image.new(data, object.content_type)
+						image.source_url = url(object)
+						image
+					end
 				end
 			end
 		end
@@ -418,6 +422,8 @@ module Configuration
 	SourceFailover::register_node_parser S3Source
 
 	class S3Store < S3SourceStoreBase
+		include PerfStats
+
 		def self.match(node)
 			node.name == 'store_s3'
 		end
@@ -431,21 +437,22 @@ module Configuration
 				acl = @public_access ?  :public_read : :private
 
 				log.info "storing '#{image_name}' image in S3 '#{@bucket}' bucket under '#{rendered_path}' key with #{acl} access"
+				measure "storing image in S3", "image: '#{image_name}' bucket: '#{@bucket}'" do
+					object(rendered_path) do |object|
+						image.mime_type or log.warn "storing '#{image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
 
-				object(rendered_path) do |object|
-					image.mime_type or log.warn "storing '#{image_name}' in S3 '#{@bucket}' bucket under '#{rendered_path}' key with unknown mime type"
+						options = {}
+						options[:single_request] = true
+						options[:content_type] = image.mime_type if image.mime_type
+						options[:acl] = acl
+						options[:cache_control] = @cache_control if @cache_control
 
-					options = {}
-					options[:single_request] = true
-					options[:content_type] = image.mime_type if image.mime_type
-					options[:acl] = acl
-					options[:cache_control] = @cache_control if @cache_control
+						object.write(image.data, options)
+						S3SourceStoreBase.stats.incr_total_s3_store
+						S3SourceStoreBase.stats.incr_total_s3_store_bytes(image.data.bytesize)
 
-					object.write(image.data, options)
-					S3SourceStoreBase.stats.incr_total_s3_store
-					S3SourceStoreBase.stats.incr_total_s3_store_bytes(image.data.bytesize)
-
-					image.store_url = url(object)
+						image.store_url = url(object)
+					end
 				end
 			end
 		end

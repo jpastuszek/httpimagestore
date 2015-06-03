@@ -67,6 +67,7 @@ module Configuration
 		include LocalConfiguration
 		include GlobalConfiguration
 		include ConditionalInclusion
+		include PerfStats
 
 		extend Stats
 		def_stats(
@@ -283,7 +284,9 @@ module Configuration
 			Thumbnail.stats.incr_total_thumbnail_requests_bytes source_image.data.bytesize
 
 			thumbnails = begin
-				client.with_headers(request_state.forward_headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
+				measure "thumbnailing image", "'#{@source_image_name}' to specs: #{rendered_specs.map{|s| "#{s.name} -> #{s.spec}"}.join('; ')}" do
+					client.with_headers(request_state.forward_headers).thumbnail(source_image.data, *rendered_specs.map(&:spec))
+				end
 			rescue HTTPThumbnailerClient::HTTPThumbnailerClientError => error
 				log.warn 'got thumbnailer error', error
 				raise ThumbnailingError.new(@source_image_name, rendered_specs.length == 1 ? rendered_specs.first.name : nil, error)

@@ -9,6 +9,7 @@ module Configuration
 		include LocalConfiguration
 		include GlobalConfiguration
 		include ConditionalInclusion
+		include PerfStats
 
 		extend Stats
 		def_stats(
@@ -46,7 +47,9 @@ module Configuration
 			Identify.stats.incr_total_identify_requests
 			Identify.stats.incr_total_identify_requests_bytes image.data.bytesize
 
-			id = client.with_headers(request_state.forward_headers).identify(image.data)
+			id = measure "identifying", @image_name do
+				client.with_headers(request_state.forward_headers).identify(image.data)
+			end
 
 			image.mime_type = id.mime_type if id.mime_type
 			image.width = id.width if id.width
