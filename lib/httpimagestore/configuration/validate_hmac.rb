@@ -1,4 +1,5 @@
 require 'httpimagestore/configuration/handler/statement'
+require 'securerandom'
 
 module Configuration
 	class NoSecretKeySpecifiedError < ConfigurationError
@@ -123,6 +124,7 @@ module Configuration
 			actual_hmac = OpenSSL::HMAC.hexdigest(digest, @secret, uri)
 
 			if actual_hmac != expected_hmac
+				sleep SecureRandom.random_number/10 # sleep some random time to make timing attack harder
 				log.warn "invalid HMAC with digest '#{@digest}' for URI '#{uri}'; expected HMAC '#{expected_hmac}'"
 				ValidateHMAC.stats.incr_total_invalid_hmac
 				raise HMACMismatchError.new(expected_hmac, uri, @digest)
