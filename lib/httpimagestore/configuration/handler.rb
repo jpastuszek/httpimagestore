@@ -45,9 +45,16 @@ module Configuration
 		attr_accessor :store_url
 
 		def mime_extension
-			return nil unless mime_type
-			mime = MIME::Types[mime_type].first
-			mime.extensions.select{|e| e.length == 3}.first or mime.extensions.first
+			case mime_type
+			when nil then nil
+			when 'image/jpeg' then 'jpg'
+			when 'image/png' then 'png'
+			when 'image/gif' then 'gif'
+			else
+				# TODO: this does not work well; the resoult may not the most common extension (like 'jpeg')
+				mime = MIME::Types[mime_type].first or return nil
+				mime.preferred_extension
+			end
 		end
 	end
 
