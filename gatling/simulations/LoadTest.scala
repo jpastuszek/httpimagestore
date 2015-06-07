@@ -35,9 +35,9 @@ class LoadTest extends Simulation {
 
   object FlexiAPI {
     val image_files = csv("/Users/wcc/Documents/test_data/tatoos-100.csv")
-    val thumbnailing_specs = csv("thumbnail_specs_v2.csv")
+    val thumbnailing_specs = csv("thumbnail_specs_v2.csv").records
 
-    val upload =
+    val upload_and_thumbnail =
       feed(image_files)
       .exec(
         http("Upload image")
@@ -49,8 +49,8 @@ class LoadTest extends Simulation {
           regex("""([^\r]+)""").saveAs("store_path")
         )
       )
-      .repeat(10) {
-        feed(thumbnailing_specs)
+      .foreach(thumbnailing_specs, "spec") {
+        exec(flattenMapIntoAttributes("${spec}"))
         .exec(
           http("Get thumbnail")
           .get("/iss/v2/thumbnails/pictures/${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
@@ -83,12 +83,11 @@ class LoadTest extends Simulation {
     Thumbnailer.check_images_loaded
   )
 
-  val upload = scenario("Upload images").exec(
-    FlexiAPI.upload
-  )
+  val upload_and_thumbnail = scenario("Upload and thumbnail images")
+    .exec(FlexiAPI.upload_and_thumbnail)
 
   setUp(
-    upload.inject(atOnceUsers(1)).protocols(httpImageStore)
+    upload_and_thumbnail.inject(rampUsers(5) over (1 seconds)).protocols(httpImageStore)
     //check.inject(atOnceUsers(1)).protocols(httpImageStore),
     //check_images_loaded.inject(atOnceUsers(1)).protocols(httpThumbnailer)
   )
