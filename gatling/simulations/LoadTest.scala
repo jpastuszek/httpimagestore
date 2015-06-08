@@ -4,31 +4,12 @@ import scala.concurrent.duration._
 
 class LoadTest extends Simulation {
   object ImageStore {
-    val root = exec(
-      http("Root page")
-        .get("/")
-        .check(
-          status.is(200),
-          bodyString.is("HTTP Image Store\r\n")
-        )
-    )
-
     val health_check = exec(
       http("Health check")
         .get("/health_check")
         .check(
           status.is(200),
           bodyString.is("HTTP Image Store OK\r\n")
-        )
-    )
-  }
-
-  object Thumbnailer {
-    val check_images_loaded = exec(
-      http("Loaded Images Check")
-        .get("/stats")
-        .check(
-          substring("images_loaded: 0\r\n")
         )
     )
   }
@@ -71,25 +52,16 @@ class LoadTest extends Simulation {
       }
   }
 
-  val httpImageStore = http .baseURL("http://localhost:3000")
-  val httpThumbnailer = http .baseURL("http://localhost:3100")
-
-  val check = scenario("Image Store Check").exec(
-    ImageStore.root,
-    ImageStore.health_check
-  )
-
-  val check_images_loaded = scenario("Check if we don't leak images").exec(
-    Thumbnailer.check_images_loaded
-  )
+  val httpImageStore = http.baseURL("http://127.0.0.1:3050")
 
   val upload_and_thumbnail = scenario("Upload and thumbnail images")
+    .exec(ImageStore.health_check)
+    .exitHereIfFailed
     .exec(FlexiAPI.upload_and_thumbnail)
 
   setUp(
     upload_and_thumbnail.inject(rampUsers(5) over (1 seconds)).protocols(httpImageStore)
-    //check.inject(atOnceUsers(1)).protocols(httpImageStore),
-    //check_images_loaded.inject(atOnceUsers(1)).protocols(httpThumbnailer)
   )
+  .assertions(details("Health check").failedRequests.percent.is(0))
 }
 
