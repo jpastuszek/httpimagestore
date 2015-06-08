@@ -54,3 +54,11 @@ pkg
 features.*
 
 .idea/
+
+gatling/index-1k.csv
+gatling/101_ObjectCategories/
+gatling/101_ObjectCategories.tar.gz
+features/support/thumbniler.log.access
+.DS_Store
+*.gem
+
