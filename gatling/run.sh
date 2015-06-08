@@ -6,7 +6,24 @@
 #
 set -e
 
+set_up_image_db() {
+	wget --continue http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz
+	[[ -d 101_ObjectCategories ]] || tar xvf 101_ObjectCategories.tar.gz
+
+	[[ -f index-1k.csv ]] || (
+		echo "Indexing test data files"
+		echo "file_name" > index-1k.csv
+		find 101_ObjectCategories -type f | rev | sort | rev | head -n 1000 >> index-1k.csv
+	)
+}
+
+set_up_image_db
+
 finish() {
+	echo "HTTPThumbnailer stats:"
+	curl -s 127.0.0.1:3150/stats
+	echo "HTTPImageStore stats:"
+	curl -s 127.0.0.1:3050/stats
 	kill `cat /tmp/httpthumbnailer.pid`
 	kill `cat /tmp/httpimagestore.pid`
 }
@@ -37,6 +54,7 @@ start_imagestore
 # create storage dir
 [[ -d "/tmp/images" ]] || mkdir "/tmp/images"
 
+RUN_TAG=`date -u +%Y%m%d_%H%M%S`-`git describe --always`
 CLASS=$1
 shift
 $GATLING_HOME/bin/gatling.sh \
@@ -45,4 +63,5 @@ $GATLING_HOME/bin/gatling.sh \
     --bodies-folder `pwd`/bodies \
     --simulations-folder `pwd`/simulations \
 	--simulation $CLASS \
+	--output-name "$CLASS-$RUN_TAG" \
 	$@

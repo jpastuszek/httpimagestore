@@ -15,41 +15,43 @@ class LoadTest extends Simulation {
   }
 
   object FlexiAPI {
-    val image_files = csv("/Users/wcc/Documents/test_data/tatoos-100.csv")
+    val image_files = csv("index-1k.csv")
     val thumbnailing_specs = csv("thumbnail_specs_v2.csv").records
 
     val upload_and_thumbnail =
-      feed(image_files)
-      .exec(
-        http("Upload image")
-        .post("/iss/v2/thumbnails/pictures/${file_name}")
-        .body(RawFileBody("/Users/wcc/Documents/test_data/${file_name}"))
-        .check(
-          status.is(200),
-          regex(""".+\.jpg$"""),
-          regex("""([^\r]+)""").saveAs("store_path")
-        )
-      )
-      .foreach(thumbnailing_specs, "spec") {
-        exec(flattenMapIntoAttributes("${spec}"))
+      repeat(200) {
+        feed(image_files)
         .exec(
-          http("Get thumbnail")
-          .get("/iss/v2/thumbnails/pictures/${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
+          http("Upload image")
+          .post("/iss/v2/thumbnails/pictures/${file_name}")
+          .body(RawFileBody("${file_name}"))
           .check(
             status.is(200),
-            headerRegex("Content-Type", "^image/")
+            regex(""".+\.jpg$"""),
+            regex("""([^\r]+)""").saveAs("store_path")
           )
         )
-        .exec(
-          http("Get thumbnail (data URI)")
-          .get("/iss/v2/thumbnails/pictures/${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}&data-uri=true")
-          .check(
-            status.is(200),
-            header("Content-Type").is("text/uri-list"),
-            substring(";base64,")
+        .foreach(thumbnailing_specs, "spec") {
+          exec(flattenMapIntoAttributes("${spec}"))
+          .exec(
+            http("Get thumbnail")
+            .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
+            .check(
+              status.is(200),
+              headerRegex("Content-Type", "^image/")
+            )
           )
-        )
-      }
+          .exec(
+            http("Get thumbnail (data URI)")
+            .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}&data-uri=true")
+            .check(
+              status.is(200),
+              header("Content-Type").is("text/uri-list"),
+              substring(";base64,")
+            )
+          )
+        }
+    }
   }
 
   val httpImageStore = http.baseURL("http://127.0.0.1:3050")
