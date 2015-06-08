@@ -16,7 +16,8 @@ class LoadTest extends Simulation {
 
   object FlexiAPI {
     val image_files = csv("index.csv").circular
-    val thumbnailing_specs = csv("thumbnail_specs_v2.csv").records
+    val thumbnailing_specs = csv("specs.csv").records
+    val edits = csv("edits.csv").records
 
     val upload_and_thumbnail =
       forever {
@@ -33,23 +34,40 @@ class LoadTest extends Simulation {
         )
         .foreach(thumbnailing_specs, "spec") {
           exec(flattenMapIntoAttributes("${spec}"))
-          .exec(
-            http("Get thumbnail")
-            .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
-            .check(
-              status.is(200),
-              headerRegex("Content-Type", "^image/")
+          .group("Thumbnail") {
+            group("${name}") {
+              exec(
+                http("Image")
+                .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
+                .check(
+                  status.is(200),
+                  headerRegex("Content-Type", "^image/")
+                )
+              )
+              .exec(
+                http("Data URI")
+                .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}&data-uri=true")
+                .check(
+                  status.is(200),
+                  header("Content-Type").is("text/uri-list"),
+                  substring(";base64,")
+                )
+              )
+            }
+          }
+        }
+        .foreach(edits, "edit") {
+          exec(flattenMapIntoAttributes("${edit}"))
+          .group("Edit") {
+            exec(
+              http("${name}")
+              .get("/iss/v2/thumbnails/pictures${store_path}?operation=fit&width=165&height=165&rotate=${rotate}&crop_x=${crop_x}&crop_y=${crop_y}&crop_w=${crop_w}&crop_h=${crop_h}&edits=${edits}")
+              .check(
+                status.is(200),
+                headerRegex("Content-Type", "^image/")
+              )
             )
-          )
-          .exec(
-            http("Get thumbnail (data URI)")
-            .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}&data-uri=true")
-            .check(
-              status.is(200),
-              header("Content-Type").is("text/uri-list"),
-              substring(";base64,")
-            )
-          )
+          }
         }
     }
   }
