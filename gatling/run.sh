@@ -1,10 +1,17 @@
+# This script will run load test
+# It will download Gatling and 126MiB of test images
 #
-# this will run LoadTest
-# assuming:
-#	* uploade images are stored in /tmp/images (created automatically)
+# Assuming:
 #	* HTTPThumbnailer is checked out beside of httpimagestore
+#	* upload images are stored in /tmp/images (created automatically)
 #
 set -e
+
+GATLING_HOME=gatling-charts-highcharts-bundle-2.1.6
+set_up_gatling() {
+	wget --continue https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.6/gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+	[[ -d gatling-charts-highcharts-bundle-2.1.6 ]] || unzip gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+}
 
 set_up_image_db() {
 	wget --continue http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz
@@ -17,11 +24,14 @@ set_up_image_db() {
 	)
 }
 
+set_up_gatling
 set_up_image_db
 
 finish() {
+	echo
 	echo "HTTPThumbnailer stats:"
 	curl -s 127.0.0.1:3150/stats
+	echo
 	echo "HTTPImageStore stats:"
 	curl -s 127.0.0.1:3050/stats
 	kill `cat /tmp/httpthumbnailer.pid`
