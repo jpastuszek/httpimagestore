@@ -12,13 +12,15 @@ set_up_gatling() {
 	[[ -d gatling-charts-highcharts-bundle-2.1.6 ]] || (
 		wget --continue https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.6/gatling-charts-highcharts-bundle-2.1.6-bundle.zip
 		unzip gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+		rm -f gatling-charts-highcharts-bundle-2.1.6-bundle.zip
 	)
 }
 
 set_up_image_db() {
 	[[ -d 101_ObjectCategories ]] || (
 		wget --continue http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz
-		tar xvf 101_ObjectCategories.tar.gz
+		tar xf 101_ObjectCategories.tar.gz
+		rm -f 101_ObjectCategories.tar.gz
 	)
 
 	[[ -f index.csv ]] || (
