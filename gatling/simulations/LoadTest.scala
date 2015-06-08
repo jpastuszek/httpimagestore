@@ -15,11 +15,11 @@ class LoadTest extends Simulation {
   }
 
   object FlexiAPI {
-    val image_files = csv("index-1k.csv")
+    val image_files = csv("index.csv").circular
     val thumbnailing_specs = csv("thumbnail_specs_v2.csv").records
 
     val upload_and_thumbnail =
-      repeat(200) {
+      forever {
         feed(image_files)
         .exec(
           http("Upload image")
@@ -62,8 +62,8 @@ class LoadTest extends Simulation {
     .exec(FlexiAPI.upload_and_thumbnail)
 
   setUp(
-    upload_and_thumbnail.inject(rampUsers(5) over (1 seconds)).protocols(httpImageStore)
-  )
+    upload_and_thumbnail.inject(rampUsers(5) over (50 seconds)).protocols(httpImageStore)
+  ).maxDuration(50 seconds)
   .assertions(details("Health check").failedRequests.percent.is(0))
 }
 

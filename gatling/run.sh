@@ -9,18 +9,22 @@ set -e
 
 GATLING_HOME=gatling-charts-highcharts-bundle-2.1.6
 set_up_gatling() {
-	wget --continue https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.6/gatling-charts-highcharts-bundle-2.1.6-bundle.zip
-	[[ -d gatling-charts-highcharts-bundle-2.1.6 ]] || unzip gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+	[[ -d gatling-charts-highcharts-bundle-2.1.6 ]] || (
+		wget --continue https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/2.1.6/gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+		unzip gatling-charts-highcharts-bundle-2.1.6-bundle.zip
+	)
 }
 
 set_up_image_db() {
-	wget --continue http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz
-	[[ -d 101_ObjectCategories ]] || tar xvf 101_ObjectCategories.tar.gz
+	[[ -d 101_ObjectCategories ]] || (
+		wget --continue http://www.vision.caltech.edu/Image_Datasets/Caltech101/101_ObjectCategories.tar.gz
+		tar xvf 101_ObjectCategories.tar.gz
+	)
 
-	[[ -f index-1k.csv ]] || (
+	[[ -f index.csv ]] || (
 		echo "Indexing test data files"
-		echo "file_name" > index-1k.csv
-		find 101_ObjectCategories -type f | rev | sort | rev | head -n 1000 >> index-1k.csv
+		echo "file_name" > index.csv
+		find 101_ObjectCategories -type f | rev | sort | rev >> index.csv
 	)
 }
 

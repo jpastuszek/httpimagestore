@@ -55,7 +55,7 @@ features.*
 
 .idea/
 
-gatling/index-1k.csv
+gatling/*.csv
 gatling/101_ObjectCategories/
 gatling/101_ObjectCategories.tar.gz
 gatling/gatling-charts-highcharts-bundle-*/
