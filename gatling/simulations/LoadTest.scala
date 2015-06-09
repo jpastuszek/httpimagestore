@@ -32,6 +32,7 @@ class LoadTest extends Simulation {
             regex("""([^\r]+)""").saveAs("store_path")
           )
         )
+        .pause(50 millisecond, 200 millisecond)
         .foreach(thumbnailing_specs, "spec") {
           exec(flattenMapIntoAttributes("${spec}"))
           .group("Thumbnail") {
@@ -53,6 +54,7 @@ class LoadTest extends Simulation {
                   substring(";base64,")
                 )
               )
+              .pause(50 millisecond, 200 millisecond)
             }
           }
         }
@@ -67,6 +69,7 @@ class LoadTest extends Simulation {
                 headerRegex("Content-Type", "^image/")
               )
             )
+            .pause(50 millisecond, 200 millisecond)
           }
         }
     }
@@ -80,16 +83,13 @@ class LoadTest extends Simulation {
     .exec(FlexiAPI.upload_and_thumbnail)
 
   setUp(
-    upload_and_thumbnail.inject(rampUsers(5) over (50 seconds)).protocols(httpImageStore)
-  ).maxDuration(50 seconds)
+    upload_and_thumbnail.inject(rampUsers(15) over (300 seconds)).protocols(httpImageStore)
+  ).maxDuration(300 seconds)
   .assertions(
     global.failedRequests.percent.is(0),
-    details("Upload image").responseTime.mean.lessThan(100),
-    details("Upload image").responseTime.stdDev.lessThan(80),
-    details("Thumbnail").responseTime.mean.lessThan(150),
-    details("Thumbnail").responseTime.stdDev.lessThan(100),
-    details("Edit").responseTime.mean.lessThan(200),
-    details("Edit").responseTime.stdDev.lessThan(200)
+    details("Upload image").responseTime.percentile3.lessThan(250),
+    details("Thumbnail").responseTime.percentile3.lessThan(400),
+    details("Edit").responseTime.percentile3.lessThan(600)
   )
 }
 
