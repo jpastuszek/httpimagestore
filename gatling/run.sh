@@ -91,10 +91,10 @@ else
 fi
 
 $GATLING_HOME/bin/gatling.sh \
-	--data-folder ~/Documents/test_data \
+	--data-folder `pwd` \
 	--results-folder `pwd`/results \
     --bodies-folder `pwd`/bodies \
     --simulations-folder `pwd`/simulations \
 	--simulation $CLASS \
-	--output-name "$CLASS-$RUN_TAG" \
+	--output-name "HTTPImageStore-$CLASS-$RUN_TAG" \
 	$@
