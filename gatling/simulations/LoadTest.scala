@@ -16,8 +16,10 @@ class LoadTest extends Simulation {
 
   object FlexiAPI {
     val image_files = csv("index.csv").circular
-    val thumbnailing_specs = csv("specs.csv").records
+    val specs = csv("specs.csv").records
     val edits = csv("edits.csv").records
+
+    val rnd = new scala.util.Random
 
     val upload_and_thumbnail =
       forever {
@@ -33,10 +35,13 @@ class LoadTest extends Simulation {
           )
         )
         .pause(50 millisecond, 200 millisecond)
-        .foreach(thumbnailing_specs, "spec") {
-          exec(flattenMapIntoAttributes("${spec}"))
-          .group("Thumbnail") {
-            group("${name}") {
+        .repeat(10) {
+          group("Thumbnail") {
+            exec((session) => {
+              session.set("spec", specs(rnd.nextInt(specs length)))
+            })
+            .exec(flattenMapIntoAttributes("${spec}"))
+            .group("${name}") {
               exec(
                 http("Image")
                 .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}")
@@ -45,7 +50,14 @@ class LoadTest extends Simulation {
                   headerRegex("Content-Type", "^image/")
                 )
               )
-              .exec(
+              .pause(50 millisecond, 200 millisecond)
+            }
+            .exec((session) => {
+              session.set("spec", specs(rnd.nextInt(specs length)))
+            })
+            .exec(flattenMapIntoAttributes("${spec}"))
+            .group("${name}") {
+              exec(
                 http("Data URI")
                 .get("/iss/v2/thumbnails/pictures${store_path}?operation=${operation}&width=${width}&height=${height}&options=${options}&data-uri=true")
                 .check(
@@ -57,11 +69,12 @@ class LoadTest extends Simulation {
               .pause(50 millisecond, 200 millisecond)
             }
           }
-        }
-        .foreach(edits, "edit") {
-          exec(flattenMapIntoAttributes("${edit}"))
           .group("Edit") {
-            exec(
+            exec((session) => {
+              session.set("edit", edits(rnd.nextInt(edits length)))
+            })
+            .exec(flattenMapIntoAttributes("${edit}"))
+            .exec(
               http("${name}")
               .get("/iss/v2/thumbnails/pictures${store_path}?operation=fit&width=165&height=165&rotate=${rotate}&crop_x=${crop_x}&crop_y=${crop_y}&crop_w=${crop_w}&crop_h=${crop_h}&edits=${edits}")
               .check(
@@ -76,6 +89,8 @@ class LoadTest extends Simulation {
   }
 
   val httpImageStore = http.baseURL("http://127.0.0.1:3050")
+    .disableWarmUp
+    .disableCaching
 
   val upload_and_thumbnail = scenario("Upload and thumbnail images")
     .exec(ImageStore.health_check)
@@ -83,7 +98,7 @@ class LoadTest extends Simulation {
     .exec(FlexiAPI.upload_and_thumbnail)
 
   setUp(
-    upload_and_thumbnail.inject(rampUsers(15) over (300 seconds)).protocols(httpImageStore)
+    upload_and_thumbnail.inject(rampUsers(20) over (300 seconds)).protocols(httpImageStore)
   ).maxDuration(300 seconds)
   .assertions(
     global.failedRequests.percent.is(0),
