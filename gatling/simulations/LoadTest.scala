@@ -82,6 +82,14 @@ class LoadTest extends Simulation {
   setUp(
     upload_and_thumbnail.inject(rampUsers(5) over (50 seconds)).protocols(httpImageStore)
   ).maxDuration(50 seconds)
-  .assertions(details("Health check").failedRequests.percent.is(0))
+  .assertions(
+    global.failedRequests.percent.is(0),
+    details("Upload image").responseTime.mean.lessThan(100),
+    details("Upload image").responseTime.stdDev.lessThan(80),
+    details("Thumbnail").responseTime.mean.lessThan(150),
+    details("Thumbnail").responseTime.stdDev.lessThan(100),
+    details("Edit").responseTime.mean.lessThan(200),
+    details("Edit").responseTime.stdDev.lessThan(200)
+  )
 }
 

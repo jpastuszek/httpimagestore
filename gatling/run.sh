@@ -72,7 +72,12 @@ start_imagestore
 
 RUN_TAG=`date -u +%Y%m%d_%H%M%S`-`git describe --always`
 CLASS=$1
-shift
+if [[ -z "$CLASS" ]]; then
+   CLASS=LoadTest
+else
+	shift
+fi
+
 $GATLING_HOME/bin/gatling.sh \
 	--data-folder ~/Documents/test_data \
 	--results-folder `pwd`/results \
