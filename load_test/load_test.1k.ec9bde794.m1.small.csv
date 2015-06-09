@@ -1,4 +1,0 @@
-sampler_label,aggregate_report_count,average,aggregate_report_median,aggregate_report_90%_line,aggregate_report_min,aggregate_report_max,aggregate_report_error%,aggregate_report_rate,aggregate_report_bandwidth
-original,989,7755,2917,21931,164,96522,0.0010111223458038423,0.10461638578207254,0.020651782131933853
-thumbnail fit,43516,905,748,1558,76,11358,0.0010111223458038423,4.594225650846874,97.8148328278794
-TOTAL,44505,1058,758,1621,76,96522,0.0010111223458038423,4.689206890273507,97.63903046024716
