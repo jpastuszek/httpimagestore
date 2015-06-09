@@ -1,7 +1,11 @@
 # This script will run load test
 # It will download Gatling and 126MiB of test images
 #
-# Assuming:
+# Environment variables:
+#	MAX_USERS - how many users to rump up to (default 20)
+#	HTTP_IMAGE_STORE_ADDR - can be used to specify other already running instance
+#
+# When no HTTP_IMAGE_STORE_ADDR is set assuming:
 #	* HTTPThumbnailer is checked out beside of httpimagestore
 #	* upload images are stored in /tmp/images (created automatically)
 #
@@ -44,8 +48,6 @@ finish() {
 	kill `cat /tmp/httpimagestore.pid`
 }
 
-trap finish EXIT
-
 start_thumbnailer() {
 	echo "Starting HTTPThumbnailer..."
 	(
@@ -56,6 +58,8 @@ start_thumbnailer() {
 }
 
 start_imagestore() {
+	# create storage dir
+	[[ -d "/tmp/images" ]] || mkdir "/tmp/images"
 	echo "Starting HTTPImageStore..."
 	(
 		cd ..
@@ -64,11 +68,19 @@ start_imagestore() {
 	)
 }
 
-start_thumbnailer
-start_imagestore
+if [[ -z "$HTTP_IMAGE_STORE_ADDR" ]]; then
+	HTTP_IMAGE_STORE_ADDR="http://127.0.0.1:3050"
+	trap finish EXIT
+	start_thumbnailer
+	start_imagestore
+else
+	echo "Using HTTP Image Store at ${HTTP_IMAGE_STORE_ADDR}"
+fi
+export HTTP_IMAGE_STORE_ADDR
 
-# create storage dir
-[[ -d "/tmp/images" ]] || mkdir "/tmp/images"
+[[ -z "$MAX_USERS" ]] && MAX_USERS=20
+export MAX_USERS
+echo "Ramping up test to ${MAX_USERS} users"
 
 RUN_TAG=`date -u +%Y%m%d_%H%M%S`-`git describe --always`
 CLASS=$1

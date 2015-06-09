@@ -88,7 +88,7 @@ class LoadTest extends Simulation {
       }
   }
 
-  val httpImageStore = http.baseURL("http://127.0.0.1:3050")
+  val httpImageStore = http.baseURL(sys.env("HTTP_IMAGE_STORE_ADDR"))
     .disableWarmUp
     .disableCaching
 
@@ -109,7 +109,7 @@ class LoadTest extends Simulation {
     }
 
   setUp(
-    upload_and_process.inject(rampUsers(20) over (300 seconds)).protocols(httpImageStore)
+    upload_and_process.inject(rampUsers(sys.env("MAX_USERS").toInt) over (300 seconds)).protocols(httpImageStore)
   ).maxDuration(300 seconds)
   .assertions(
     global.failedRequests.percent.is(0),
