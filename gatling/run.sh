@@ -4,6 +4,8 @@
 # Environment variables:
 #	MAX_USERS - how many users to rump up to (default 20)
 #	HTTP_IMAGE_STORE_ADDR - can be used to specify other already running instance
+#   HTTP_THUMBNAILER_OPTS - can be used to specify additional startup options for HTTP Thumbnailer
+#   HTTP_IMAGE_STORE_OPTS - can be used to specify additional startup options for HTTP Image Store
 #
 # When no HTTP_IMAGE_STORE_ADDR is set assuming:
 #	* HTTPThumbnailer is checked out beside of httpimagestore
@@ -52,7 +54,7 @@ start_thumbnailer() {
 	echo "Starting HTTPThumbnailer..."
 	(
 		cd ../../httpthumbnailer
-		bin/httpthumbnailer --listener 127.0.0.1:3150 --pid-file /tmp/httpthumbnailer.pid
+		bin/httpthumbnailer $HTTP_THUMBNAILER_OPTS --listener 127.0.0.1:3150 --pid-file /tmp/httpthumbnailer.pid --log-file /tmp/httpthumbnailer.log --access-log-file /tmp/httpthumbnailer_access.log
 		while ! curl -s -o /dev/null 127.0.0.1:3150/; do sleep 1; echo .; done
 	)
 }
@@ -63,7 +65,7 @@ start_imagestore() {
 	echo "Starting HTTPImageStore..."
 	(
 		cd ..
-		bin/httpimagestore --listener 127.0.0.1:3050 --pid-file /tmp/httpimagestore.pid gatling/httpimagestore.conf
+		bin/httpimagestore $HTTP_IMAGE_STORE_OPTS --listener 127.0.0.1:3050 --pid-file /tmp/httpimagestore.pid --log-file /tmp/httpimagestore.log --access-log-file /tmp/httpimagestore_access.log gatling/httpimagestore.conf
 		while ! curl -s -o /dev/null 127.0.0.1:3050/; do sleep 1; echo .; done
 	)
 }
