@@ -17,6 +17,10 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 
 ## Changelog
 
+### 1.9.0
+* added support for thumbnail edits
+* `validate_uri_hmac` and `validate_header_hmac` support
+
 ### 1.8.0
 * `output_store_url` support additional arguments: `scheme`, `port` and `host`
 * `output_store_uri` support added
@@ -215,7 +219,72 @@ In this example first endpoint will be matched for **GET** request with URI like
 Second endpoint will be matched only for **PUT** requests with URIs beginning with `/thumbnail/v1/small` and `/thumbnail/v1/large`.
 Third endpoint will match any **POST** request.
 
-### API endpoint image sourcing operations
+### API endpoint validator operations
+
+First any defined validators are executed against request to see if we should accept the request or reject it.
+
+#### validate_uri_hmac
+
+This statement sets up HMAC based URI authentication.
+If HMAC provided with the request does not have the expected value the server will return **403 Forbidden** response.
+
+Arguments:
+
+1. query string key for HMAC value - query string parameter key that contains hex encoded HMAC value to be validated against
+
+Options:
+
+* `secret` - shared secret used to generate HMAC
+* `digest` - digest used for HMAC; see OpenSSL digests for valid values; default: sha1 (for HMAC-SHA1 scheme)
+* `exclude` - comma separated list of query string parameter keys that will be excluded form HMAC computation
+* `remove` - comma separated list of query string parameter keys that will be removed from request for further processing
+
+`exclude` is useful when your URI contains extra query string parameters not related to this API that would otherwise brake HMAC computation.
+`remove` can be used to remove all extra (apart form the HMAC parameter itself) HMAC related query string parameters like date or nonce so they don't interact with further statements.
+Adding additional `nonce` or `date` query string parameter can help with HMAC security by 'randomizing' it's value for same URIs - this won't play well with caching though.
+
+Example:
+
+```sdl
+get "small" {
+	validate_uri_hmac "hmac" secret="key"
+}
+```
+
+In this example request URI `/small?hmac=a49182838f1b0b306614cea1d0fbcdab980717f7` will be valid.
+The actual HMAC is computed from `/small` URI and secret `key` using HMAC-SHA1 scheme.
+Note that `hmac` query string parameter will be removed from the request and won't be accessible by further statements.
+
+#### validate_header_hmac
+
+This statement is identical in function as `validate_uri_hmac` but takes value for URI from given request header instead.
+This is useful when HTTP Image Store is behind proxy that rewrites URIs. This would normally brake HMAC computation but if it can store the original URI in a header this can be used instead for HAMAC computation.
+
+Arguments:
+
+1. original URI request header - name of request header that will contain original URI value that will be used for HMAC computation instead of the actual request URI
+2. query string key for HMAC value - query string parameter key of the actual request URI that contains hex encoded HMAC value to be validated against
+
+Options:
+
+* `secret` - shared secret used to generate HMAC
+* `digest` - digest used for HMAC; see OpenSSL digests for valid values; default: sha1 (for HMAC-SHA1 scheme)
+* `exclude` - comma separated list of query string parameter keys that will be excluded form HMAC computation
+* `remove` - comma separated list of query string parameter keys that will be removed from request for further processing
+
+Example:
+
+```sdl
+get "small" {
+	validate_header_hmac "X-ORIGINAL-URI" "hmac" secret="key"
+}
+```
+
+In this example request URI `/my-rewritten-uri?hmac=a49182838f1b0b306614cea1d0fbcdab980717f7` will be valid if request comes with `X-ORIGINAL-URI` header of value `/small`.
+Note that the actual request URI needs only to contain valid `hamc` query string parameter while the value of header needs only the URI necessary for validation - it is OK if it contains the `hmac` query string parameter since it will be removed before computation.
+`remove` will operate on request as normal. `exclude` will operate on the value of the header for the computation to be valid.
+
+## API endpoint image sourcing operations
 
 Sourcing will load images into memory for further processing.
 Each image is stored under predefined or user defined name.
@@ -1023,7 +1092,7 @@ If running as root you can use `--user` option to specify user with whose privil
 
 Additionally `httpimagestore` will log requests in [common NCSA format](http://en.wikipedia.org/wiki/Common_Log_Format) to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
 
-Syslog logging can be enabled with `--syslog-facility` option followed by name of syslog facility to use. When enabled log files are not created and both application logs and access logs are sent to syslog. 
+Syslog logging can be enabled with `--syslog-facility` option followed by name of syslog facility to use. When enabled log files are not created and both application logs and access logs are sent to syslog.
 Access logs will gain meta information that will include `type="http-access"` that can be used to filter access log entries out from application log entries.
 
 With `--xid-header` option name of HTTP request header can be specified. Value of this header will be logged in meta information tag `xid` along side all request related log entries.
