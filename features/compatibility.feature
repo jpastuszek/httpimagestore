@@ -161,5 +161,5 @@ Feature: Image list based thumbnailing and S3 storage
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		no thumbnailing specs were selected, please use at least one of: small, tiny_png, bad
+		no thumbnail specs were selected, please use at least one of: small, tiny_png, bad
 		"""

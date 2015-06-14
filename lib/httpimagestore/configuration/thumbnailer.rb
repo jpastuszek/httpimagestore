@@ -39,13 +39,13 @@ module Configuration
 
 	class NoSpecSelectedError < RuntimeError
 		def initialize(specs)
-			super "no thumbnailing specs were selected, please use at least one of: #{specs.join(', ')}"
+			super "no thumbnail specs were selected, please use at least one of: #{specs.join(', ')}"
 		end
 	end
 
 	class InvalidSpecError < RuntimeError
 		def initialize(spec_name, cause)
-			super "thumbnailing spec '#{spec_name}' is invalid: #{cause}"
+			super "thumbnail spec '#{spec_name}' is invalid: #{cause}"
 		end
 	end
 
@@ -118,7 +118,7 @@ module Configuration
 						template.render(request_state)
 					end
 
-					HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.new(@name, args, options)
+					HTTPThumbnailerClient::ThumbnailSpec::EditSpec.new(@name, args, options)
 				end
 			end
 
@@ -142,15 +142,15 @@ module Configuration
 				# NOTE: normally options will be passed as options=String; but may be supplied each by each as in the configuration with key=value pairs
 				nested_options = begin
 					opts = options.delete('options') || ''
-					HTTPThumbnailerClient::ThumbnailingSpec.parse_options(HTTPThumbnailerClient::ThumbnailingSpec.split_args(opts))
-				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+					HTTPThumbnailerClient::ThumbnailSpec.parse_options(HTTPThumbnailerClient::ThumbnailSpec.split_args(opts))
+				rescue HTTPThumbnailerClient::ThumbnailSpec::InvalidFormatError => error
 					raise InvalidOptionsSpecError.new(image_name, opts, error)
 				end
 
-				edits_option = HTTPThumbnailerClient::ThumbnailingSpec.split_edits(options.delete('edits') || '').map do |edit|
+				edits_option = HTTPThumbnailerClient::ThumbnailSpec.split_edits(options.delete('edits') || '').map do |edit|
 					begin
-						HTTPThumbnailerClient::ThumbnailingSpec::EditSpec.from_string(edit)
-					rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+						HTTPThumbnailerClient::ThumbnailSpec::EditSpec.from_string(edit)
+					rescue HTTPThumbnailerClient::ThumbnailSpec::InvalidFormatError => error
 						raise InvalidEditsSpecError.new(image_name, edit, error)
 					end
 				end
@@ -162,7 +162,7 @@ module Configuration
 				end
 
 				spec = begin
-					HTTPThumbnailerClient::ThumbnailingSpec.new(
+					HTTPThumbnailerClient::ThumbnailSpec.new(
 						@method.render(request_state),
 						@width.render(request_state),
 						@height.render(request_state),
@@ -170,7 +170,7 @@ module Configuration
 						nested_options.merge(options),
 						edits | edits_option
 					)
-				rescue HTTPThumbnailerClient::ThumbnailingSpec::InvalidFormatError => error
+				rescue HTTPThumbnailerClient::ThumbnailSpec::InvalidFormatError => error
 					raise InvalidSpecError.new(image_name, error)
 				end
 

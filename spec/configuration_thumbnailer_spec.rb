@@ -66,7 +66,7 @@ describe Configuration do
 				end
 
 				describe '#spec' do
-					it 'should provide full thumbnailing spec with options' do
+					it 'should provide full thumbnail spec with options' do
 						subject.spec.method.should == 'pad'
 						subject.spec.width.should == '100'
 						subject.spec.height.should == '102'
@@ -173,7 +173,7 @@ describe Configuration do
 					end
 
 					describe '#spec' do
-						it 'should provide thumbnailing spec with filled values' do
+						it 'should provide thumbnail spec with filled values' do
 							subject.spec.method.should == 'fit'
 							subject.spec.width.should == '99'
 							subject.spec.height.should == '66'
@@ -194,7 +194,7 @@ describe Configuration do
 						end
 
 						describe '#spec' do
-							it 'should provide thumbnailing spec with options taken from filled options key that will not replace already provided values' do
+							it 'should provide thumbnail spec with options taken from filled options key that will not replace already provided values' do
 								subject.options.should == {'background-color' => 'blue', 'quality' => '100'}
 							end
 
@@ -228,7 +228,7 @@ describe Configuration do
 							end
 
 							describe '#edits' do
-								it 'should provide thumbnailing spec with edits taken from filled edits key' do
+								it 'should provide thumbnail spec with edits taken from filled edits key' do
 									subject.edits.should have(2).edits
 
 									subject.edits[0].name.should == 'rotate'

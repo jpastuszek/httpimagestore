@@ -143,14 +143,14 @@ Feature: Error handling
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
+		thumbnail spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
 		"""
 		When I do PUT request http://localhost:3000/singlepart/small,bad_opts
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines
 		"""
-		thumbnailing spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
+		thumbnail spec 'bad_opts' is invalid: options spec 'foo=bar' format is invalid: missing option value for key 'foo=bar'
 		"""
 
 	@error-reporting
@@ -161,14 +161,14 @@ Feature: Error handling
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
+		thumbnail spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
 		"""
 		When I do PUT request http://localhost:3000/singlepart/bad_dim
 		Then response status will be 400
 		And response content type will be text/plain
 		And response body will be CRLF ended lines like
 		"""
-		thumbnailing spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
+		thumbnail spec 'bad_dim' is invalid: width value '128x' is not an integer or 'input'
 		"""
 
 	@error-reporting @413 @load
