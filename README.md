@@ -1269,31 +1269,37 @@ It is set up under `/stats` URI. You can also request single stat with `/stats/<
 Example:
 
 ```bash
-$ curl 10.1.1.24:3000/stats
-total_requests: 2
-total_errors: 0
+$ curl 127.0.0.1:3000/stats
+workers: 10
+total_requests: 27032164
+total_errors: 3785333
 calling: 1
 writing: 0
 total_write_multipart: 0
-total_write: 1
+total_write: 23246830
 total_write_part: 0
-total_write_error: 0
+total_write_error: 3785333
 total_write_error_part: 0
-total_thumbnail_requests: 1
-total_thumbnail_requests_bytes: 43308
-total_thumbnail_thumbnails: 3
-total_thumbnail_thumbnails_bytes: 102914
+total_thumbnail_requests: 16415809
+total_thumbnail_requests_bytes: 1624475247201
+total_thumbnail_thumbnails: 16414688
+total_thumbnail_thumbnails_bytes: 61806698184
+total_identify_requests: 9
+total_identify_requests_bytes: 73948
 total_file_store: 0
 total_file_store_bytes: 0
 total_file_source: 0
 total_file_source_bytes: 0
-total_s3_store: 4
-total_s3_store_bytes: 146222
-total_s3_source: 1
-total_s3_source_bytes: 51581
+total_s3_store: 115337
+total_s3_store_bytes: 11420368878
+total_s3_source: 17150098
+total_s3_source_bytes: 1694190265856
+total_s3_cache_hits: 17149566
+total_s3_cache_misses: 1416670
+total_s3_cache_errors: 0
 
-$ curl 10.1.1.24:3000/stats/total_s3_source
-1
+$ curl 127.0.0.1:3000/stats/total_thumbnail_thumbnails
+16414688
 ```
 
 ## Contributing to HTTP Image Store
