@@ -329,7 +329,7 @@ Options:
 
 * `bucket` - name of bucket to source image from
 * `path` - name of predefined path that will be used to generate key to object to source
-* `prefix` - prefix object key with given prefix value; this does not affect format of output URL; prefix will not be included in source path output; default: ``
+* `prefix` - prefix object key with given prefix value; this does not affect format of output URL; prefix will not be included in source path output; default: empty
 * `cache-root` - path to directory where S3 objects and meta-data will be cached when sourced from S3; read-through mode; if required information was found in cache object no S3 requests will be made; same directory can be used with different buckets since cache key consists of S3 bucket name and object key
 
 Example:
@@ -392,6 +392,7 @@ Options:
 * `height` - requested thumbnail height in pixels
 * `format` - format in which the resulting image will be encoded; all backend supported formats can be specified like `jpeg` or `png`; default: `jpeg`
 * `options` - list of options in format `key:value[,key:value]*` to be passed to thumbnailer; this can be a list of any backend supported options like `background-color` or `quality`
+* `edits` - list of edits in format supported by [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) (`[!<edit name>[,<edit arg>]*[,<edit option>:<edit option value>]*]*`)
 * backend supported options - options can also be defined as statement options
 
 Note that you can use `#{variable}` expansion within all of this options.
@@ -418,6 +419,38 @@ put ":operation" ":width" ":height" ":options" {
 	thumbnail "input" "original" operation="#{operation}" width="#{width}" height="#{height}" options="#{options}" quality=84 format="jpeg"
 }
 ```
+
+##### edit
+
+`thumbnail` statement supports sub statement `edit` that will apply additional edits to the thumbnail image.
+This edits are applied before `edits` option specified edits.
+
+Arguments:
+
+1. edit name - name of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) supported edit
+2. argument 1 - first argument
+3. argument 2 - second argument
+4. argument n - etc. depending on how many argument the edit needs
+
+Options
+
+* any options supported by named edit
+
+Example:
+
+```sdl
+post "example" "&:rotate?0" "&:crop_x?0.0" "&:crop_y?0.0" "&:crop_w?1.0" "&:crop_h?1.0" "&:edits?" {
+	thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" edits="#{edits}" {
+		edit "rotate" "#{rotate}"
+		edit "crop" "#{crop_x}" "#{crop_y}" "#{crop_w}" "#{crop_h}"
+	}
+	output_image "thumbnail"
+}
+```
+
+In this example each thumbnail will be first rotated by `rotate` query string parameter value and cropped by query string provided values `crop_x`, `crop_y`, `crop_w`, `crop_h`.
+If query string parameter `edits` is provided it will be used to do additional edits after rotation and cropping is applied.
+Example URI can look like this: `/example?rotate=90&crop_x=0.1&crop_y=0.1&crop_w=0.8&crop_h=0.8&edits=pixelate,0.2,0.1,0.6,0.6,size:0.03!rectangle,0.1,0.8,0.8,0.1,color:blue`. This will firstly rotate image by 90 degrees and crop off 10% from each side of the image and then pixelate middle region of the image and draw blue rectangle at the bottom of it.
 
 #### identify
 
@@ -554,9 +587,11 @@ The output will contain the posted image with `Content-Type` header set to `appl
 #### output_data_uri_image
 
 This statement will produce `200 OK` response containing base64 encoded image data within data URI in format:
+
 ```
 data:<image mime type>;base64,<base64 encoded image data>
 ```
+
 No tailing new line/line feed is added to the output.
 
 This may be used to include images directly in HTML pages or CSS.
@@ -1198,6 +1233,10 @@ If all goes well `200 OK` will be returned otherwise:
 * bad thumbnail specification
 * empty body when image data expected
 
+### 403
+
+* request not authentic
+
 ### 404
 
 * no API endpoint found for given URL
@@ -1267,6 +1306,5 @@ $ curl 10.1.1.24:3000/stats/total_s3_source
 
 ## Copyright
 
-Copyright (c) 2013 Jakub Pastuszek. See LICENSE.txt for
-further details.
+Copyright (c) 2013 - 2015 Jakub Pastuszek. See LICENSE.txt for further details.
 
