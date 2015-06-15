@@ -258,11 +258,11 @@ Note that `hmac` query string parameter will be removed from the request and won
 #### validate_header_hmac
 
 This statement is identical in function as `validate_uri_hmac` but takes value for URI from given request header instead.
-This is useful when HTTP Image Store is behind proxy that rewrites URIs. This would normally brake HMAC computation but if it can store the original URI in a header this can be used instead for HAMAC computation.
+This is useful when HTTP Image Store is behind proxy that rewrites URIs. This would normally brake HMAC computation but if it can store the original URI in a header this can be used instead for HMAC computation.
 
 Arguments:
 
-1. original URI request header - name of request header that will contain original URI value that will be used for HMAC computation instead of the actual request URI
+1. header name - name of request header that will contain original URI value that will be used for HMAC computation instead of the actual request URI
 2. query string key for HMAC value - query string parameter key of the actual request URI that contains hex encoded HMAC value to be validated against
 
 Options:
