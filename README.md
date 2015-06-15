@@ -440,7 +440,7 @@ Example:
 
 ```sdl
 post "example" "&:rotate?0" "&:crop_x?0.0" "&:crop_y?0.0" "&:crop_w?1.0" "&:crop_h?1.0" "&:edits?" {
-	thumbnail "input" "thumbnail" operation="limit" width=100 height=100 format="jpeg" edits="#{edits}" {
+	thumbnail "input" "thumbnail" operation="pad" width=100 height=100 format="jpeg" edits="#{edits}" {
 		edit "rotate" "#{rotate}"
 		edit "crop" "#{crop_x}" "#{crop_y}" "#{crop_w}" "#{crop_h}"
 	}
@@ -450,7 +450,9 @@ post "example" "&:rotate?0" "&:crop_x?0.0" "&:crop_y?0.0" "&:crop_w?1.0" "&:crop
 
 In this example each thumbnail will be first rotated by `rotate` query string parameter value and cropped by query string provided values `crop_x`, `crop_y`, `crop_w`, `crop_h`.
 If query string parameter `edits` is provided it will be used to do additional edits after rotation and cropping is applied.
-Example URI can look like this: `/example?rotate=90&crop_x=0.1&crop_y=0.1&crop_w=0.8&crop_h=0.8&edits=pixelate,0.2,0.1,0.6,0.6,size:0.03!rectangle,0.1,0.8,0.8,0.1,color:blue`. This will firstly rotate image by 90 degrees and crop off 10% from each side of the image and then pixelate middle region of the image and draw blue rectangle at the bottom of it.
+
+Example URI can look like this: `/example?rotate=90&crop_x=0.1&crop_y=0.1&crop_w=0.8&crop_h=0.8&edits=pixelate,0.2,0.1,0.6,0.6,size:0.03!rectangle,0.1,0.8,0.8,0.1,color:blue`.
+Posted image will be rotated by 90 degree. Than the result will be cropped by 10% from each sied. Next middle region of the image will be pixelated and then blue rectangle will be drawn at the bottom of it. Finally thumbnail of dimensions 100 by 100 will be generated and provided as JPEG encoded image in response body.
 
 #### identify
 
