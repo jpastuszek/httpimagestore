@@ -6,13 +6,15 @@ It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as
 ## Features
 
 * fully configurable image processing and storage pipeline with custom API configuration capabilities
-* thumbnailing of sourced or input image into one or more thumbnails
+* thumbnailing and editing (rotate, crop, blur, etc.) of input or sourced image into one or more thumbnails
 * sourcing and storage of images on file system
 * sourcing and storage of images on [Amazon S3](http://aws.amazon.com/s3/)
 * image output with Cache-Control header
 * S3 public or private and http:// or https:// URL list output for stored images
 * S3 read-through and write-through object cache
-* storage under custom paths including image hash, content determined extension or used URL path
+* storage under custom paths including image hash, content determined extension or used URI path
+* data URI encoding of image body (for HTML inlining)
+* HMAC based URI authentication
 * based on [Unicorn HTTP server](http://unicorn.bogomips.org) with UNIX socket communication support
 
 ## Changelog
