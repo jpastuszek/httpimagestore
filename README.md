@@ -88,25 +88,24 @@ Configuration consists of:
 * S3 client configuration (optional)
 * storage path definitions
 * API endpoint definitions
+  * request validation
   * image sourcing operations
-  * image storage operation
-  * output operations
+  * image storage operations
+  * output setup
 
 ### Top level configuration elements
 
 #### thumbnailer
 
-Configures [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) client. It will be used to perform image processing operations.
+Configures [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) client. It will be used to perform image processing operations with `thumbnail` and `identify` statements.
 
 Options:
-* `url` - URL of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service
-
-If omitted [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service located at `http://localhost:3100` will be used.
+* `url` - URL of [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) service; default: `http://localhost:3100`
 
 Example:
 
 ```sdl
-thumbnailer url="http://2.2.2.2:1000"
+thumbnailer url="http://10.2.2.2:3100"
 ```
 
 #### s3
@@ -127,7 +126,7 @@ s3 key="AIAITCKMELYWQZPJP7HQ" secret="V37lCu0F48Tv9s7QVqIT/sLf/wwqhNSB4B0Em7Ei" 
 
 #### path
 
-This directive is used to define storage and retrieval paths that will be used when storing and sourcing file on file system or S3 service.
+This directive is used to define storage and retrieval paths that will be used when storing and sourcing file on file system or S3 service. They may also be used for generating output paths or URIs.
 You can declare one path per statement or use `{}` brackets syntax to define more than one with single statement - they are semantically equal.
 
 Arguments:
@@ -175,12 +174,12 @@ path {
 }
 ```
 
-#### API endpoint
+#### HTTP API endpoint
 
 This group of statements allows to configure single API endpoint.
-Each endpoint can have one or more operation defined that will be performed on request matching that endpoint.
+Each endpoint can have one or more operation defined that will be performed on HTTP request matching that endpoint.
 
-Endpoints will be evaluated in order of definition until one is matched.
+Endpoints will be evaluated in order of definition until one is matched or **404 Not Found** is returned.
 
 Statement should start with one of the following HTTP verbs in lowercase: `get`, `post`, `put`, `delete`, followed by list of URI segment matchers:
 
@@ -521,7 +520,7 @@ Options:
 * `bucket` - name of bucket to store image in
 * `path` - name of predefined path that will be used to generate key to store object under
 * `public` - if set to `true` the image will be readable by everybody; this affects fromat of output URL; default: `false`
-* `prefix` - prefix storeage key with given prefix value; this does not affect fromat of output URL; prefix will not be included in storage path output; default: ``
+* `prefix` - prefix storeage key with given prefix value; this does not affect fromat of output URL; prefix will not be included in storage path output; default: empty
 * `cache-root` - path to directory where stored S3 objects and meta-data will be cached for future sourcing with `source_s3`; write-through mode; note that same directory needs to be configured with corresponding `source_s3` statement
 
 Example:
@@ -791,6 +790,16 @@ If specified on or withing given statement it will cause that statement or it's 
 The list is in format `image name[,image name]*`.
 
 This option is useful when building API that works on predefined set of image operations and allows to select witch set of operations to perform with list included in the URL.
+
+#### if-variable-matches
+
+It can be used on most operation statements and sub statements (`edit`).
+
+The argument can contain name of variable to or be in format `<name of variable>:<expected value>`.
+In first from the statement will be executed if variable of given name exists and is non empty.
+In second form the statement will be executed if variable value equals to expected value.
+
+This option is useful for example to selectively execute statements based on query string parameters.
 
 ## Configuration examples
 
