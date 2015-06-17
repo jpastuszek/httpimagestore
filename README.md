@@ -1,6 +1,6 @@
 # HTTP Image Store
 
-HTTP API server for image thumbnailing and storage.
+Configurable S3 or file system image storage and processing HTTP API server.
 It is using [HTTP Thumbnailer](https://github.com/jpastuszek/httpthumbnailer) as image processing backend.
 
 ## Features
