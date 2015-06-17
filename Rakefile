@@ -17,12 +17,12 @@ Jeweler::Tasks.new do |gem|
   gem.name = "httpimagestore"
   gem.homepage = "http://github.com/jpastuszek/httpimagestore"
   gem.license = "MIT"
-  gem.summary = %Q{HTTP based image storage and thumbnailer}
-  gem.description = %Q{Thumbnails images using httpthumbnailer and stored data on HTTP server (S3)}
+  gem.summary = %Q{HTTP API server for image thumbnailing and storage}
+  gem.description = %Q{Configurable S3 or file system image storage and processing HTTP API server. It is using HTTP Thumbnailer as image processing backend.}
   gem.email = "jpastuszek@gmail.com"
   gem.authors = ["Jakub Pastuszek"]
   gem.files.exclude "features/**/*"
-  gem.files.exclude "load_test/**/*"
+  gem.files.exclude "gatling/**/*"
   gem.files.exclude "spec/**/*"
   gem.files.exclude "*.gemspec"
   gem.files.exclude ".rspec"
