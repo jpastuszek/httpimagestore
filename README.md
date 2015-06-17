@@ -1141,10 +1141,12 @@ If running as root you can use `--user` option to specify user with whose privil
 Additionally `httpimagestore` will log requests in [common NCSA format](http://en.wikipedia.org/wiki/Common_Log_Format) to `httpimagestore_access.log` file. Use `--access-log-file` option to change location of access log.
 
 Syslog logging can be enabled with `--syslog-facility` option followed by name of syslog facility to use. When enabled log files are not created and both application logs and access logs are sent to syslog.
-Access logs will gain meta information that will include `type="http-access"` that can be used to filter access log entries out from application log entries.
+Access logs will gain meta information that will include `"type":"http-access"` that can be used to filter access log entries out from application log entries.
 
 With `--xid-header` option name of HTTP request header can be specified. Value of this header will be logged in meta information tag `xid` along side all request related log entries.
 Named header will be passed down with requests to HTTP Thumbnailer for grater traceability.
+
+Using `--perf-stats` switch will enable logging of performance statistics. This log entries will be logged with `"type":"perf-stats"`.
 
 ### Running with nginx
 
